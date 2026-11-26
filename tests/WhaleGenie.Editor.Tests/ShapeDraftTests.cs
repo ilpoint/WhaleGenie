@@ -53,6 +53,19 @@ public class ShapeDraftTests
     }
 
     [Fact]
+    public void A_text_box_that_is_not_a_rectangle_and_not_a_name_is_text()
+    {
+        // The one-name box writes text for anything that is not a rectangle, and a name for a word
+        // that could be one. A path is neither, so it stays the text it was typed as.
+        var row = new StepParameterRow();
+        row.Set("text", Formula.Text("C:\\shot.png"));
+
+        var written = RegionRowViewModel.From(row).ToRow();
+
+        SameCells(row, written);
+    }
+
+    [Fact]
     public void A_call_argument_keeps_the_variable_it_passes()
     {
         var row = new StepParameterRow();

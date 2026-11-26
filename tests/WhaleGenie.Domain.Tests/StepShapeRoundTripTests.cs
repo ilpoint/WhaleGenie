@@ -45,6 +45,109 @@ public class StepShapeRoundTripTests
     }
 
     [Fact]
+    public void Every_shape_tag_a_window_rule_can_hold_is_read_as_the_shape_it_is()
+    {
+        // The rule reader has to tell a tagged formula from a literal rule by its keys. A key that
+        // was not checked is a variable rule that comes back as an empty literal window.
+        ExpressionNode[] shapes =
+        [
+            Formula.Name("窗口"),
+            Formula.Run([Formula.Text("前"), Formula.Name("窗口")]),
+            Formula.Call("window", Formula.Name("窗口")),
+            Formula.Binary("+", Formula.Name("x"), Formula.Number(1)),
+            Formula.List(Formula.Number(1), Formula.Text("a")),
+            new GroupNode(Formula.Name("窗口")),
+            new DateNode("2026-11-27"),
+        ];
+
+        foreach (var shape in shapes)
+        {
+            var node = new System.Text.Json.Nodes.JsonObject
+            {
+                ["type"] = "vision.findImage",
+                ["params"] = new System.Text.Json.Nodes.JsonObject
+                {
+                    ["window"] = FormulaJson.Write(shape),
+                },
+            };
+            var read = MacroStep.FromJson(node)
+                .Parameters.Single(parameter => parameter.Name == "window");
+            Assert.True(SameShape(shape, read.Written), shape.GetType().Name);
+        }
+    }
+
+    [Fact]
+    public void A_region_row_with_no_written_cells_is_left_out_of_the_file()
+    {
+        var parameter = new StepParameter
+        {
+            Name = "region",
+            Kind = ActionParameterKind.Region,
+            Rows = [new StepParameterRow()],
+        };
+
+        var written = Assert.IsType<System.Text.Json.Nodes.JsonArray>(parameter.ToJson());
+        Assert.Empty(written);
+    }
+
+    [Fact]
+    public void A_row_cell_that_says_nothing_is_left_out_of_its_row()
+    {
+        var row = new StepParameterRow();
+        row.Set("x", Formula.Number(10));
+        row.Set("y", Formula.Nothing);
+        var parameter = new StepParameter
+        {
+            Name = "region",
+            Kind = ActionParameterKind.Region,
+            Rows = [row],
+        };
+
+        var written = Assert.IsType<System.Text.Json.Nodes.JsonArray>(parameter.ToJson());
+        var cells = Assert.IsType<System.Text.Json.Nodes.JsonObject>(written[0]);
+        Assert.True(cells.ContainsKey("x"));
+        Assert.False(cells.ContainsKey("y"));
+    }
+
+    [Fact]
+    public void An_empty_text_and_an_empty_number_keep_their_kind_in_the_file()
+    {
+        var text = new StepParameter
+        {
+            Name = "path",
+            Kind = ActionParameterKind.Text,
+            Written = Formula.Nothing,
+        };
+        var number = new StepParameter
+        {
+            Name = "ms",
+            Kind = ActionParameterKind.Number,
+            Written = Formula.Nothing,
+        };
+
+        Assert.Equal(string.Empty,
+            Assert.IsAssignableFrom<System.Text.Json.Nodes.JsonValue>(text.ToJson()).GetValue<string>());
+        Assert.Equal(0m,
+            Assert.IsAssignableFrom<System.Text.Json.Nodes.JsonValue>(number.ToJson()).GetValue<decimal>());
+    }
+
+    [Fact]
+    public void A_plain_number_in_a_text_field_is_written_as_text()
+    {
+        // A text field holds prose: a number in it is the words of that number, not a JSON number
+        // that would read back as a NumberNode.
+        var parameter = new StepParameter
+        {
+            Name = "path",
+            Kind = ActionParameterKind.Text,
+            Written = Formula.Number(10),
+        };
+
+        var written = Assert.IsAssignableFrom<System.Text.Json.Nodes.JsonValue>(parameter.ToJson());
+        Assert.Equal("10", written.GetValue<string>());
+    }
+
+    [Fact]
     public void A_window_rule_written_as_a_variable_comes_back_as_a_variable()
     {
         // A window rule is a record: a variable that holds one is still a name, not a literal rule

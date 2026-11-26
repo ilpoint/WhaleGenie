@@ -15,6 +15,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\WhaleGenie\WhaleGenie.csproj" />
+    <!-- Direct so mutation testing sees the assembly these cases already exercise. -->
+    <ProjectReference Include="..\..\src\WhaleGenie.Editing\WhaleGenie.Editing.csproj" />
     <ProjectReference Include="..\..\tools\WhaleGenie.ContractsGen\WhaleGenie.ContractsGen.csproj" />
     <ProjectReference Include="..\WhaleGenie.App.TestSupport\WhaleGenie.App.TestSupport.csproj" />
   </ItemGroup>
