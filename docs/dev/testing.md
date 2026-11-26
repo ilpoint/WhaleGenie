@@ -22,7 +22,8 @@
 | 公共面与依赖方向 | `WhaleGenie.Tests`（`LayeringTests`）与 PublicAPI 分析器 | 引擎的引用闭包、目标框架、IVT 名单、画面工程的方向；公共成员与基线一致 |
 | 界面观感 | 网页壳 CDP（Debug） | Playwright 连 9223 读页面、点、截图；原生窗口按手动清单验收 |
 
-跑全部：`dotnet test WhaleGenie.slnx`（八个套件并行，约两分钟）。只跑一个工程时加
+跑全部：`dotnet test WhaleGenie.slnx`（八个套件并行；本机实测与串行的对比写在 `ci.yml` 里）。
+只跑一个工程时加
 `-p:Platform=x64`：解决方案把测试产物放在 `bin/x64/`，裸跑工程会另建一份 `bin/Debug/`，
 两份都叫同一个名字——不加平台参数容易跑到上一次的旧产物，看到的是当时的绿。
 

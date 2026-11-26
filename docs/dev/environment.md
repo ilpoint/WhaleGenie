@@ -97,8 +97,9 @@ GitHub Copilot 的 Agent 工具列表里应出现它。`.vscode/` 按 `.gitignor
 ## 工程结构
 
 仓库根只放仓库级文件：解决方案、`Directory.Build.props`、`Directory.Packages.props`、
-`global.json`、`.editorconfig`、脚本与文档。8 个产品工程在 `src/`，8 个测试工程与两个支持库在
-`tests/`。目录只决定文件放在哪：工程名、程序集名、根命名空间与 `avares://` 地址都不随目录变化。
+`global.json`、`.editorconfig`、脚本与文档。7 个应用工程在 `src/`，库的 3 个工程在 `core/src/`；
+8 个测试工程与两个支持库分别住在 `tests/` 与 `core/tests/`（其中 3 个测试工程随库走）。
+目录只决定文件放在哪：工程名、程序集名、根命名空间与 `avares://` 地址都不随目录变化。
 所有 NuGet 包版本集中在根上的 `Directory.Packages.props`（中央包管理）；工程文件里的
 `PackageReference` 只写 `Include` 和它真正的条件（仅在 Debug 还原、`IncludeAssets`/`PrivateAssets`），
 不写 `Version`。

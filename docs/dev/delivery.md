@@ -60,8 +60,9 @@ node build/render-overview.mjs .
 
 ## 提交与 CI
 
-`master` 是发布主线。`.github/workflows/ci.yml` 在推送和拉取请求上运行格式检查、构建及全部测试。
-三个测试工程在 CI 中串行执行，避免计时相关用例争用处理器；失败报告保留 7 天，成功运行不保存报告。
+`master` 是发布主线。`.github/workflows/ci.yml` 在推送到 `master`、`webview` 与拉取请求上
+运行格式检查、构建及全部测试；八套件并行执行（为什么并行、两轮实测与串行的对比写在 `ci.yml` 的
+注释里），失败报告保留 7 天，成功运行不保存报告。
 
 需要在本地复现 CI 时，可使用 `act`：
 
