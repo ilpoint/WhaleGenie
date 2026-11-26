@@ -35,6 +35,8 @@ internal sealed class FakeRunContext : IRunContext, IRunPoints, IScreenReads, IS
 
     VariableStore IRunContext.Variables => _variables;
 
+    EvaluationContext IRunContext.Evaluation => EvaluationContext.System;
+
     string IRunContext.PathOf(ExecutableStep step, string parameter)
         => ((IRunContext)this).Args(step).ValueOf(parameter).AsText();
 
@@ -140,7 +142,8 @@ internal sealed class FakeRunContext : IRunContext, IRunPoints, IScreenReads, IS
 
     private static ImageFrame Picture() => new(10, 10, new byte[400]);
 
-    StepArguments IRunContext.Args(ExecutableStep step) => new(step, _variables, 16);
+    StepArguments IRunContext.Args(ExecutableStep step)
+        => new(step, _variables, 16, EvaluationContext.System);
 
     ResolvedPoint IRunPoints.Point(ExecutableStep step, string xName, string yName)
     {

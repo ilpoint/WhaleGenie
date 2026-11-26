@@ -22,12 +22,15 @@ internal readonly struct StepArguments
     private readonly ExecutableStep _step;
     private readonly VariableStore _variables;
     private readonly int _refreshMilliseconds;
+    private readonly EvaluationContext _evaluation;
 
-    public StepArguments(ExecutableStep step, VariableStore variables, int refreshMilliseconds)
+    public StepArguments(ExecutableStep step, VariableStore variables, int refreshMilliseconds,
+        EvaluationContext evaluation)
     {
         _step = step;
         _variables = variables;
         _refreshMilliseconds = refreshMilliseconds;
+        _evaluation = evaluation ?? EvaluationContext.System;
     }
 
     /// <summary>
@@ -189,5 +192,6 @@ internal readonly struct StepArguments
         => [.. written.Split('+', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)];
 
     /// <summary>What a shape comes to, with the names in it worked out where they stand.</summary>
-    private Value Read(ExpressionNode written) => Expression.Evaluate(written, _variables);
+    private Value Read(ExpressionNode written)
+        => Expression.Evaluate(written, _variables, _evaluation);
 }

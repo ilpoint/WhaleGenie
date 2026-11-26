@@ -16,6 +16,12 @@ internal interface IRunContext
     /// <summary>The machine the steps act on.</summary>
     IDeviceLayer Devices { get; }
 
+    /// <summary>
+    /// The clock and dice a field is worked out against. One run reads "now" as one moment rather
+    /// than as however long the run has been going.
+    /// </summary>
+    EvaluationContext Evaluation { get; }
+
     /// <summary>Pictures the run has taken, under the name the macro saved them by.</summary>
     IDictionary<string, ImageFrame> Images { get; }
 

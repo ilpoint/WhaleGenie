@@ -17,14 +17,14 @@ namespace WhaleGenie.Core.Execution;
 /// class, so "where did this step look" has one answer rather than three.
 /// </summary>
 internal sealed class ScreenSight(IDeviceLayer devices, VariableStore variables, RunState run,
-    StepProgress here, IRunLooks? looks, WindowFacts windows)
+    StepProgress here, IRunLooks? looks, WindowFacts windows, EvaluationContext evaluation)
 {
     /// <summary>The reader for the fields of one step.</summary>
     private StepArguments Args(ExecutableStep step)
-        => new(step, variables, devices.Screen.RefreshMilliseconds);
+        => new(step, variables, devices.Screen.RefreshMilliseconds, evaluation);
 
     /// <summary>What a shape comes to, with the names in it worked out where they stand.</summary>
-    private Value Read(ExpressionNode written) => Expression.Evaluate(written, variables);
+    private Value Read(ExpressionNode written) => Expression.Evaluate(written, variables, evaluation);
 
     /// <summary>
     /// The corner a step's own numbers are counted from, and the window they belong to. Reading

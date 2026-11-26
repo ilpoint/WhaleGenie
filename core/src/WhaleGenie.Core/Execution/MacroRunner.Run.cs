@@ -33,21 +33,40 @@ public sealed partial class MacroRunner
     /// <summary>How long a controller button stays down when the step asked for no time in particular.</summary>
     private const int ShortestPressMs = 50;
 
+    // The shipped shape keeps its optional parameters, so the constructor that carries the clock is
+    // the wider one without being optional-shaped itself. RS0027 wants the optional one to be the
+    // widest, which cannot hold while both shapes exist; a call with fewer arguments binds to this
+    // one, so there is nothing ambiguous about the pair.
+#pragma warning disable RS0027
     public MacroRunner(VariableStore variables, IRunHost? host = null, IDeviceLayer? devices = null,
         double delayScale = 1, IMacroLibrary? macros = null, IRunLooks? looks = null)
+        : this(variables, host, devices, delayScale, macros, looks, null)
+    {
+    }
+#pragma warning restore RS0027
+
+    /// <summary>
+    /// The same run, against a clock and dice the caller hands in: every field of the run is worked
+    /// out against them, so a step that reads "now" twice reads one moment and a check can pin the
+    /// day it is about. Nothing else about the run changes, which is why this is the same
+    /// constructor with one more answer rather than a second way of building one.
+    /// </summary>
+    public MacroRunner(VariableStore variables, IRunHost? host, IDeviceLayer? devices,
+        double delayScale, IMacroLibrary? macros, IRunLooks? looks, EvaluationContext? evaluation)
     {
         Variables = variables;
+        Evaluation = evaluation ?? EvaluationContext.System;
         _host = host ?? new SilentRunHost();
         _devices = devices ?? NullDeviceLayer.Instance;
         _macros = macros ?? EmptyMacroLibrary.Instance;
         _looks = looks;
-        _pictures = new ReferencePictures(_devices, Variables, _run);
-        _windows = new WindowFacts(_devices, Variables, _run);
-        _sight = new ScreenSight(_devices, Variables, _run, _here, looks, _windows);
-        _points = new ScreenPoints(_devices, Variables, _windows);
+        _pictures = new ReferencePictures(_devices, Variables, _run, Evaluation);
+        _windows = new WindowFacts(_devices, Variables, _run, Evaluation);
+        _sight = new ScreenSight(_devices, Variables, _run, _here, looks, _windows, Evaluation);
+        _points = new ScreenPoints(_devices, Variables, _windows, Evaluation);
         _results = new StepResults(Variables, _here, _points, Log);
-        _reads = new ScreenReads(_devices, Variables, _run, _here, _sight);
-        _calls = new CallBinder(_devices, Variables, _macros, _run);
+        _reads = new ScreenReads(_devices, Variables, _run, _here, _sight, Evaluation);
+        _calls = new CallBinder(_devices, Variables, _macros, _run, Evaluation);
         _timeout = new StepTimeout(this, _windows);
         _values = new ValueActions(this, _run);
         DelayScale = Clamp(delayScale);
@@ -55,6 +74,13 @@ public sealed partial class MacroRunner
 
     /// <summary>The variables the run reads and writes.</summary>
     public VariableStore Variables { get; }
+
+    /// <summary>
+    /// The clock, the dice and the notes every field of this run is worked out against. One run
+    /// reading "now" twice reads one moment, and a check that hands in a fixed clock gets the same
+    /// answers however long the run takes.
+    /// </summary>
+    public EvaluationContext Evaluation { get; }
 
     /// <summary>
     /// How much longer or shorter this run makes the timings the macro asked for. 1 leaves them

@@ -25,7 +25,7 @@ public class HitOrderTests
         ];
 
     private static HitOrder Read(ExecutableStep step, ScreenPoint? anchor = null)
-        => HitOrder.Of(new StepArguments(step, Variables, 16), () => anchor, Areas());
+        => HitOrder.Of(new StepArguments(step, Variables, 16, EvaluationContext.System), () => anchor, Areas());
 
     private static ExecutableStep Step(params ExecutableParameter[] parameters)
         => new() { Type = "vision.findImage", Parameters = parameters };

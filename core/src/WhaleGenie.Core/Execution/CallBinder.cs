@@ -17,14 +17,14 @@ namespace WhaleGenie.Core.Execution;
 /// name it never offered is said now rather than after a half-finished run.
 /// </remarks>
 internal sealed class CallBinder(IDeviceLayer devices, VariableStore variables, IMacroLibrary macros,
-    RunState run)
+    RunState run, EvaluationContext evaluation)
 {
     /// <summary>How many macros deep a run may go before it is called a mistake.</summary>
     private const int DepthLimit = 16;
 
     /// <summary>The reader for the fields of one step.</summary>
     private StepArguments Args(ExecutableStep step)
-        => new(step, variables, devices.Screen.RefreshMilliseconds);
+        => new(step, variables, devices.Screen.RefreshMilliseconds, evaluation);
 
     /// <summary>What one call resolved to: the macro, the values it starts on, and what comes back.</summary>
     public sealed record Resolved(string Name, IReadOnlyList<ExecutableStep> Steps,
@@ -269,14 +269,14 @@ internal sealed class CallBinder(IDeviceLayer devices, VariableStore variables, 
 
             var fallback = Formula.IsNothing(argument.Default)
                 ? Value.Null
-                : Expression.Evaluate(argument.Default, variables);
+                : Expression.Evaluate(argument.Default, variables, evaluation);
             CheckValueFits(argument.Type, fallback, argument.Name, RunKeys.BadArgumentType);
             return fallback;
         }
 
         var value = Formula.IsNothing(written)
             ? Value.FromText(string.Empty)
-            : Expression.Evaluate(written, variables);
+            : Expression.Evaluate(written, variables, evaluation);
         CheckValueFits(argument.Type, value, argument.Name, RunKeys.BadArgumentType);
         return value;
     }
@@ -295,7 +295,7 @@ internal sealed class CallBinder(IDeviceLayer devices, VariableStore variables, 
             return ValueRules.Empty(type);
         }
 
-        var value = Expression.Evaluate(initial, variables);
+        var value = Expression.Evaluate(initial, variables, evaluation);
         CheckValueFits(type, value, name, RunKeys.BadInitial);
         return value;
     }

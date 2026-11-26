@@ -1,5 +1,10 @@
 using System;
+using System.Threading.Tasks;
+
+using WhaleGenie.Core.Devices;
+using WhaleGenie.Core.Execution;
 using WhaleGenie.Core.Expressions;
+using WhaleGenie.Core.Variables;
 
 namespace WhaleGenie.Core.Tests;
 
@@ -96,6 +101,27 @@ public class ExpressionContextTests
             Assert.InRange(value, 3, 7);
             Assert.Equal(Math.Floor(value), value);
         }
+    }
+
+    [Fact]
+    public async Task One_run_reads_one_moment_however_long_it_takes()
+    {
+        var store = new VariableStore();
+        var step = new ExecutableStep
+        {
+            Type = "control.setVariable",
+            Parameters =
+            [
+                Fields.Computed("name", Formula.Text("stamp")),
+                Fields.Computed("value", Formula.Call("now")),
+            ],
+        };
+
+        var runner = new MacroRunner(store, null, NullDeviceLayer.Instance, 1, null, null, AtNoon());
+        var result = await runner.RunAsync([step]);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal("2026-03-04 12:30:45", store.Local.Values["stamp"].AsText());
     }
 
     [Fact]

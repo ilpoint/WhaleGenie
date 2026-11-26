@@ -17,6 +17,8 @@ public sealed partial class MacroRunner : IRunContext, IRunPoints, IScreenReads,
 
     VariableStore IRunContext.Variables => Variables;
 
+    EvaluationContext IRunContext.Evaluation => Evaluation;
+
     string IRunContext.PathOf(ExecutableStep step, string parameter) => PathOf(step, parameter);
 
     IRunPoints IRunContext.Points => this;
