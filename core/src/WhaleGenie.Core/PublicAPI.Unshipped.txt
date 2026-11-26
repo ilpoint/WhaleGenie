@@ -1,1 +1,9 @@
 #nullable enable
+WhaleGenie.Core.Expressions.EvaluationContext
+static WhaleGenie.Core.Expressions.EvaluationContext.System.get -> WhaleGenie.Core.Expressions.EvaluationContext!
+WhaleGenie.Core.Expressions.EvaluationContext.EvaluationContext(System.TimeProvider! clock, System.Random! random) -> void
+WhaleGenie.Core.Expressions.EvaluationContext.Clock.get -> System.TimeProvider!
+WhaleGenie.Core.Expressions.EvaluationContext.Random.get -> System.Random!
+WhaleGenie.Core.Expressions.EvaluationContext.Now.get -> System.DateTimeOffset
+static WhaleGenie.Core.Expressions.Expression.Evaluate(WhaleGenie.Core.Expressions.ExpressionNode! tree, WhaleGenie.Core.Expressions.IVariableResolver? variables, WhaleGenie.Core.Expressions.EvaluationContext! context) -> WhaleGenie.Core.Expressions.Value!
+static WhaleGenie.Core.Expressions.Expression.TryEvaluate(WhaleGenie.Core.Expressions.ExpressionNode! tree, WhaleGenie.Core.Expressions.IVariableResolver? variables, WhaleGenie.Core.Expressions.EvaluationContext! context, out WhaleGenie.Core.Expressions.Value! value, out WhaleGenie.Core.Expressions.ExpressionException? error) -> bool

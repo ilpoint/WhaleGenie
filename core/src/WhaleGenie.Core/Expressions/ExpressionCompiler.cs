@@ -15,7 +15,8 @@ namespace WhaleGenie.Core.Expressions;
 /// </summary>
 internal static class ExpressionCompiler
 {
-    public static Func<Value> Compile(ExpressionNode node, IVariableResolver variables)
+    public static Func<Value> Compile(ExpressionNode node, IVariableResolver variables,
+        EvaluationContext context)
         => node switch
         {
             NumberNode number => () => Value.FromNumber(number.Value),
@@ -25,12 +26,12 @@ internal static class ExpressionCompiler
             TextNode text => () => Value.FromText(text.Text),
             ConstantNode constant => Compiled(constant.Word),
             VariableNode variable => () => Resolve(variables, variable),
-            ConcatNode run => Compiled(run, variables),
-            ListNode list => Compiled(list, variables),
-            CallNode call => Compiled(call, variables),
-            UnaryNode unary => Compiled(unary, variables),
-            BinaryNode binary => Compiled(binary, variables),
-            GroupNode group => Compile(group.Inner, variables),
+            ConcatNode run => Compiled(run, variables, context),
+            ListNode list => Compiled(list, variables, context),
+            CallNode call => Compiled(call, variables, context),
+            UnaryNode unary => Compiled(unary, variables, context),
+            BinaryNode binary => Compiled(binary, variables, context),
+            GroupNode group => Compile(group.Inner, variables, context),
             _ => throw ExpressionException.Syntax("a place in the formula is still empty"),
         };
 
@@ -41,9 +42,10 @@ internal static class ExpressionCompiler
         _ => () => Value.Null,
     };
 
-    private static Func<Value> Compiled(ListNode list, IVariableResolver variables)
+    private static Func<Value> Compiled(ListNode list, IVariableResolver variables,
+        EvaluationContext context)
     {
-        var items = list.Items.Select(item => Compile(item, variables)).ToList();
+        var items = list.Items.Select(item => Compile(item, variables, context)).ToList();
         return () => Value.FromList(items.Select(item => item()));
     }
 
@@ -57,10 +59,12 @@ internal static class ExpressionCompiler
     /// stopping a run that had nothing to do with it. A formula in the run is still worked out
     /// strictly, because a formula that cannot be worked out is a mistake rather than a word.
     /// </summary>
-    private static Func<Value> Compiled(ConcatNode run, IVariableResolver variables)
+    private static Func<Value> Compiled(ConcatNode run, IVariableResolver variables,
+        EvaluationContext context)
     {
         var parts = run.Parts
-            .Select(part => Compile(part, part is VariableNode ? new Lenient(variables) : variables))
+            .Select(part => Compile(part, part is VariableNode ? new Lenient(variables) : variables,
+                context))
             .ToList();
         return () => Value.FromText(string.Concat(parts.Select(part => part().AsText())));
     }
@@ -80,7 +84,8 @@ internal static class ExpressionCompiler
         }
     }
 
-    private static Func<Value> Compiled(CallNode call, IVariableResolver variables)
+    private static Func<Value> Compiled(CallNode call, IVariableResolver variables,
+        EvaluationContext context)
     {
         if (!FunctionLibrary.TryGet(call.Name, out var entry))
         {
@@ -92,22 +97,27 @@ internal static class ExpressionCompiler
             throw ExpressionException.ArgumentCount(entry.Signature);
         }
 
-        var arguments = call.Arguments.Select(argument => Compile(argument, variables)).ToList();
-        return () => entry.Body(arguments);
+        var arguments = call.Arguments.Select(argument => Compile(argument, variables, context))
+            .ToList();
+        return entry.With is { } bound
+            ? () => bound(context, arguments)
+            : () => entry.Body!(arguments);
     }
 
-    private static Func<Value> Compiled(UnaryNode unary, IVariableResolver variables)
+    private static Func<Value> Compiled(UnaryNode unary, IVariableResolver variables,
+        EvaluationContext context)
     {
-        var operand = Compile(unary.Operand, variables);
+        var operand = Compile(unary.Operand, variables, context);
         return unary.Operator == "not"
             ? () => Value.FromBool(!operand().AsBool())
             : () => Value.FromNumber(-operand().AsNumber());
     }
 
-    private static Func<Value> Compiled(BinaryNode binary, IVariableResolver variables)
+    private static Func<Value> Compiled(BinaryNode binary, IVariableResolver variables,
+        EvaluationContext context)
     {
-        var left = Compile(binary.Left, variables);
-        var right = Compile(binary.Right, variables);
+        var left = Compile(binary.Left, variables, context);
+        var right = Compile(binary.Right, variables, context);
 
         switch (binary.Operator)
         {

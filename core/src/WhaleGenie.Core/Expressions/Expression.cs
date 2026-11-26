@@ -151,16 +151,36 @@ public static class Expression
     /// the shape the engine runs, which is what leaves a run of text with a name in it and a
     /// formula with no way of being confused for one another.
     /// </summary>
+    // The two-argument form keeps the optional shape the shipped baseline records. The
+    // wider overload takes the clock and dice, so it is the one with more parameters — RS0027
+    // asks for exactly that and cannot see it through the overload pair written here.
+#pragma warning disable RS0027
     public static Value Evaluate(ExpressionNode tree, IVariableResolver? variables = null)
-        => ExpressionCompiler.Compile(tree, variables ?? EmptyVariableResolver.Instance)();
+        => Evaluate(tree, variables, EvaluationContext.System);
+#pragma warning restore RS0027
+
+    /// <summary>
+    /// The same, against the clock and dice the caller hands in. A check that reads "now" twice has
+    /// to get one answer, and an editor preview of a date formula has to be the day the person is
+    /// looking at rather than whichever moment the evaluation happened to run.
+    /// </summary>
+    public static Value Evaluate(ExpressionNode tree, IVariableResolver? variables,
+        EvaluationContext context)
+        => ExpressionCompiler.Compile(tree, variables ?? EmptyVariableResolver.Instance,
+            context ?? EvaluationContext.System)();
 
     /// <summary>Works out a tree, reporting failure instead of throwing.</summary>
     public static bool TryEvaluate(ExpressionNode tree, IVariableResolver? variables,
         out Value value, out ExpressionException? error)
+        => TryEvaluate(tree, variables, EvaluationContext.System, out value, out error);
+
+    /// <summary>The same, against the clock and dice the caller hands in.</summary>
+    public static bool TryEvaluate(ExpressionNode tree, IVariableResolver? variables,
+        EvaluationContext context, out Value value, out ExpressionException? error)
     {
         try
         {
-            value = Evaluate(tree, variables);
+            value = Evaluate(tree, variables, context);
             error = null;
             return true;
         }

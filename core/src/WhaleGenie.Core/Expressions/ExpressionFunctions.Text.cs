@@ -172,17 +172,17 @@ internal static partial class FunctionLibrary
             : Math.Round(value, Math.Clamp((int)N(args, 1), 0, 15), MidpointRounding.AwayFromZero);
     }
 
-    private static double Random(IReadOnlyList<Func<Value>> args) => args.Count switch
+    private static double Random(Random dice, IReadOnlyList<Func<Value>> args) => args.Count switch
     {
-        0 => System.Random.Shared.NextDouble(),
-        1 => System.Random.Shared.Next((int)N(args, 0) + 1),
-        _ => MinMax(args),
+        0 => dice.NextDouble(),
+        1 => dice.Next((int)N(args, 0) + 1),
+        _ => MinMax(dice, args),
     };
 
-    private static double MinMax(IReadOnlyList<Func<Value>> args)
+    private static double MinMax(Random dice, IReadOnlyList<Func<Value>> args)
     {
         var min = (int)N(args, 0);
         var max = (int)N(args, 1);
-        return min > max ? min : System.Random.Shared.Next(min, max + 1);
+        return min > max ? min : dice.Next(min, max + 1);
     }
 }
