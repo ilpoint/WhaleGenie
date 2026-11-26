@@ -190,7 +190,7 @@ test('脏页签关闭前询问，取消保留，确认后保存', async ({ page 
   await expect(page.locator('wg-editor-tabs .tab', { hasText: '未命名宏' })).toHaveCount(0);
 });
 
-test('脏页签可以选不保存并关闭，空状态不残留提示', async ({ page }) => {
+test('脏页签可以选不保存并关闭，最后一个文档关掉后回到列表', async ({ page }) => {
   await openEditor(page);
   await addStep(page, '流程控制', '延迟');
   await page.locator('wg-step-tree .row').first().click();
@@ -202,11 +202,10 @@ test('脏页签可以选不保存并关闭，空状态不残留提示', async ({
   await expect(page.locator('wg-editor-unsaved .dialog')).toBeVisible();
   await page.locator('wg-editor-unsaved .dialog fluent-button', { hasText: '放弃修改' }).click();
 
-  await expect(page.locator('wg-editor-tabs .tab')).toHaveCount(0);
+  // 最后一个文档关掉之后编辑器退回列表，页面上不再有编辑区，也不留下问话或提示。
+  await expect(page.locator('wg-editor')).toHaveCount(0);
+  await expect(page.locator('wg-macros')).toBeVisible();
   await expect(page.locator('wg-editor-unsaved .dialog')).toHaveCount(0);
-  await expect(page.locator('wg-editor .notice')).toHaveCount(0);
-  await expect(page.locator('wg-editor .error')).toHaveCount(0);
-  await expect(page.locator('wg-editor .empty')).toBeVisible();
 });
 
 test('离开编辑器先问未保存的宏，取消留下、不保存离开', async ({ page }) => {
