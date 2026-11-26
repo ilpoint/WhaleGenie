@@ -68,6 +68,21 @@ jobs:
             echo changed=true >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Rewrite the size ledger the pull moved
+        # The ledger names files by their size, and some of them live in the library: a pull that
+        # adds or removes a line there leaves a verdict about a file that is no longer what it was.
+        # The script measures the checkout the same way FileSizeTests does, and the row keeps the
+        # verdict somebody wrote; only the number changes.
+        if: steps.pull.outputs.changed == 'true'
+        shell: pwsh
+        run: |
+          pwsh build/ledger.ps1
+          git add .githooks/large-file-inventory.tsv
+          $changed = git status --porcelain .githooks/large-file-inventory.tsv
+          if ($changed) {
+            git commit -m "chore: 台账跟上库仓的改动"
+          }
+
       - name: Restore
         if: steps.pull.outputs.changed == 'true'
         run: dotnet restore WhaleGenie.slnx
