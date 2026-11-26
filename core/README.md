@@ -100,7 +100,7 @@ Release 基线（2026-11，本机）：
 | devices-colour | 672 | 73.96% | 存活集中在 PNG 头的位深分支与颜色近似的边界 |
 | devices-window | 39 | 61.54% | `WindowRule`/`WindowHow` 的 JSON 读写、十种比较与默认值已补 24 条；其余覆盖仍靠带 Window 名字的动作测试 |
 | devices-files | 50 | 76.00% | 引号、双引号、单元格里的换行、空白行开关、自动分隔与写回都已补用例 |
-| expressions-value | 208 | 58.17% | 多数存活是 `Value` 构造与格式化里的等价路径；bool/date 的读数已补 |
+| expressions-value | 208 | 67.79% | `Value` 自己的读数、比较与写法补了 11 条（空值、大小写、真假、日期与哈希）；剩下的是构造器里的等价路径与 `JsonValues` 的字符串分支 |
 | expressions-writer | 196 | 54.59% | 渲染补了 12 条（括号、优先级、转义、占位），这才是编辑器的显示契约；剩下的是 `Expression`/`Formula` 的构造与改名路径 |
 | rules | 475 | 59.37% | 重试的三个决定抽成 `RetryPolicy`（16 条用例），|
 
