@@ -30,27 +30,37 @@ internal static partial class FunctionLibrary
         "yyyy/MM/dd HH:mm:ss",
         "yyyy/MM/dd HH:mm",
         "yyyy/MM/dd",
-        "HH:mm:ss",
-        "HH:mm",
     ];
+
+    /// <summary>
+    /// A time of day with no date on it. It is read against the clock the caller handed in rather
+    /// than against whatever day the parser fills in, because "wait until 09:30" means the next one.
+    /// </summary>
+    private static readonly string[] ClockFormats = ["HH:mm:ss", "HH:mm"];
 
     /// <summary>
     /// Reads a date. A time of day on its own counts as today, which is what "wait until
     /// 09:30" means, and an empty argument is now, so a date function that is handed
     /// nothing still does something sensible instead of refusing to run.
     /// </summary>
-    public static DateTimeOffset Moment(string text)
+    public static DateTimeOffset Moment(string text, DateTimeOffset now)
     {
         var trimmed = text.Trim();
         if (trimmed.Length == 0)
         {
-            return DateTimeOffset.Now;
+            return now;
+        }
+
+        if (DateTimeOffset.TryParseExact(trimmed, ClockFormats, CultureInfo.InvariantCulture,
+                DateTimeStyles.AllowWhiteSpaces, out var clock))
+        {
+            return new DateTimeOffset(now.Date.Add(clock.TimeOfDay), now.Offset);
         }
 
         if (DateTimeOffset.TryParseExact(trimmed, MomentFormats, CultureInfo.InvariantCulture,
                 DateTimeStyles.AllowWhiteSpaces, out var exact))
         {
-            return Anchored(exact);
+            return exact;
         }
 
         if (DateTimeOffset.TryParse(trimmed, CultureInfo.InvariantCulture,
@@ -63,13 +73,14 @@ internal static partial class FunctionLibrary
     }
 
     /// <summary>
-    /// A clock time with no date on it belongs to today: "wait until 09:30" means the next one,
-    /// and a text written in a pattern that only names a time reads the same way.
+    /// A pattern that names only a time reads against the caller's day, the same as the shapes
+    /// <see cref="Moment"/> already knows: a report written 09:30 is today's 09:30. A pattern with
+    /// a year, a month or a day in it carries its own date and is left as it was read.
     /// </summary>
-    private static DateTimeOffset Anchored(DateTimeOffset moment)
-        => moment.Year == 1
-            ? new DateTimeOffset(DateTime.Today.Add(moment.TimeOfDay), DateTimeOffset.Now.Offset)
-            : moment;
+    private static DateTimeOffset Anchored(DateTimeOffset moment, DateTimeOffset now, string pattern)
+        => pattern.IndexOfAny(['y', 'M', 'd']) >= 0
+            ? moment
+            : new DateTimeOffset(now.Date.Add(moment.TimeOfDay), now.Offset);
 
     /// <summary>
     /// Reads a date out of text that is written in a pattern rather than in one of the shapes
@@ -77,14 +88,14 @@ internal static partial class FunctionLibrary
     /// is stamped the way every date function writes, not in the pattern it was read in, so the
     /// answer can be handed straight to the next one.
     /// </summary>
-    private static DateTimeOffset Parsed(IReadOnlyList<Func<Value>> args)
+    private static DateTimeOffset Parsed(IReadOnlyList<Func<Value>> args, DateTimeOffset now)
     {
         var text = S(args, 0).Trim();
         var pattern = S(args, 1);
         if (DateTimeOffset.TryParseExact(text, pattern, CultureInfo.InvariantCulture,
                 DateTimeStyles.AllowWhiteSpaces, out var exact))
         {
-            return Anchored(exact);
+            return Anchored(exact, now, pattern);
         }
 
         throw ExpressionException.TypeMismatch($"\"{text}\" is not a date written as \"{pattern}\"");
@@ -94,9 +105,9 @@ internal static partial class FunctionLibrary
     private static int Weekday(DateTimeOffset moment)
         => moment.DayOfWeek == DayOfWeek.Sunday ? 7 : (int)moment.DayOfWeek;
 
-    private static DateTimeOffset Shifted(IReadOnlyList<Func<Value>> args)
+    private static DateTimeOffset Shifted(IReadOnlyList<Func<Value>> args, DateTimeOffset now)
     {
-        var moment = Moment(S(args, 0));
+        var moment = Moment(S(args, 0), now);
         var amount = N(args, 1);
 
         return S(args, 2).Trim().ToLowerInvariant() switch
@@ -112,10 +123,10 @@ internal static partial class FunctionLibrary
         };
     }
 
-    private static double Distance(IReadOnlyList<Func<Value>> args)
+    private static double Distance(IReadOnlyList<Func<Value>> args, DateTimeOffset now)
     {
-        var from = Moment(S(args, 0));
-        var to = Moment(S(args, 1));
+        var from = Moment(S(args, 0), now);
+        var to = Moment(S(args, 1), now);
         var span = to - from;
 
         return S(args, 2).Trim().ToLowerInvariant() switch
@@ -147,12 +158,12 @@ internal static partial class FunctionLibrary
         return months;
     }
 
-    private static string Formatted(IReadOnlyList<Func<Value>> args)
+    private static string Formatted(IReadOnlyList<Func<Value>> args, DateTimeOffset now)
     {
         var pattern = S(args, 1);
         try
         {
-            return Moment(S(args, 0)).ToString(pattern, CultureInfo.InvariantCulture);
+            return Moment(S(args, 0), now).ToString(pattern, CultureInfo.InvariantCulture);
         }
         catch (FormatException)
         {

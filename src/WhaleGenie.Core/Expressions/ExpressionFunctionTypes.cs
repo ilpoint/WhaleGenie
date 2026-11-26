@@ -63,7 +63,8 @@ internal sealed record FunctionEntry(
     string Description,
     int MinArguments,
     int MaxArguments,
-    Func<IReadOnlyList<Func<Value>>, Value> Body);
+    Func<IReadOnlyList<Func<Value>>, Value>? Body,
+    Func<EvaluationContext, IReadOnlyList<Func<Value>>, Value>? With = null);
 
 /// <summary>
 /// What each common argument name means, written once. Most arguments that go by the same name

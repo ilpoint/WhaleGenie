@@ -117,6 +117,14 @@ internal static partial class FunctionLibrary
         int min, int max, Func<IReadOnlyList<Func<Value>>, Value> body)
         => new(group, name, signature, description, min, max, body);
 
+    /// <summary>
+    /// The same table entry for a function that reads the machine: the clock a date counts from and
+    /// the dice a number is picked with are handed to it rather than read where the answer is used.
+    /// </summary>
+    private static FunctionEntry FnWith(string group, string name, string signature, string description,
+        int min, int max, Func<EvaluationContext, IReadOnlyList<Func<Value>>, Value> body)
+        => new(group, name, signature, description, min, max, null, body);
+
     private static Value V(IReadOnlyList<Func<Value>> args, int index) => args[index]();
 
     private static string S(IReadOnlyList<Func<Value>> args, int index) => args[index]().AsText();

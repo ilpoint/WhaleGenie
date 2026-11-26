@@ -104,8 +104,8 @@ internal static partial class FunctionLibrary
             args => Pick(args, smallest: false)),
         Fn(MathsGroup, "sum", "sum(list)", "Add up every number in a list.", 1, 1,
             args => Value.FromNumber(L(args, 0).Sum(item => item.AsNumber()))),
-        Fn(MathsGroup, "random", "random([min, max])", "A random number; with bounds, a whole number in that range.", 0, 2,
-            args => Value.FromNumber(Random(args))),
+        FnWith(MathsGroup, "random", "random([min, max])", "A random number; with bounds, a whole number in that range.", 0, 2,
+            (environment, args) => Value.FromNumber(Random(environment.Random, args))),
 
         // -------------------------------------------------------------------- lists
         Fn(ListsGroup, "list", "list(...values)", "Build a list out of the arguments.", 0, Any,
@@ -154,40 +154,45 @@ internal static partial class FunctionLibrary
             args => V(args, 0).AsBool() ? V(args, 1) : V(args, 2)),
 
         // -------------------------------------------------------------------- dates
-        Fn(DatesGroup, "now", "now()", "The current date and time, as yyyy-MM-dd HH:mm:ss.", 0, 0,
-            args => Value.FromDate(DateTimeOffset.Now)),
-        Fn(DatesGroup, "today", "today()", "Today's date, as yyyy-MM-dd.", 0, 0,
-            args => Value.FromDate(new DateTimeOffset(DateTime.Today))),
-        Fn(DatesGroup, "year", "year(date)", "The year of a date.", 1, 1,
-            args => Value.FromNumber(Moment(S(args, 0)).Year)),
-        Fn(DatesGroup, "month", "month(date)", "The month of a date, 1 to 12.", 1, 1,
-            args => Value.FromNumber(Moment(S(args, 0)).Month)),
-        Fn(DatesGroup, "day", "day(date)", "The day of the month, 1 to 31.", 1, 1,
-            args => Value.FromNumber(Moment(S(args, 0)).Day)),
-        Fn(DatesGroup, "hour", "hour(date)", "The hour of a date, 0 to 23.", 1, 1,
-            args => Value.FromNumber(Moment(S(args, 0)).Hour)),
-        Fn(DatesGroup, "minute", "minute(date)", "The minute of a date, 0 to 59.", 1, 1,
-            args => Value.FromNumber(Moment(S(args, 0)).Minute)),
-        Fn(DatesGroup, "second", "second(date)", "The second of a date, 0 to 59.", 1, 1,
-            args => Value.FromNumber(Moment(S(args, 0)).Second)),
-        Fn(DatesGroup, "weekday", "weekday(date)",
+        FnWith(DatesGroup, "now", "now()", "The current date and time, as yyyy-MM-dd HH:mm:ss.", 0, 0,
+            (environment, _) => Value.FromDate(environment.Now)),
+        FnWith(DatesGroup, "today", "today()", "Today's date, as yyyy-MM-dd.", 0, 0,
+            (environment, _) =>
+            {
+                var now = environment.Now;
+                return Value.FromDate(new DateTimeOffset(now.Date, now.Offset));
+            }),
+        FnWith(DatesGroup, "year", "year(date)", "The year of a date.", 1, 1,
+            (environment, args) => Value.FromNumber(Moment(S(args, 0), environment.Now).Year)),
+        FnWith(DatesGroup, "month", "month(date)", "The month of a date, 1 to 12.", 1, 1,
+            (environment, args) => Value.FromNumber(Moment(S(args, 0), environment.Now).Month)),
+        FnWith(DatesGroup, "day", "day(date)", "The day of the month, 1 to 31.", 1, 1,
+            (environment, args) => Value.FromNumber(Moment(S(args, 0), environment.Now).Day)),
+        FnWith(DatesGroup, "hour", "hour(date)", "The hour of a date, 0 to 23.", 1, 1,
+            (environment, args) => Value.FromNumber(Moment(S(args, 0), environment.Now).Hour)),
+        FnWith(DatesGroup, "minute", "minute(date)", "The minute of a date, 0 to 59.", 1, 1,
+            (environment, args) => Value.FromNumber(Moment(S(args, 0), environment.Now).Minute)),
+        FnWith(DatesGroup, "second", "second(date)", "The second of a date, 0 to 59.", 1, 1,
+            (environment, args) => Value.FromNumber(Moment(S(args, 0), environment.Now).Second)),
+        FnWith(DatesGroup, "weekday", "weekday(date)",
             "The day of the week, counted the ISO way: 1 is Monday and 7 is Sunday.", 1, 1,
-            args => Value.FromNumber(Weekday(Moment(S(args, 0))))),
-        Fn(DatesGroup, "dateAdd", "dateAdd(date, amount, unit)",
+            (environment, args) =>
+                Value.FromNumber(Weekday(Moment(S(args, 0), environment.Now)))),
+        FnWith(DatesGroup, "dateAdd", "dateAdd(date, amount, unit)",
             "A date moved forward or back; the unit is seconds, minutes, hours, days, weeks, "
             + "months or years.", 3, 3,
-            args => Value.FromDate(Shifted(args))),
-        Fn(DatesGroup, "dateDiff", "dateDiff(from, to, unit)",
+            (environment, args) => Value.FromDate(Shifted(args, environment.Now))),
+        FnWith(DatesGroup, "dateDiff", "dateDiff(from, to, unit)",
             "How far apart two dates are, counted in the unit.", 3, 3,
-            args => Value.FromNumber(Distance(args))),
-        Fn(DatesGroup, "formatDate", "formatDate(date, pattern)",
+            (environment, args) => Value.FromNumber(Distance(args, environment.Now))),
+        FnWith(DatesGroup, "formatDate", "formatDate(date, pattern)",
             "A date written out in a pattern such as yyyy/MM/dd.", 2, 2,
-            args => Value.FromText(Formatted(args))),
-        Fn(DatesGroup, "parseDate", "parseDate(text, pattern)",
+            (environment, args) => Value.FromText(Formatted(args, environment.Now))),
+        FnWith(DatesGroup, "parseDate", "parseDate(text, pattern)",
             "Read a date out of text written in a pattern such as yyyy/MM/dd. The answer is a date "
             + "like every other date function reads and writes, so it can go straight into "
             + "dateAdd, dateDiff or a comparison.", 2, 2,
-            args => Value.FromDate(Parsed(args))),
+            (environment, args) => Value.FromDate(Parsed(args, environment.Now))),
 
         // -------------------------------------------------------------------- json
         Fn(RecordsGroup, "jsonGet", "jsonGet(json, path)",
