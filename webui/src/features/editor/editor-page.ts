@@ -35,6 +35,9 @@ export class WgEditor extends LitElement {
 
   private splitStartWidth = 0;
 
+  /** True once this page has shown a document; closing the last one returns to the list. */
+  private hadDocument = false;
+
   connectedCallback(): void {
     super.connectedCallback();
     // 启动只拉一次：会话服务先把共享目录取来，再取当前文档。页面本身不再补一次。
@@ -44,6 +47,18 @@ export class WgEditor extends LitElement {
   disconnectedCallback(): void {
     editor.leaveEditor();
     super.disconnectedCallback();
+  }
+
+  protected updated(): void {
+    if (editor.get().snapshot !== null) {
+      this.hadDocument = true;
+      return;
+    }
+
+    if (this.hadDocument) {
+      this.hadDocument = false;
+      void go('macros');
+    }
   }
 
   render() {

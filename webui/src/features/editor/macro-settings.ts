@@ -95,12 +95,6 @@ export class WgMacroSettings extends LitElement {
         ${state.error
           ? html`<span class="error" title=${state.error}>${state.error}</span>`
           : html`<span style="flex:1"></span>`}
-        <fluent-button class="save-all" appearance="subtle"
-          title=${t('Editor.Save')}
-          aria-label=${t('Editor.SaveAll')}
-          @click=${() => void editor.session.saveAll()}>
-          ${icon('save-all')}
-        </fluent-button>
         <fluent-button appearance="accent"
           ?disabled=${!snapshot.dirty || !snapshot.canSave}
           @click=${() => void editor.session.save()}>${t('Editor.Save')}</fluent-button>

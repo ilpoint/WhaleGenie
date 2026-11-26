@@ -1,6 +1,7 @@
 import { LitElement, css, html, nothing } from 'lit';
 import { customElement } from 'lit/decorators.js';
 import { icon } from '../../shared/icons.js';
+import { go } from '../../shared/navigation/router.js';
 import { t } from '../../shared/strings/strings.js';
 import { editor } from './editor-store.js';
 import { StoreController } from '../../shared/lit/store-controller.js';
@@ -21,9 +22,48 @@ export class WgEditorTabs extends LitElement {
       min-width: 0;
     }
 
+    .bar {
+      display: flex;
+      align-items: stretch;
+      min-width: 0;
+    }
+
+    .back {
+      display: flex;
+      align-items: center;
+      align-self: center;
+      gap: var(--spacingHorizontalXS);
+      min-height: 28px;
+      margin-inline-start: var(--spacingHorizontalXS);
+      padding: 0 var(--spacingHorizontalXS);
+      border: none;
+      border-radius: var(--borderRadiusSmall);
+      background: transparent;
+      color: var(--colorNeutralForeground2);
+      white-space: nowrap;
+      cursor: pointer;
+    }
+
+    .back:hover {
+      background: var(--colorSubtleBackgroundHover);
+      color: var(--colorNeutralForeground1);
+    }
+
+    .back:focus-visible {
+      outline: var(--strokeWidthThicker) solid var(--colorStrokeFocus2);
+      outline-offset: -1px;
+    }
+
+    .back svg {
+      width: 14px;
+      height: 14px;
+      flex: none;
+    }
+
     .strip {
       display: flex;
       align-items: stretch;
+      flex: 1;
       min-width: 0;
       overflow-x: auto;
       scrollbar-width: thin;
@@ -124,7 +164,14 @@ export class WgEditorTabs extends LitElement {
   render() {
     const state = editor.get();
     return html`
-      <div class="strip" role="tablist" aria-label=${t('Editor.DocumentTabs')} @keydown=${this.onKeydown}>
+      <div class="bar">
+        <button class="back" type="button"
+          title=${t('Editor.OpenMacroList')}
+          aria-label=${t('Editor.OpenMacroList')}
+          @click=${() => void go('macros')}>
+          ${icon('arrow-left')}<span>${t('Shell.Macros')}</span>
+        </button>
+        <div class="strip" role="tablist" aria-label=${t('Editor.DocumentTabs')} @keydown=${this.onKeydown}>
         ${state.tabs.map((tab) => html`
           <div class="tab-wrap" data-document-id=${tab.documentId}
             data-active=${tab.documentId === state.activeDocumentId ? 'true' : 'false'}>
@@ -168,6 +215,7 @@ export class WgEditorTabs extends LitElement {
           aria-label=${t('Main.AddMacro')}
           @click=${() => void editor.session.newDocument()}
         >${icon('plus')}</button>
+        </div>
       </div>
     `;
   }

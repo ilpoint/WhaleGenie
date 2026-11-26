@@ -64,10 +64,6 @@ export const macroSettingsCss = css`
       min-width: 0;
     }
 
-    .footer .save-all {
-      padding-inline: var(--spacingHorizontalXS);
-    }
-
     .project-status {
       flex: none;
       padding: var(--spacingVerticalXS) var(--spacingHorizontalL);
