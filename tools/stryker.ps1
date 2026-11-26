@@ -77,7 +77,7 @@ try {
                 '**/Execution/WheelPlan.cs'
                 '**/Execution/CountPlan.cs'
             )
-            Filter = 'FullyQualifiedName~StepMetaTests|FullyQualifiedName~HitSortTests|FullyQualifiedName~HitOrderTests|FullyQualifiedName~StepOutcomeTests|FullyQualifiedName~MacroRunnerTests|FullyQualifiedName~RunLookTests|FullyQualifiedName~WhereColumnTests|FullyQualifiedName~ActionRoutingTests|FullyQualifiedName~ActionPreviewTests|FullyQualifiedName~IrreversibleStepTests|FullyQualifiedName~RetryPolicyTests|FullyQualifiedName~StepChecksTests|FullyQualifiedName~CallBinderTests|FullyQualifiedName~WheelPlanTests|FullyQualifiedName~StepTimeoutTests|FullyQualifiedName~CountPlanTests'
+            Filter = 'FullyQualifiedName~StepMetaTests|FullyQualifiedName~HitSortTests|FullyQualifiedName~HitOrderTests|FullyQualifiedName~StepOutcomeTests|FullyQualifiedName~MacroRunnerTests|FullyQualifiedName~RunLookTests|FullyQualifiedName~WhereColumnTests|FullyQualifiedName~ActionRoutingTests|FullyQualifiedName~ActionPreviewTests|FullyQualifiedName~IrreversibleStepTests|FullyQualifiedName~RetryPolicyTests|FullyQualifiedName~StepChecksTests|FullyQualifiedName~CallBinderTests|FullyQualifiedName~RunDiceTests|FullyQualifiedName~WheelPlanTests|FullyQualifiedName~StepTimeoutTests|FullyQualifiedName~CountPlanTests'
         },
         @{
             Name = 'devices-names'
@@ -96,7 +96,7 @@ try {
                 '**/Devices/OcrPreprocess.cs'
                 '**/Devices/MousePath.cs'
             )
-            Filter = 'FullyQualifiedName~ColourNearnessTests|FullyQualifiedName~TextCompareTests|FullyQualifiedName~TransparentColourTests|FullyQualifiedName~PngWriterTests|FullyQualifiedName~OcrPreprocessTests|FullyQualifiedName~ClipboardImageTests|FullyQualifiedName~MousePathTests|FullyQualifiedName~ImageOrderTests|FullyQualifiedName~UiAnchorTests'
+            Filter = 'FullyQualifiedName~ColourNearnessTests|FullyQualifiedName~TextCompareTests|FullyQualifiedName~TransparentColourTests|FullyQualifiedName~PngWriterTests|FullyQualifiedName~OcrPreprocessTests|FullyQualifiedName~ClipboardImageTests|FullyQualifiedName~MousePathTests|FullyQualifiedName~ImageOrderTests|FullyQualifiedName~UiAnchorTests|FullyQualifiedName~RunDiceTests'
         },
         @{
             Name = 'devices-window'

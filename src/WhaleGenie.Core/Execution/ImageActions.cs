@@ -196,7 +196,7 @@ internal static class ImageActions
 
             // Each area answered in the step's own order; putting the areas' answers together is
             // the one sort that is left. Ties fall back to reading order so the count is stable.
-            HitSort.Sort(hits, order);
+            HitSort.Sort(hits, order, run.Evaluation.Random);
             return hits;
         }
 

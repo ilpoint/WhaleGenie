@@ -387,7 +387,7 @@ public sealed partial class MacroRunner
     /// pause, so a step can back off further with every attempt instead of hammering away.
     /// </summary>
     private int RetryPause(ExecutableStep step, int attempt)
-        => RetryPolicy.PauseMs(step.Meta, attempt, DelayScale);
+        => RetryPolicy.PauseMs(step.Meta, attempt, DelayScale, Evaluation.Random);
 
     /// <summary>
     /// Runs one step, turning a broken expression into a failure the step can report and

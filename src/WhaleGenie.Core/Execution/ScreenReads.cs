@@ -87,7 +87,7 @@ internal sealed class ScreenReads(IDeviceLayer devices, VariableStore variables,
 
         // The model hands its lines over in the order a person reads them; the orders that are not
         // that one rank the whole reading rather than the first few of it.
-        HitSort.Sort(spans, order);
+        HitSort.Sort(spans, order, evaluation.Random);
         return (spans, areas);
     }
 

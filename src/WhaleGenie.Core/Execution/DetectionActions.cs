@@ -76,7 +76,7 @@ internal static class DetectionActions
         // Every box the model drew is in hand by now, so the order is worked out over the whole
         // set: the weighted score and the distance both ask about places the model did not put
         // first, which is why the query above asks for all of them.
-        HitSort.Sort(found, order);
+        HitSort.Sort(found, order, run.Evaluation.Random);
         SawDetections(run, step, areas, found);
         return found;
     }

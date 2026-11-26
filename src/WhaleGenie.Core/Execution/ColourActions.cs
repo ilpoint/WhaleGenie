@@ -330,7 +330,7 @@ internal static class ColourActions
             }
         }
 
-        HitSort.Sort(hits, order);
+        HitSort.Sort(hits, order, run.Evaluation.Random);
         run.Reads.SawSearch(step, LookKind.Colour, areas,
             [.. hits.Select(hit => (hit, (string?)null))],
             SearchHits.WentWith(run, hits, step), target.ToHex());
@@ -366,7 +366,7 @@ internal static class ColourActions
             }
         }
 
-        HitSort.Sort(hits, order);
+        HitSort.Sort(hits, order, run.Evaluation.Random);
         var taken = SearchHits.WentWith(run, hits, step);
         var marks = new List<(ImageMatch Match, string? Label)>(
             hits.Select(hit => (hit, (string?)null)));
