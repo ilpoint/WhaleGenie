@@ -89,7 +89,7 @@ pwsh tools/stryker.ps1 -Target domain   # 或 editing / all
 | 库仓的 `expressions-writer`（`Expression`、`Formula`、`ExpressionWriter`、`ExpressionCompiler`） | 196 | 54.59% |
 | 库仓的 `devices-window`（`WindowRule`、`WindowHow`） | 39 | 61.54% |
 | 库仓的 `devices-files`（`DelimitedFile`） | 50 | 76.00% |
-| 库仓的 `rules`（`StepMeta`、`HitSort`、`StepChecks`、`CallBinder`、`RetryPolicy`、`WheelPlan`、`CountPlan` 等） | 516 | 68.80% | 500 | 68.20% |
+| 库仓的 `rules`（`StepMeta`、`HitSort`、`StepChecks`、`CallBinder`、`RetryPolicy`、`WheelPlan`、`CountPlan` 等） | 516 | 68.80% |
 | Editing 的 `RowShapes.cs`、`EditorValueParts.cs` | 67 | 100% |
 
 Editing 只变异纯行变换与 parts 转换（67 个计分变异，100%）；行 VM 里的显示、占位、`Prepare`/`Remove`

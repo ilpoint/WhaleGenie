@@ -68,7 +68,7 @@
 634	core/src/WhaleGenie.Core/Execution/ScreenSight.cs	keep: 看屏的一层：搜索区域、按机器保管的回合与画面取图、试看标记
 343	core/src/WhaleGenie.Core/Execution/ScreenPoints.cs	keep: 认点的一层：屏幕/窗口坐标、拖拽两端、漂移与输入路由
 313	core/src/WhaleGenie.Core/Execution/ScreenReads.cs	keep: 读屏的一层：区域读数、识别修正、命中计数
-312	core/src/WhaleGenie.Core/Execution/MacroRunner.Loops.cs	keep: 执行引擎的一族，按执行阶段拆分后单一职责
+307	core/src/WhaleGenie.Core/Execution/MacroRunner.Loops.cs	keep: 执行引擎的一族，按执行阶段拆分后单一职责
 300	core/src/WhaleGenie.Core/Execution/OcrReading.cs	keep: 一类动作的执行，失败键与日志只在这一点
 369	core/src/WhaleGenie.Core/Execution/ProcessActions.cs	keep: 一类动作：启动、查找、等待、结束与命令执行共用同一套程序规则
 507	core/src/WhaleGenie.Core/Execution/SystemActions.cs	keep: 一类动作：机器事实、屏幕、环境、注册表、电源、声音与显示设置
@@ -173,5 +173,6 @@
 22657	docs/architecture/interface.md	keep: 应用/桥/编辑/运行各层的接口与事实来源在一份文档里互相对照，拆开会让同一契约出现两处说法
 318	tests/WhaleGenie.Tests/HeadlessEditorSession.SubMacrosTests.cs	keep: 子宏会话命令的一族用例（新建/导入/子文档归属），共用同一套宿主和断言
 342	tests/WhaleGenie.Domain.Tests/StepShapeRoundTripTests.cs	keep: 形状法则的单一测试，按动作与形状生成用例
+
 
 
