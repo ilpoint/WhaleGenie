@@ -225,7 +225,7 @@ internal static class FileActions
         var line = run.Args(step).ValueOf("logLine").AsText();
         if (run.Flag(step, "timestamp", true))
         {
-            line = DateTimeOffset.Now.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture)
+            line = run.Evaluation.Now.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture)
                 + " " + line;
         }
 
@@ -450,7 +450,7 @@ internal static class FileActions
             _ => TimeSpan.FromDays(count),
         };
 
-        return DateTimeOffset.Now - back;
+        return run.Evaluation.Now - back;
     }
 
     /// <summary>

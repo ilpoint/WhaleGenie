@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.IO.Enumeration;
+using System.Security;
 
 namespace WhaleGenie.Platform.Windows;
 
@@ -36,6 +37,20 @@ public sealed class LocalFileDevice : IFileDevice
     {
         var full = Full(path);
         return File.Exists(full) || Directory.Exists(full);
+    }
+
+    public DateTimeOffset? LastWritten(string path)
+    {
+        var full = Full(path);
+        try
+        {
+            return File.Exists(full) ? File.GetLastWriteTimeUtc(full) : null;
+        }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException
+            or ArgumentException or NotSupportedException or SecurityException)
+        {
+            return null;
+        }
     }
 
     public string ReadText(string path, string encoding)

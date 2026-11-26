@@ -40,7 +40,7 @@ internal sealed class RunState
     /// still the file's, so a runner asked to run the same macro twice reads the picture once. It
     /// is emptied with the runner, not at the start of a run.
     /// </remarks>
-    public Dictionary<string, (DateTime Written, ImageFrame Frame)> References { get; } =
+    public Dictionary<string, (DateTimeOffset Written, ImageFrame Frame)> References { get; } =
         new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>

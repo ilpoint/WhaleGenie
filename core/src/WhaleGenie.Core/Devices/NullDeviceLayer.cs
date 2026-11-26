@@ -261,6 +261,8 @@ public sealed class NullDeviceLayer : IDeviceLayer
 
         public bool Exists(string path) => throw Missing("files");
 
+        public DateTimeOffset? LastWritten(string path) => throw Missing("files");
+
         public string ReadText(string path, string encoding) => throw Missing("files");
 
         public void WriteText(string path, string text, bool append, string encoding)

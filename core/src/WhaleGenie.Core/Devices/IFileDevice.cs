@@ -22,6 +22,13 @@ public interface IFileDevice
     /// <summary>Whether a file or a folder is there.</summary>
     bool Exists(string path);
 
+    /// <summary>
+    /// When a file was last written, or null when there is no such file or it cannot be asked. A
+    /// reference picture is kept between looks, and this is the question that says whether the copy
+    /// is still the file's; a path this machine refuses reads the same as one that is not there.
+    /// </summary>
+    DateTimeOffset? LastWritten(string path);
+
     /// <summary>Reads a text file whole, in the encoding the caller names.</summary>
     string ReadText(string path, string encoding);
 

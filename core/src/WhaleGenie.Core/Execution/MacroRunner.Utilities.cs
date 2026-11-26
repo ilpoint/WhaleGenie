@@ -38,7 +38,7 @@ public sealed partial class MacroRunner
 
     private void Log(LogLevel level, int depth, string step, string key, params object[] arguments)
     {
-        var entry = new LogEntry(DateTimeOffset.Now, level, depth, step, key, arguments);
+        var entry = new LogEntry(Evaluation.Now, level, depth, step, key, arguments);
 
         // Kept beside being handed to the host: a run that ends on a failure writes all of this to
         // a file afterwards, and a run nobody is watching has no host that keeps it.
