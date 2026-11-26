@@ -16,23 +16,6 @@
 
 阶段按顺序实施。每一阶段只解决一类问题，完成后删除本节对应内容。
 
-### 函数式核心与命令式外壳（进行中）
-
-**实现状态**：`TransferPlanner` 是包转移的纯核心（计划行、冲突、选择、决定、报告）；`PackageShapeReader`、
-`PackageManifestBuilder`、`PackageReadme` 把包形状、manifest 与 README 从 ZIP/时钟外壳中拆出；
-`PackagePlan` 在开 ZIP 前算出节点、manifest、README 与资源落点，`AssetSourceResolver` 只解析源路径；
-`McpDraftRules` 是草稿校验的纯核心，`McpPreview.Of` 的列表版本把 diff 也从草稿锁中拆出；子宏删除判断
-`SubMacroEditor.CanDelete` 与列表修改分开。纯核心测试不需要文件、工程、草稿会话或时钟。运行时的纯化排在
-“值的形状边界”之后；包、MCP 与编辑器的纯核心已经落地，不受影响。
-
-**下一步**：
-
-- MCP 草稿的客户端 JSON 解析与 diff 只留纯函数，宿主保留权限、审计与 revision 闸门；
-- 编辑器只继续抽步骤树、子宏复制/改名的纯变换，`EditorDocumentSet`/会话仍保持命令式外壳。
-
-**边界**：宏运行时、输入/画面/窗口设备、UI 状态机、文件选择器和 WebView 留在外壳；不为了纯函数
-复制每帧画面或整棵步骤树。新增纯核心不读写文件、不依赖当前时间/随机 ID，测试以记录和列表为输入。
-
 ### 界面迁移到网页壳（已完成，余下只有真机验收）
 
 **实现状态（2026-11）**：网页壳、编辑器、设置、运行面板、三块运行期浮层、窗口列表与导入导出向导

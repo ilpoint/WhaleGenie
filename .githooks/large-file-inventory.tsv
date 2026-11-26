@@ -107,7 +107,7 @@
 456	src/WhaleGenie.App/Settings/AppSettings.cs	keep: 设置文件的一个实例——读取、写入、默认值与迁移规则同属一份文件
 6023	src/WhaleGenie.Localization/Strings.cs	exempt: 文案查表，键与文案一一对应
 331	src/WhaleGenie.Mcp/ActionKnowledge.cs	keep: 动作目录的查询与描述投影，单一职责
-363	src/WhaleGenie.Mcp/McpDraftStore.cs	keep: 草稿表与其上限、校验入口，单一职责
+301	src/WhaleGenie.Mcp/McpDraftStore.cs	keep: 草稿表与其上限、校验入口，单一职责
 317	src/WhaleGenie.App/Mcp/McpRunTools.cs	keep: 一组同域工具与它们的输入输出
 598	src/WhaleGenie.Domain/Models/ActionDefinition.cs	keep: 动作定义模型
 322	src/WhaleGenie.Domain/Models/ActionCatalog.cs	keep: 动作目录投影：语义目录加展示覆盖项，并按值形态推断默认控件
@@ -125,7 +125,6 @@
 314	src/WhaleGenie.Editing/Editor/ConditionEditorViewModel.cs	keep: 条件树的编辑与读写，增删与拾取同属一个编辑任务；节点类型已另起一文件
 576	src/WhaleGenie.Editing/Editor/MacroEditorViewModel.Editing.cs	keep: 编辑器视图模型的一族，按关注点拆分后单一职责
 362	src/WhaleGenie.Editing/Editor/MacroEditorViewModel.Rows.cs	keep: 编辑器视图模型的一族，按关注点拆分后单一职责
-304	src/WhaleGenie.Editing/Editor/MacroEditorViewModel.Insertion.cs	keep: 插入、粘贴与落点判定同属「这一步放到哪里」，落点也要被对话框读成计数器的作用域
 685	src/WhaleGenie.Editing/Editor/MacroEditorViewModel.Settings.cs	keep: 编辑器视图模型的一族，按关注点拆分后单一职责
 439	src/WhaleGenie.Editing/Editor/MacroEditorViewModel.TriggerSettings.cs	keep: 编辑器视图模型的一族，按关注点拆分后单一职责
 332	src/WhaleGenie.App/RunViewModels/RunViewModel.Rebuild.cs	keep: 运行窗口的一族，按面板与关注点拆分后单一职责
@@ -163,8 +162,7 @@
 371	src/WhaleGenie.App/Bridge/EditorSessionBridge.Steps.cs	keep: 步骤、条件与录制命令同属编辑正文的一次读取
 311	src/WhaleGenie.App/Projects/ProjectSaver.cs	keep: 包文件唯一写者——防抖、显式保存、替换闸门与状态是同一个并发边界
 401	src/WhaleGenie.Editing/Editor/EditorDocumentSet.cs	keep: 打开文档的标识、页签顺序与父子关系只在文档集一处维护
-466	src/WhaleGenie.Editing/Editor/HeadlessEditorSession.Steps.cs	keep: 步骤、参数与条件同属编辑正文的一次读取
-330	src/WhaleGenie.Editing/Editor/HeadlessEditorSession.Snapshot.cs	keep: 编辑快照投影一族（步骤/条件/动作/标签），只把模型读成线上形状
+468	src/WhaleGenie.Editing/Editor/HeadlessEditorSession.Steps.cs	keep: 步骤、参数与条件同属编辑正文的一次读取
 330	src/WhaleGenie.Editing/Editor/HeadlessEditorSession.TriggerSettings.cs	keep: 按类型分组的触发字段写入（14 个 SetTrigger*），一次触发编辑只读这一份
 79276	webui/src/shared/bridge/generated/strings.json	exempt: 由文案表生成的查表 JSON，页面用到的键与中英文值一一对应
 438	src/WhaleGenie/Web/WebOverlayWindow.cs	keep: 一个透明置顶浮层的全部窗口职责：尺寸、定位、区域裁切与 Win32 样式
@@ -173,6 +171,6 @@
 301	src/WhaleGenie.App/Runtime/MenuSurface.cs	keep: 菜单投影与格子编辑命令同属一处；页面只收快照
 322	src/WhaleGenie/Web/MenuOverlayHost.cs	keep: 一个菜单浮层的窗口职责：定位、置顶记忆、键盘交接、外边点击与前台刷新
 330	src/WhaleGenie/Web/WheelOverlayHost.cs	keep: 轮盘窗口的单一职责：屏幕定位、隐藏准备帧、居中、瞄准事件与超时；页面 ready 握手与重试在此闭环
-22548	docs/architecture/interface.md	keep: 应用/桥/编辑/运行各层的接口与事实来源在一份文档里互相对照，拆开会让同一契约出现两处说法
+22657	docs/architecture/interface.md	keep: 应用/桥/编辑/运行各层的接口与事实来源在一份文档里互相对照，拆开会让同一契约出现两处说法
 318	tests/WhaleGenie.Tests/HeadlessEditorSession.SubMacrosTests.cs	keep: 子宏会话命令的一族用例（新建/导入/子文档归属），共用同一套宿主和断言
 342	tests/WhaleGenie.Domain.Tests/StepShapeRoundTripTests.cs	keep: 形状法则的单一测试，按动作与形状生成用例
