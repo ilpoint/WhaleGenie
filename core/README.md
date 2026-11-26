@@ -65,6 +65,18 @@ dotnet pack src/WhaleGenie.Platform.Windows/WhaleGenie.Platform.Windows.csproj -
 包落在 `dist/nuget/`。三套用例（引擎、画面获取、Windows 适配器）都在这个仓库里，适配器那套会
 驱动真实的 Windows 设备。
 
+引擎那套（`tests/WhaleGenie.Core.Tests`）里有一条动作矩阵：按语义目录把每个动作合成一个步骤，
+在替身设备层上跑一遍，核对结局、返回值与副作用声明。它只在要报告时写文件：
+
+```pwsh
+$env:ACTION_MATRIX_REPORT = "TestResults/action-matrix.md"
+dotnet test tests/WhaleGenie.Core.Tests -c Release --filter "FullyQualifiedName~ActionBench"
+Remove-Item Env:ACTION_MATRIX_REPORT
+```
+
+引擎的引用闭包、目标框架、`InternalsVisibleTo` 名单与两个方向（引擎不命名画面工程与 Windows
+适配器）钉在 `EngineLayeringTests` 里：改动先在这里红，再谈打包。
+
 ### 变异测试
 
 值编解码用 Stryker.NET 5.1.0 做开发期基线（Apache-2.0，不随 NuGet 包发布）：

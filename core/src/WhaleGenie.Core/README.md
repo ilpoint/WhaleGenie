@@ -7,7 +7,7 @@
 
 ## 公共面
 
-对外只有四档，判定规则与基线维护写在仓库的 `docs/architecture/core-api.md`：
+对外只有四档，判定规则与基线维护写在仓库的 [docs/public-api.md](../docs/public-api.md)：
 
 | 档 | 内容 |
 | --- | --- |
