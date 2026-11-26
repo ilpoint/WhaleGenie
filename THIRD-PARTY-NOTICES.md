@@ -169,6 +169,12 @@ Lucide.Avalonia 0.2.27. Lucide is licensed under ISC and Lucide.Avalonia under M
   <https://github.com/microsoft/playwright-dotnet>
   只在开发与 CI 里驱动系统 Edge 跑冒烟，发行包里没有它。
 
+## 只在开发时用到的组件
+
+- Stryker.NET（dotnet-stryker 5.1.0，变异测试）— Apache-2.0
+  <https://github.com/stryker-mutator/stryker-net>
+  由 `.config/dotnet-tools.json` 固定，只在本机与开发流程里跑，发行包里没有它。
+
 ## 用户自己装的组件
 
 网页壳的运行时需要 WebView2 运行时（Evergreen）：Windows 11 随系统自带，Windows 10 多数随 Edge

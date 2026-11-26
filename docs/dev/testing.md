@@ -63,6 +63,29 @@
 改了字段形状、行表列或 `ValueOf` 一类读取路径时，先加一条会失败的生成器断言，再改实现。
 已保存的项目包用 `tools/WhaleGenie.ProjectScan` 只读扫描，报告不自动修。
 
+### 变异基线
+
+Stryker.NET 5.1.0 由 `.config/dotnet-tools.json` 固定；先 `dotnet tool restore`，再按要跑的范围：
+
+```powershell
+pwsh tools/stryker.ps1 -Target domain   # 或 editing / all
+```
+
+脚本把配置生成到 `TestResults/Stryker/run`，报告写到 `TestResults/Stryker/`，两者都不提交。它只在
+本机按需跑，不进入 CI；每次合并的门槛仍是法则用例。
+
+本次基线（用 `Release`、形状法则用例过滤）：
+
+| 范围 | 计分变异 | 分数 |
+| --- | --- | --- |
+| Domain 的 `StepParameter.File.cs` | 44 | 100% |
+| Editing 的 `RegionRowViewModel`、`CallArgumentRowViewModel`、`EditorValueParts` | 119 | 31.43% |
+
+Editing 的 56 个 NoCoverage 与 64 个存活集中在显示文案、占位提示、`Prepare`/`Remove` 与等价判断，
+不在形状边界内；行变换本身由 `ShapeDraftTests`、`EditorValuePartsTests` 与
+`HeadlessActionSessionTests` 覆盖。要把它变成 100% 门禁，先把纯变换从行 VM 抽到单独文件，再只变异
+那一份。Stryker 的 CompileError 与 Ignored 不计分。
+
 ### 界面与无头测试注意事项
 
 - 主题资源查询须携带 `ActualThemeVariant`。属性需要跟随主题时使用 `DynamicResource` 或

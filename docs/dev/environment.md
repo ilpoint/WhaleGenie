@@ -58,6 +58,13 @@ dotnet run --project src/WhaleGenie -c Release -- --mcp-doctor --report TestResu
 dotnet run --project src/WhaleGenie -c Release -- --mcp
 ```
 
+变异测试用本地工具，先还原再按范围跑：
+
+```powershell
+dotnet tool restore
+pwsh tools/stryker.ps1 -Target domain   # 或 editing / all
+```
+
 项目包里的行单元格可以用扫描器只读检查。它列出被压成文本的区域名字、公式和调用参数，不写回文件：
 
 ```powershell
