@@ -6,6 +6,7 @@ using Avalonia.Interactivity;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using FluentAvalonia.UI.Controls;
+using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Expressions;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
@@ -58,6 +59,87 @@ public class SearchRegionTests
             Assert.Equal("40", Cells.Spoken(rows[0], "height"));
             Assert.Equal("shot", Cells.Spoken(rows[1], "text"));
         });
+    }
+
+    /// <summary>
+    /// 一行「在哪里看」与四格框量的是同一套坐标：识别方式选窗口时，框选写进行里的是从目标窗口
+    /// 客户区左上角量起的数。引擎按客户区读这一行，写进屏幕坐标就整块偏出窗口原点那么多。
+    /// </summary>
+    [Fact]
+    public void A_row_picked_on_the_screen_is_counted_from_the_window_it_is_anchored_to()
+    {
+        Ui.Run(() =>
+        {
+            var viewModel = Open("ocr.findText");
+            viewModel.Windows = WindowsAnchoredAt(255, 123);
+            Anchor(viewModel, "window");
+
+            // The picker limits the drag to this client area, which is the same corner the engine
+            // will read the row's four numbers from.
+            Assert.True(viewModel.CoordinateWindowBounds() is (255, 123, 800, 600));
+
+            var region = Region(viewModel);
+            region.AddRegion();
+            var row = Assert.Single(region.Regions);
+
+            // 框选量到的是屏幕像素：从客户区左上角拖出一块 200×100。
+            viewModel.ApplyRegionToRow(row, 255, 123, 200, 100);
+
+            Assert.Equal("0", row.X.Text);
+            Assert.Equal("0", row.Y.Text);
+            Assert.Equal("200", row.Width.Text);
+            Assert.Equal("100", row.Height.Text);
+        });
+    }
+
+    /// <summary>一律按屏幕像素算的步骤不加也不减，行里就是框选量到的那个屏幕位置。</summary>
+    [Fact]
+    public void A_row_picked_on_the_screen_keeps_screen_pixels_without_a_window()
+    {
+        Ui.Run(() =>
+        {
+            var viewModel = Open("ocr.findText");
+            var region = Region(viewModel);
+            region.AddRegion();
+            var row = Assert.Single(region.Regions);
+
+            viewModel.ApplyRegionToRow(row, 255, 123, 200, 100);
+
+            Assert.Equal("255", row.X.Text);
+            Assert.Equal("123", row.Y.Text);
+        });
+    }
+
+    /// <summary>一行的框选走这条取数路径，而不是把拾取器的屏幕像素直接塞进行里。</summary>
+    [Fact]
+    public void The_row_picker_writes_the_rectangle_through_the_steps_coordinate_basis()
+    {
+        var source = ViewSource.All("ActionEditorView.axaml.cs");
+
+        Assert.Contains("viewModel.ApplyRegionToRow(row, picked.X", source,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain("row.Put(picked.X", source, StringComparison.Ordinal);
+    }
+
+    /// <summary>A dotted window whose client area starts at the place a picker measures from.</summary>
+    private static WindowsForChecks WindowsAnchoredAt(int x, int y)
+        => new WindowsForChecks()
+            .Add(7, "Notepad - notes.txt", "notepad", "Notepad")
+            .Place(7, x - 5, y - 3, 800, 600)
+            .ClientAt(7, x, y);
+
+    /// <summary>Turns the step's 识别方式 onto a window and names the one that is open.</summary>
+    private static void Anchor(AddActionViewModel viewModel, string mode)
+    {
+        var choice = viewModel.Parameters
+            .First(parameter => parameter.Definition.Name == "anchorMode");
+        choice.Option = choice.Choices.First(option => option.Value == mode);
+
+        if (mode == "window")
+        {
+            viewModel.Parameters.First(parameter => parameter.Definition.Name == "window")
+                .ApplyWindowRule(new WindowRule(Title: "Notepad"));
+        }
     }
 
     /// <summary>

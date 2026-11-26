@@ -441,6 +441,18 @@ public partial class AddActionViewModel
     }
 
     /// <summary>
+    /// Writes a rectangle dragged on the screen into one row of a list of places, which is the same
+    /// rectangle as the four fields would hold: a window-anchored step counts it from the window's
+    /// client corner, so the row says the numbers the engine will read it back with. A row written
+    /// with screen pixels instead lands a whole window-origin away from where the user drew it.
+    /// </summary>
+    public void ApplyRegionToRow(RegionRowViewModel row, int x, int y, int width, int height)
+    {
+        var origin = AnchorOrigin();
+        row.Put(x - (origin?.X ?? 0), y - (origin?.Y ?? 0), width, height);
+    }
+
+    /// <summary>
     /// Writes the two ends of a drag in the order they were dragged, rather than turning them into
     /// a top-left corner and a size.
     /// </summary>
