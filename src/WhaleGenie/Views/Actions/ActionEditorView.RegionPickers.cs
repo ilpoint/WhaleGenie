@@ -321,7 +321,10 @@ public partial class ActionEditorView : UserControl
         if (await RegionPickerWindow.PickAsync(HostWindow!, Devices.Screen, Devices.Windows,
                 null, bounds, hook: Devices.Hook) is { } picked)
         {
-            row.Put(picked.X, picked.Y, picked.Width, picked.Height);
+            // The row holds the step's own numbers, so the window-anchored step takes its client
+            // corner off the rectangle the picker measured on the screen — the same way the four
+            // fields beside it are written by ApplyRegion.
+            viewModel.ApplyRegionToRow(row, picked.X, picked.Y, picked.Width, picked.Height);
         }
     }
 }
