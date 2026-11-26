@@ -44,7 +44,7 @@ try {
                 '**/Expressions/JsonValues.cs'
                 '**/Expressions/FormulaJson.cs'
             )
-            Filter = 'FullyQualifiedName~ExpressionTests|FullyQualifiedName~FormulaJsonTests|FullyQualifiedName~ValueRulesTests|FullyQualifiedName~ValueDateTests|FullyQualifiedName~ValueSameTests|FullyQualifiedName~ValueImageTests|FullyQualifiedName~WhereColumnTests|FullyQualifiedName~RecordValueTests|FullyQualifiedName~ExpressionArgumentTests|FullyQualifiedName~ListTextTests|FullyQualifiedName~ExpressionContextTests'
+            Filter = 'FullyQualifiedName~ExpressionTests|FullyQualifiedName~FormulaJsonTests|FullyQualifiedName~ValueRulesTests|FullyQualifiedName~ValueDateTests|FullyQualifiedName~ValueSameTests|FullyQualifiedName~ValueImageTests|FullyQualifiedName~WhereColumnTests|FullyQualifiedName~RecordValueTests|FullyQualifiedName~ExpressionArgumentTests|FullyQualifiedName~ListTextTests|FullyQualifiedName~ExpressionContextTests|FullyQualifiedName~ValueTests'
         },
         @{
             Name = 'expressions-writer'
