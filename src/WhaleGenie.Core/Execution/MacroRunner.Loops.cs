@@ -115,15 +115,10 @@ public sealed partial class MacroRunner
     /// </summary>
     private async Task<Signal> RunFor(ExecutableStep step, int depth, CancellationToken token)
     {
-        var from = Args(step).Number("rangeFrom");
-        var to = Args(step).Number("rangeTo");
-        var stride = Args(step).Number("stepSize");
-        if (stride == 0)
-        {
-            // A step is what the counter moves by, so a zero would never move it at all. Taking the
-            // direction from where it starts and where it ends is what that can only have meant.
-            stride = to >= from ? 1 : -1;
-        }
+        // A step is what the counter moves by, so a zero would never move it at all. Taking the
+        // direction from where it starts and where it ends is what that can only have meant.
+        var range = CountPlan.Of(
+            Args(step).Number("rangeFrom"), Args(step).Number("rangeTo"), Args(step).Number("stepSize"));
 
         // The counter is a variable the step itself names, and a loop with no counter has nothing
         // to run its body against, so an empty field falls back to the name every for-loop uses.
@@ -138,7 +133,7 @@ public sealed partial class MacroRunner
         using var indexScope = LoopScope.Round(Variables.Local);
         using var nameScope = LoopScope.Named(Variables.Local, true, counter);
 
-        for (var value = from; stride > 0 ? value <= to : value >= to; value += stride)
+        for (var value = range.From; CountPlan.Covers(range, value); value += range.Stride)
         {
             token.ThrowIfCancellationRequested();
             indexScope.Set(VariableStore.LoopIndexName, Value.FromNumber(round));
