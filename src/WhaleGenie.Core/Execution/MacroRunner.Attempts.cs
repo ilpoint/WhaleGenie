@@ -46,7 +46,7 @@ public sealed partial class MacroRunner
         var outerWorked = _here.Worked;
         _here.Worked = _looks is null ? null : [];
         var startedStep = Stopwatch.GetTimestamp();
-        Expression.BeginDiagnostics();
+        _notes.Begin();
         try
         {
             return await RunAttempts(step, depth, token, startedStep);
@@ -54,9 +54,9 @@ public sealed partial class MacroRunner
         finally
         {
             _here.Worked = outerWorked;
-            foreach (var note in Expression.TakeDiagnostics())
+            foreach (var (key, arguments) in _notes.Take())
             {
-                Log(LogLevel.Warn, depth, step.Type, note.Key, [.. note.Arguments]);
+                Log(LogLevel.Warn, depth, step.Type, key, arguments);
             }
         }
     }

@@ -134,14 +134,15 @@ internal static partial class FunctionLibrary
             args => Value.FromList(Unique(L(args, 0)))),
         Fn(ListsGroup, "slice", "slice(list, start [, length])", "Part of a list; start counts from 0.", 2, 3,
             args => Slice(args)),
-        Fn(ListsGroup, "where", "where(list, field, compare, value [, caseSensitive, trim])",
+        FnWith(ListsGroup, "where", "where(list, field, compare, value [, caseSensitive, trim])",
             "Keep the records whose field answers the comparison. Text uses the same five ways as "
             + "every text comparison; numbers also take >, >=, <, <=, = and !=. A row with no such "
             + "field, or one that is not a number when a number is asked for, is left out and "
-            + "reported in the run log.", 4, 6, args => Where(args)),
-        Fn(ListsGroup, "column", "column(list, field)",
+            + "reported in the run log.", 4, 6, (environment, args) => Where(environment, args)),
+        FnWith(ListsGroup, "column", "column(list, field)",
             "One value per record, taken from the same field, as a list. A row without the field is "
-            + "left out and reported in the run log.", 2, 2, args => Column(args)),
+            + "left out and reported in the run log.", 2, 2,
+            (environment, args) => Column(environment, args)),
 
         // ------------------------------------------------------------- conversion
         Fn(OtherGroup, "number", "number(value)", "Read a value as a number.", 1, 1,

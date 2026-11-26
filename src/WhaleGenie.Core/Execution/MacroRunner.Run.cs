@@ -55,7 +55,7 @@ public sealed partial class MacroRunner
         double delayScale, IMacroLibrary? macros, IRunLooks? looks, EvaluationContext? evaluation)
     {
         Variables = variables;
-        Evaluation = evaluation ?? EvaluationContext.System;
+        Evaluation = (evaluation ?? EvaluationContext.System).WithNotes(_notes);
         _host = host ?? new SilentRunHost();
         _devices = devices ?? NullDeviceLayer.Instance;
         _macros = macros ?? EmptyMacroLibrary.Instance;
@@ -74,6 +74,13 @@ public sealed partial class MacroRunner
 
     /// <summary>The variables the run reads and writes.</summary>
     public VariableStore Variables { get; }
+
+    /// <summary>
+    /// Where an expression of this run leaves a note about a row it skipped. It lasts the run and
+    /// is emptied where a step begins, so a note lands in the log of the step whose expression
+    /// made it rather than in whichever step happened to be running.
+    /// </summary>
+    private readonly StepNotes _notes = new();
 
     /// <summary>
     /// The clock, the dice and the notes every field of this run is worked out against. One run
