@@ -92,7 +92,7 @@ Release 基线：
 | 区域 | 计分变异 | 分数 | 说明 |
 | --- | --- | --- | --- |
 | formula-json（`FormulaJson.cs`） | 36 | 91.67% | 其余三项不是行为缺口：JSON 标量默认分支与数字解析失败的消息只出现在不可达输入上，`Number` 的 decimal 快路径与 fallback 对合法 JSON 数字等价 |
-| recording（`RecordingTranslator.cs`） | 231 | 77.49% | 存活的是拖拽/滚轮的合并间隔与点击按住、双击间隔的边界，另有一批拖拽与滚轮合并的分支没有用例走到；补用例是本区域的下一步 |
+| recording（`RecordingTranslator.cs`） | 231 | 90.48% | 补了 11 条边界用例：键按住 700 ms、双击 400 ms、滚轮合并 400 ms、拖拽容差 6 px 与滚轮 60 格上限；剩下的是录制器写不出的形状（释放名与按下名不同进不来）和不改变输出的路径 |
 
 形状往返的判定仍以 `FormulaJsonTests` 的规范比较为准；录制区域的判定是 `RecordingTests`。
 
