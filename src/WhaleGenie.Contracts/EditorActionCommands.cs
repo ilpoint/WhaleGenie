@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Text.Json.Serialization;
 
 namespace WhaleGenie.Contracts;
@@ -46,7 +47,8 @@ public sealed record EditorActionRowMoveCommand(string Name, int Index, int By) 
 /// <summary>Write one cell of a table row.</summary>
 [BridgeContract]
 public sealed record EditorActionRowCellCommand(
-    string Name, int Index, string Column, string Value) : EditorActionCommand;
+    string Name, int Index, string Column, string Value,
+    IReadOnlyList<EditorValuePartSnapshot>? Parts = null) : EditorActionCommand;
 
 /// <summary>Tick, untick or rename one return value.</summary>
 [BridgeContract]
@@ -60,7 +62,8 @@ public sealed record EditorActionReturnsFixNameCommand(string Key) : EditorActio
 /// <summary>Give or clear one call argument.</summary>
 [BridgeContract]
 public sealed record EditorActionCallArgumentCommand(
-    string Name, bool? Given = null, string? Value = null) : EditorActionCommand;
+    string Name, bool? Given = null, string? Value = null,
+    IReadOnlyList<EditorValuePartSnapshot>? Parts = null) : EditorActionCommand;
 
 /// <summary>Write a comment, enabled flag, timeout or retry field.</summary>
 [BridgeContract]

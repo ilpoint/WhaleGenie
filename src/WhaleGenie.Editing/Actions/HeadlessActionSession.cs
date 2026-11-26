@@ -175,7 +175,8 @@ internal sealed partial class HeadlessActionSession
         return Snapshot();
     }
 
-    public EditorActionFormSnapshot PatchRow(string name, int index, string column, string value)
+    public EditorActionFormSnapshot PatchRow(string name, int index, string column, string value,
+        IReadOnlyList<EditorValuePartSnapshot>? parts = null)
     {
         var parameter = Field(name);
         switch (parameter.Definition.Kind)
@@ -185,19 +186,33 @@ internal sealed partial class HeadlessActionSession
                     var row = At(parameter.Regions, index);
                     switch (column)
                     {
-                        case "x": row.X.Write(Formula.Text(value)); break;
-                        case "y": row.Y.Write(Formula.Text(value)); break;
-                        case "width": row.Width.Write(Formula.Text(value)); break;
-                        case "height": row.Height.Write(Formula.Text(value)); break;
-                        case "variable": row.OrVariable = value; break;
+                        case "x": row.X.Write(CellShape(parts, value)); break;
+                        case "y": row.Y.Write(CellShape(parts, value)); break;
+                        case "width": row.Width.Write(CellShape(parts, value)); break;
+                        case "height": row.Height.Write(CellShape(parts, value)); break;
+                        case "variable":
+                            row.OrVariable = parts?.FirstOrDefault(cell =>
+                                cell.Kind == "name" && cell.Name.Trim().Length > 0)?.Name ?? value;
+                            break;
                         default: throw new InvalidOperationException("unknown region column " + column);
                     }
 
                     break;
                 }
             case ActionParameterKind.Images:
-                At(parameter.Pictures, index).Text = value;
-                break;
+                {
+                    var row = At(parameter.Pictures, index);
+                    if (parts is { Count: > 0 })
+                    {
+                        row.Write(EditorValueParts.ShapeOf(parts));
+                    }
+                    else
+                    {
+                        row.Text = value;
+                    }
+
+                    break;
+                }
             case ActionParameterKind.ColourPoints:
                 {
                     var row = At(parameter.ColourPointRows, index);
@@ -269,6 +284,11 @@ internal sealed partial class HeadlessActionSession
         return Snapshot();
     }
 
+    /// <summary>The shape a row cell command writes: its parts when the page sent them, else the line.</summary>
+    private static ExpressionNode CellShape(IReadOnlyList<EditorValuePartSnapshot>? parts,
+        string value)
+        => parts is { Count: > 0 } ? EditorValueParts.ShapeOf(parts) : Formula.Text(value);
+
     public EditorActionFormSnapshot PatchReturn(string key, bool? ticked, string? name)
     {
         var row = Return(key);
@@ -291,7 +311,8 @@ internal sealed partial class HeadlessActionSession
         return Snapshot();
     }
 
-    public EditorActionFormSnapshot PatchCallArgument(string name, bool? given, string? value)
+    public EditorActionFormSnapshot PatchCallArgument(string name, bool? given, string? value,
+        IReadOnlyList<EditorValuePartSnapshot>? parts = null)
     {
         var row = Argument(name);
         if (given is { } givenValue)
@@ -301,7 +322,9 @@ internal sealed partial class HeadlessActionSession
 
         if (value is not null)
         {
-            row.Write(Formula.Text(value));
+            row.Write(parts is { Count: > 0 }
+                ? EditorValueParts.ShapeOf(parts)
+                : Formula.Text(value));
         }
 
         return Snapshot();

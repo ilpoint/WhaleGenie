@@ -79,6 +79,7 @@ export interface EditorActionRowCellCommand {
   index: number;
   column: string;
   value: string;
+  parts?: EditorValuePartSnapshot[] | null;
 }
 
 export interface EditorActionReturnsCommand {
@@ -98,6 +99,7 @@ export interface EditorActionCallArgumentCommand {
   name: string;
   given?: boolean | null;
   value?: string | null;
+  parts?: EditorValuePartSnapshot[] | null;
 }
 
 export interface EditorActionMetaCommand {
@@ -302,6 +304,7 @@ export interface EditorCallArgumentSnapshot {
   declared: boolean;
   given: boolean;
   value: string;
+  valueParts: EditorValuePartSnapshot[];
 }
 
 export interface EditorCatalogue {
@@ -453,6 +456,7 @@ export interface EditorImageRowSnapshot {
   canMoveUp: boolean;
   canMoveDown: boolean;
   preview: EditorImagePreviewSnapshot | null;
+  parts: EditorValuePartSnapshot[];
 }
 
 export interface EditorKeyCapSnapshot {
@@ -572,11 +576,11 @@ export interface EditorRecordingSnapshot {
 }
 
 export interface EditorRegionRowSnapshot {
-  x: string;
-  y: string;
-  width: string;
-  height: string;
-  variable: string;
+  x: EditorRowCellSnapshot;
+  y: EditorRowCellSnapshot;
+  width: EditorRowCellSnapshot;
+  height: EditorRowCellSnapshot;
+  variable: EditorRowCellSnapshot;
 }
 
 export interface EditorReturnsRowSnapshot {
@@ -590,6 +594,11 @@ export interface EditorReturnsRowSnapshot {
   isNameTaken: boolean;
   nameWarning: string;
   isPrimary: boolean;
+}
+
+export interface EditorRowCellSnapshot {
+  text: string;
+  parts: EditorValuePartSnapshot[];
 }
 
 export interface EditorRowSnapshot {

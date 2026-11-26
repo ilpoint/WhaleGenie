@@ -28,7 +28,7 @@ internal static class EditorActionSnapshotFactory
             .ToList();
         var arguments = form.CallArgumentRows
             .Select(row => new EditorCallArgumentSnapshot(row.Name, row.Hint, row.IsRequired,
-                row.IsDeclared, row.Given, row.Value))
+                row.IsDeclared, row.Given, row.Value, EditorValueParts.Of(row.Shape)))
             .ToList();
         var global = form.GlobalVariableDraft is { } draft
             ? new EditorGlobalDraftSnapshot(draft.Name, draft.Type.ToString(), draft.DefaultValue,
@@ -193,10 +193,10 @@ internal static class EditorActionSnapshotFactory
             IsFollowingWindow: field.IsFollowingWindow,
             WindowRuleSummary: field.IsWindowRule ? field.WindowRuleSummary : string.Empty,
             Regions: [.. field.Regions.Select(row => new EditorRegionRowSnapshot(
-                row.X.Text, row.Y.Text, row.Width.Text, row.Height.Text, row.OrVariable))],
+                Cell(row.X), Cell(row.Y), Cell(row.Width), Cell(row.Height), Cell(row.OrVariable)))],
             Images: [.. field.Pictures.Select((row, index) => new EditorImageRowSnapshot(
                 row.Text, index > 0, index < field.Pictures.Count - 1,
-                imagePreview?.Invoke(row.Text)))],
+                imagePreview?.Invoke(row.Text), EditorValueParts.Of(row.Shape)))],
             Colours: [.. field.ColourRows.Select(row => new EditorColourRowSnapshot(
                 row.Colour, row.Tolerance))],
             ColourPoints: [.. field.ColourPointRows.Select(row => new EditorColourPointRowSnapshot(
@@ -243,24 +243,15 @@ internal static class EditorActionSnapshotFactory
     }
 
     private static IReadOnlyList<EditorValuePartSnapshot> Parts(StepParameterViewModel field)
-    {
-        if (field.CurrentShape is ConcatNode run)
-        {
-            return [.. run.Parts.Select(part => part switch
-            {
-                TextNode text => new EditorValuePartSnapshot("text", text.Text, string.Empty),
-                VariableNode name => new EditorValuePartSnapshot("name", string.Empty, name.Name),
-                _ => new EditorValuePartSnapshot("text", Expression.Render(part), string.Empty),
-            })];
-        }
+        => EditorValueParts.Of(field.CurrentShape);
 
-        return field.CurrentShape switch
-        {
-            TextNode text => [new EditorValuePartSnapshot("text", text.Text, string.Empty)],
-            VariableNode name => [new EditorValuePartSnapshot("name", string.Empty, name.Name)],
-            _ => [],
-        };
-    }
+    /// <summary>One region cell as the page draws it: the line, and the parts behind it.</summary>
+    private static EditorRowCellSnapshot Cell(NumberCellViewModel cell)
+        => new(cell.Text, EditorValueParts.Of(cell.Shape));
+
+    /// <summary>The one-name box of a region row, which may be a name or a written rectangle.</summary>
+    private static EditorRowCellSnapshot Cell(string variable)
+        => new(variable, EditorValueParts.Of(RegionRowViewModel.TextCell(variable)));
 
     private static EditorConditionSnapshot? Condition(StepParameterViewModel field)
     {

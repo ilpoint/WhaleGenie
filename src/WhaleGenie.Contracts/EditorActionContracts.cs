@@ -52,15 +52,22 @@ public sealed record EditorActionFieldSnapshot(
     IReadOnlyList<EditorBrowserCandidateSnapshot> Candidates,
     EditorWindowPreviewSnapshot? WindowPreview, EditorImagePreviewSnapshot? ImagePreview);
 
+/// <summary>One cell of a row, with the line it reads as and the parts it is made of.</summary>
+[BridgeContract]
+public sealed record EditorRowCellSnapshot(
+    string Text, IReadOnlyList<EditorValuePartSnapshot> Parts);
+
 /// <summary>One region row of a form.</summary>
 [BridgeContract]
 public sealed record EditorRegionRowSnapshot(
-    string X, string Y, string Width, string Height, string Variable);
+    EditorRowCellSnapshot X, EditorRowCellSnapshot Y, EditorRowCellSnapshot Width,
+    EditorRowCellSnapshot Height, EditorRowCellSnapshot Variable);
 
 /// <summary>One image row of a form, with its thumbnail.</summary>
 [BridgeContract]
 public sealed record EditorImageRowSnapshot(
-    string Text, bool CanMoveUp, bool CanMoveDown, EditorImagePreviewSnapshot? Preview);
+    string Text, bool CanMoveUp, bool CanMoveDown, EditorImagePreviewSnapshot? Preview,
+    IReadOnlyList<EditorValuePartSnapshot> Parts);
 
 /// <summary>A picture read into a data URL, or the reason it could not be.</summary>
 [BridgeContract]
@@ -98,7 +105,8 @@ public sealed record EditorReturnsRowSnapshot(
 /// <summary>One argument of a macro call.</summary>
 [BridgeContract]
 public sealed record EditorCallArgumentSnapshot(
-    string Name, string Hint, bool Required, bool Declared, bool Given, string Value);
+    string Name, string Hint, bool Required, bool Declared, bool Given, string Value,
+    IReadOnlyList<EditorValuePartSnapshot> ValueParts);
 
 /// <summary>The execution settings of the step being written.</summary>
 [BridgeContract]

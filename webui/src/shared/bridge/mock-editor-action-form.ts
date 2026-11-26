@@ -176,6 +176,10 @@ export function actionRow(parameter: EditorParameter, isGroupStart: boolean): Ed
   };
 }
 
+function cell(text: string | undefined) {
+  return { text: text ?? '', parts: [] };
+}
+
 export function actionField(parameter: EditorParameter): EditorActionField {
   const rows = parameter.rows ?? [];
   return {
@@ -209,12 +213,13 @@ export function actionField(parameter: EditorParameter): EditorActionField {
     placeholder: parameter.placeholder,
     isColourRows: parameter.kind === 'Color' && rows.length > 0,
     regions: parameter.kind === 'Region' ? rows.map((row) => ({
-      x: row.cells[0] ?? '', y: row.cells[1] ?? '',
-      width: row.cells[2] ?? '', height: row.cells[3] ?? '', variable: row.cells[4] ?? '',
+      x: cell(row.cells[0]), y: cell(row.cells[1]),
+      width: cell(row.cells[2]), height: cell(row.cells[3]), variable: cell(row.cells[4]),
     })) : [],
     images: parameter.kind === 'Images' ? rows.map((row, index) => ({
       text: row.cells[0] ?? '', canMoveUp: index > 0, canMoveDown: index < rows.length - 1,
       preview: row.cells[0] ? { dataUrl: MOCK_IMAGE, fileName: row.cells[0], problem: '' } : null,
+      parts: [],
     })) : [],
     colourPoints: parameter.kind === 'ColourPoints' ? rows.map((row) => ({
       dx: row.cells[0] ?? '', dy: row.cells[1] ?? '', colour: row.cells[2] ?? '',

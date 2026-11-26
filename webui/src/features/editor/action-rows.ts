@@ -102,14 +102,14 @@ export class WgActionRows extends LitElement {
       <div class="row" style="grid-template-columns: repeat(4, minmax(0, 1fr)) 96px 74px 24px">
         ${(['x', 'y', 'width', 'height'] as const).map((column) => html`
           <div class="cell">
-            <input .value=${row[column]} @change=${(event: Event) => void editor.action.patchActionRow(
+            <input .value=${row[column].text} @change=${(event: Event) => void editor.action.patchActionRow(
               field.name, index, column, (event.target as HTMLInputElement).value)} />
             <button class="chip" type="button"
               @click=${() => void editor.value.openRowValue(this.stepId, field.name, index, column)}>ƒ</button>
           </div>
         `)}
         <div class="cell">
-          <input .value=${row.variable} @change=${(event: Event) => void editor.action.patchActionRow(
+          <input .value=${row.variable.text} @change=${(event: Event) => void editor.action.patchActionRow(
             field.name, index, 'variable', (event.target as HTMLInputElement).value)} />
           <button class="chip" type="button"
             @click=${() => void editor.value.openRowValue(this.stepId, field.name, index, 'variable')}>ƒ</button>

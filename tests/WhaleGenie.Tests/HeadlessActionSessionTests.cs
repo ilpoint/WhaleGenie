@@ -1,5 +1,6 @@
 using System.Linq;
 using WhaleGenie.Contracts;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Editing;
 using WhaleGenie.Models;
 using Xunit;
@@ -164,5 +165,21 @@ public class HeadlessActionSessionTests
         var after = Field(session.ActionFormState(), field.Name);
         Assert.False(string.IsNullOrEmpty(after.WindowRuleSummary));
         Assert.False(after.IsFollowingWindow);
+    }
+
+    [Fact]
+    public void A_row_cell_keeps_a_variable_when_the_page_sends_its_parts()
+    {
+        // The page sends the shape a cell is made of, not the line it is drawn as. A name that went
+        // through the line as text is how a region stopped pointing at the variable it named.
+        var session = Open(out _);
+        session.OpenActionDraft("vision.findImage");
+        session.ActionForm.AddRow("region");
+        session.ActionForm.PatchRow("region", 0, "variable", string.Empty,
+            [new EditorValuePartSnapshot("name", string.Empty, "区域")]);
+
+        var step = session.ActionForm.BuildStepForSave();
+        var region = step.Parameters.First(parameter => parameter.Name == "region");
+        Assert.IsType<VariableNode>(region.Rows.Single().Cell("text"));
     }
 }
