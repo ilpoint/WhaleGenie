@@ -16,53 +16,6 @@
 
 阶段按顺序实施。每一阶段只解决一类问题，完成后删除本节对应内容。
 
-### 值的形状边界与往返法则（进行中）
-
-**问题**：动作表单把显示文本当成模型值回写。区域行的变量/公式与四个数字、子宏调用参数、图片名在确认表单
-或页面补丁后变成字面量；`FormulaJson.Read` 对内存中的 decimal 数字回退成文本。两者都在保存时发生、
-重开时才发现，运行期表现为 `Run.BadRegion` 或看向错误的位置。复现与根因见
-[ADR 0003](adr/0003-value-shape-boundary.md)。
-
-**目标**：文件、编辑器、线缆三层往返后，值仍是同一个形状；“用显示文本回写模型”在类型上写不出来。
-
-**范围**：Core 的 `FormulaJson` 与值法则；Domain 的步骤参数编解码；Editing 的行、表单与纯草稿；
-Contracts 的行载荷；webui 行编辑器；两个仓库的测试与只读扫描工具。引擎、动作语义、包格式不动。
-
-**两仓顺序**：
-
-1. 库仓 [ilpoint/WhaleGenie.Core](https://github.com/ilpoint/WhaleGenie.Core)：`FormulaJson.Read` 的数字分支与
-   L1/L2；按库仓 README 的命令构建、测试；公共面不变。
-2. 主仓：按 [dev/environment.md](dev/environment.md) 的 subtree/`sync-core` 流程取回；再做 Domain 的 L3/L4、
-   Editing 的 L5、Contracts/webui 的 L6。`core/` 在主仓只读，不在主仓提交库仓改动。
-
-**阶段**：
-
-- **A 止血**：Core 数字分支；区域、调用参数与图片行保留 `ExpressionNode`；`PatchRow` 与内联编辑走
-  `Write`；删除模型路径上的 `SetLine`。先写失败用例再改。
-- **B 法则**：Domain 的 L3/L4 生成器（目录里的全部动作 × 参数 × 值形态）；Editing 的 L5；桥的 L6。先跑出
-  失败清单，再逐项修。
-- **C 线缆**：行单元格带 `EditorValuePartSnapshot`；`ContractsGen` 重新生成 TS；页面复用标量字段的
-  parts 编辑器；未编辑的单元格不回传。
-- **D 收尾**：只读扫描器列出已坏工程的可疑行（不自动改）；包往返与行往返的自动化用例；三处手工
-  变异确认法则能变红；更新架构与测试文档。
-
-**验收**：
-
-- ADR 0003 的 L1–L6 全绿（L3/L5 比较模型形状，不只文件 JSON）；库仓与主仓的全部套件绿；
-  Core 公共面基线不变。
-- 以源码检索为准，模型路径上不再有 `SetLine` 与行级 `.Text =` 回写。
-- 扫描器能列出已坏工程的可疑行；包往返与行往返的自动化用例全绿；手工变异三项均被法则杀掉。
-- 契约生成一致（`ContractGenerationTests`）；网页行编辑不再丢名字或公式。
-
-**剩余**：真实场景的 10 个宏手动验收。自动往返、扫描器与 Domain/库仓/Editing 的变异门禁均已完成
-（Domain 100%、Editing 100%、库仓 FormulaJson 91.67%，后者的存活项是等价分支）。
-
-**边界**：不做引擎运行时重写（归“函数式核心与命令式外壳”阶段）、不做动作合并、不做旧格式迁移、
-不新增产品工程、不在页面里复制形状代数。
-
-**文档**：决定与法则见 [ADR 0003](adr/0003-value-shape-boundary.md)；实现落地后更新
-[architecture.md](architecture.md) 与 [dev/testing.md](dev/testing.md)。阶段完成即删除本节。
-
 ### 函数式核心与命令式外壳（进行中）
 
 **实现状态**：`TransferPlanner` 是包转移的纯核心（计划行、冲突、选择、决定、报告）；`PackageShapeReader`、
