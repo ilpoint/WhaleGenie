@@ -78,7 +78,7 @@
 544	core/src/WhaleGenie.Core/Execution/ColourActions.cs	keep: 一类动作：像素读色、比色与找色；图案解析属于找色本身
 446	core/src/WhaleGenie.Core/Execution/ImageActions.cs	keep: 一类动作：找图、等图与点图；参考图与命中规则已抽出
 379	core/src/WhaleGenie.Core/Execution/FileCsvActions.cs	keep: 一类动作：CSV 读写、列名与行筛选
-338	core/src/WhaleGenie.Core/Execution/PointerActions.cs	keep: 一类动作：移动、点击、双击、滚轮与拖拽
+325	core/src/WhaleGenie.Core/Execution/PointerActions.cs	keep: 一类动作：移动、点击、双击、滚轮与拖拽
 659	core/src/WhaleGenie.Core/Execution/BrowserActions.cs	keep: 一类动作：打开页面、读写页面与元素、等待、下载、对话框
 382	core/src/WhaleGenie.Core/Execution/CallBinder.cs	keep: 一次调用的边界：找宏、读实参、按声明填空、收回结果
 469	core/src/WhaleGenie.Core/Execution/RunVocabulary.cs	keep: 运行键名与失败键词汇表
@@ -173,4 +173,5 @@
 22657	docs/architecture/interface.md	keep: 应用/桥/编辑/运行各层的接口与事实来源在一份文档里互相对照，拆开会让同一契约出现两处说法
 318	tests/WhaleGenie.Tests/HeadlessEditorSession.SubMacrosTests.cs	keep: 子宏会话命令的一族用例（新建/导入/子文档归属），共用同一套宿主和断言
 342	tests/WhaleGenie.Domain.Tests/StepShapeRoundTripTests.cs	keep: 形状法则的单一测试，按动作与形状生成用例
+
 
