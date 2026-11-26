@@ -75,8 +75,9 @@ try {
                 '**/Execution/StepRows.cs'
                 '**/Execution/RetryPolicy.cs'
                 '**/Execution/WheelPlan.cs'
+                '**/Execution/CountPlan.cs'
             )
-            Filter = 'FullyQualifiedName~StepMetaTests|FullyQualifiedName~HitSortTests|FullyQualifiedName~HitOrderTests|FullyQualifiedName~StepOutcomeTests|FullyQualifiedName~MacroRunnerTests|FullyQualifiedName~RunLookTests|FullyQualifiedName~WhereColumnTests|FullyQualifiedName~ActionRoutingTests|FullyQualifiedName~ActionPreviewTests|FullyQualifiedName~IrreversibleStepTests|FullyQualifiedName~RetryPolicyTests|FullyQualifiedName~StepChecksTests|FullyQualifiedName~WheelPlanTests|FullyQualifiedName~StepTimeoutTests'
+            Filter = 'FullyQualifiedName~StepMetaTests|FullyQualifiedName~HitSortTests|FullyQualifiedName~HitOrderTests|FullyQualifiedName~StepOutcomeTests|FullyQualifiedName~MacroRunnerTests|FullyQualifiedName~RunLookTests|FullyQualifiedName~WhereColumnTests|FullyQualifiedName~ActionRoutingTests|FullyQualifiedName~ActionPreviewTests|FullyQualifiedName~IrreversibleStepTests|FullyQualifiedName~RetryPolicyTests|FullyQualifiedName~StepChecksTests|FullyQualifiedName~WheelPlanTests|FullyQualifiedName~StepTimeoutTests|FullyQualifiedName~CountPlanTests'
         },
         @{
             Name = 'devices-names'
