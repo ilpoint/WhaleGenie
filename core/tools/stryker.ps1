@@ -24,50 +24,6 @@ try {
     $project = Join-Path $root 'src/WhaleGenie.Core/WhaleGenie.Core.csproj'
     $tests = Join-Path $root 'tests/WhaleGenie.Core.Tests/WhaleGenie.Core.Tests.csproj'
 
-    # Expressions: the value model, the tree, the reader and the files a formula is written in.
-    # The context tests are in the filter because the date and dice answers are theirs.
-    $expressionTests = @(
-        'FullyQualifiedName~ExpressionTests'
-        'FullyQualifiedName~FormulaJsonTests'
-        'FullyQualifiedName~ValueRulesTests'
-        'FullyQualifiedName~ValueDateTests'
-        'FullyQualifiedName~ValueSameTests'
-        'FullyQualifiedName~ValueImageTests'
-        'FullyQualifiedName~FormulaShapeTests'
-        'FullyQualifiedName~ExpressionCoverageTests'
-        'FullyQualifiedName~ExpressionArgumentTests'
-        'FullyQualifiedName~ExpressionDateLiteralTests'
-        'FullyQualifiedName~ExpressionContextTests'
-        'FullyQualifiedName~WhereColumnTests'
-        'FullyQualifiedName~ListTextTests'
-        'FullyQualifiedName~RecordValueTests'
-    ) -join '|'
-
-    # Rules: the decisions a run makes without a device — retry, order, step settings, calls.
-    $ruleTests = @(
-        'FullyQualifiedName~StepMetaTests'
-        'FullyQualifiedName~HitSortTests'
-        'FullyQualifiedName~HitOrderTests'
-        'FullyQualifiedName~StepOutcomeTests'
-        'FullyQualifiedName~MacroRunnerTests'
-        'FullyQualifiedName~RunLookTests'
-        'FullyQualifiedName~WhereColumnTests'
-    ) -join '|'
-
-    # Devices: the tools the engine ships that do not talk to a machine.
-    $deviceTests = @(
-        'FullyQualifiedName~KeyNameTests'
-        'FullyQualifiedName~TextCompareTests'
-        'FullyQualifiedName~MousePathTests'
-        'FullyQualifiedName~TransparentColourTests'
-        'FullyQualifiedName~ColourNearnessTests'
-        'FullyQualifiedName~PngWriterTests'
-        'FullyQualifiedName~OcrPreprocessTests'
-        'FullyQualifiedName~ClipboardImageTests'
-        'FullyQualifiedName~ImageOrderTests'
-        'FullyQualifiedName~UiAnchorTests'
-    ) -join '|'
-
     $areas = @(
         @{
             Name = 'formula-json'
@@ -92,7 +48,7 @@ try {
                 '**/Expressions/ExpressionWriter.cs'
                 '**/Expressions/ExpressionNodes.cs'
             )
-            Filter = $expressionTests
+            Filter = ''
         },
         @{
             Name = 'rules'
@@ -111,7 +67,7 @@ try {
                 '**/Execution/Templates.cs'
                 '**/Execution/StepRows.cs'
             )
-            Filter = $ruleTests
+            Filter = ''
         },
         @{
             Name = 'devices'
@@ -129,7 +85,7 @@ try {
                 '**/Devices/Colour.cs'
                 '**/Devices/ClipboardImage.cs'
             )
-            Filter = $deviceTests
+            Filter = ''
         }
     )
 
@@ -138,16 +94,22 @@ try {
             continue
         }
 
-        $config = @{
-            'stryker-config' = @{
-                project = $project
-                'test-projects' = @($tests)
-                mutate = $run.Mutate
-                'test-case-filter' = $run.Filter
-                reporters = @('cleartext', 'json')
-                thresholds = @{ high = 90; low = 80; break = 0 }
-            }
+        $settings = @{
+            project = $project
+            'test-projects' = @($tests)
+            mutate = $run.Mutate
+            reporters = @('cleartext', 'json')
+            thresholds = @{ high = 90; low = 80; break = 0 }
         }
+
+        # An area whose covering tests are spread over many classes runs the whole suite and lets
+        # the per-test coverage analysis pick the tests that cover each mutant; a filter that misses
+        # one of those classes reports its mutants as uncovered rather than as gaps in the tests.
+        if ($run.Filter.Length -gt 0) {
+            $settings['test-case-filter'] = $run.Filter
+        }
+
+        $config = @{ 'stryker-config' = $settings }
         $configPath = Join-Path $work ($run.Name + '-stryker-config.json')
         $config | ConvertTo-Json -Depth 6 | Set-Content -Path $configPath -Encoding utf8
         $output = Join-Path $root ('TestResults/Stryker/' + $run.Name)
