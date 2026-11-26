@@ -43,6 +43,26 @@
 | 引擎的公共面与自足 | `core/src/WhaleGenie.Core/PublicAPI.Shipped.txt`（RS0016/RS0017）、`LayeringTests` 的五条守卫 |
 | 中键菜单宏回归、按住/移动/松开手势、方向命中、第三圈几何、场景覆盖来源、图标绘制、选项往返、设置页与轮盘预览 | `WheelGestureTests`、`WheelSurfaceTests`、`WheelPlacementTests` |
 
+### 值的形状往返
+
+值在模型里是 `ExpressionNode`，在文件里是规范 JSON，在表单与桥上是给人看的行。这三处之间往返后
+必须还是同一个形状，法则写在 [ADR 0003](../adr/0003-value-shape-boundary.md)：
+
+| 法则 | 用例 |
+| --- | --- |
+| L1/L2 值往返、文件幂等 | `FormulaJsonTests`（库仓） |
+| L3 步骤往返 | `StepShapeRoundTripTests`（全目录动作 × 参数 × 形状，比较模型结构而不只比 JSON） |
+| L4 包往返 | `StepPackageShapeTests` |
+| L5 草稿往返 | `ShapeDraftTests` |
+| L6 线缆往返 | `HeadlessActionSessionTests` 的名字经 `rowCell` 仍为 `VariableNode` |
+
+两个等式不要混：文件用 `JsonNode.DeepEquals`，模型用测试侧的结构比较器。`ToJson` 相等分不清
+`Formula.Text("{\"name\":\"窗口\"}")` 与 `Formula.Name("窗口")`，窗口规则写成变量与写成字面量
+在文件里都是对象。行单元格的载荷由 `EditorValueParts` 在快照与命令之间双向转换，页面只收发 parts。
+
+改了字段形状、行表列或 `ValueOf` 一类读取路径时，先加一条会失败的生成器断言，再改实现。
+已保存的项目包用 `tools/WhaleGenie.ProjectScan` 只读扫描，报告不自动修。
+
 ### 界面与无头测试注意事项
 
 - 主题资源查询须携带 `ActualThemeVariant`。属性需要跟随主题时使用 `DynamicResource` 或

@@ -1,6 +1,6 @@
 # ADR 0003：值的形状边界与往返法则
 
-- 状态：已采纳（实现待开始）
+- 状态：已采纳（实现中：Core、Domain、Editing 与线缆已落地；真实项目验收与完整变异基线待做）
 - 日期：2026-11-26
 - 相关：[路线图](../roadmap.md)、[构建环境](../dev/environment.md)、[测试分层](../dev/testing.md)、[架构](../architecture.md)
 
