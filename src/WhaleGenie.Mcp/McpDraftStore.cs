@@ -82,19 +82,21 @@ public sealed class McpDraft
     /// <summary>Adds or replaces one macro by name, and says which ids the repair moved.</summary>
     public McpPut Put(JsonObject json)
     {
-        var macro = MacroItem.FromJson(json);
-        var renamed = McpPatches.Settle(macro);
-        macro.Name = macro.Name.Trim();
-        if (macro.Name.Length == 0)
-        {
-            throw new McpFailure(McpErrors.BadArgument, "The macro has no name.",
-                "Every macro needs a name: it is how apply, get_macro and the trigger list find it.");
-        }
+        var input = McpDraftInput.ReadPut(json);
+        var macro = input.Macro;
 
-        // A macro sent with no trigger key is a macro whose steps changed, not one whose triggers
-        // did: what the project had stays. A macro sent with a list replaces it whole, and an empty
-        // list says this macro has none.
-        var sent = ReadTriggers(json, macro.Name);
+        // Ids are issued by the host, not by the parser: a pure reader can be given a document
+        // without a session, while a step or trigger that arrived without an id gets one here.
+        var renamed = McpPatches.Settle(macro);
+        var sent = input.Triggers is null ? null : input.Triggers.Select(node =>
+        {
+            if (node["id"] is null)
+            {
+                node["id"] = TriggerIds.New();
+            }
+
+            return TriggerEntry.FromJson(node);
+        }).ToList();
 
         lock (_gate)
         {
@@ -127,34 +129,6 @@ public sealed class McpDraft
         node["triggers"] = new JsonArray(
             [.. Triggers.ForMacro(macro.Name).Select(entry => (JsonNode)entry.ToJson())]);
         return node;
-    }
-
-    /// <summary>
-    /// The trigger list a client sent, or null when it sent none. An entry without an id is given
-    /// one and the macro it points at is the one being written, so a client adding a trigger does
-    /// not have to know either.
-    /// </summary>
-    private static List<TriggerEntry>? ReadTriggers(JsonObject json, string macroName)
-    {
-        if (json["triggers"] is not JsonArray array)
-        {
-            return null;
-        }
-
-        var entries = new List<TriggerEntry>();
-        foreach (var item in array.OfType<JsonObject>())
-        {
-            var node = (JsonObject)item.DeepClone();
-            if (node["id"] is null)
-            {
-                node["id"] = TriggerIds.New();
-            }
-
-            node["macro"] = macroName;
-            entries.Add(TriggerEntry.FromJson(node));
-        }
-
-        return entries;
     }
 
     public void Delete(string name)
@@ -198,34 +172,7 @@ public sealed class McpDraft
     /// <summary>Replaces the package's global declarations. Values are not run here; only the declarations change.</summary>
     public void SetGlobals(JsonArray array)
     {
-        var globals = new List<VariableDefinition>();
-        foreach (var item in array)
-        {
-            if (item is not JsonObject variable)
-            {
-                throw new McpFailure(McpErrors.BadArgument, "Every global has to be an object.",
-                    "A declaration is {name, type, default, description, persistent}.");
-            }
-
-            var name = Text(variable["name"]).Trim();
-            if (name.Length == 0)
-            {
-                throw new McpFailure(McpErrors.BadArgument, "A global has no name.",
-                    "Every declaration needs a name; it is the word a macro reads as a name.");
-            }
-
-            globals.Add(new VariableDefinition
-            {
-                Name = name,
-                Scope = VariableScope.Global,
-                Type = VariableTypes.KindOf(Default(Text(variable["type"]), "text")),
-                Default = Formula.Text(Text(variable["default"])),
-                Description = Text(variable["description"]),
-                PersistValue = variable["persistent"] is JsonValue flag
-                    && flag.TryGetValue<bool>(out var persistent) && persistent,
-            });
-        }
-
+        var globals = McpDraftInput.ReadGlobals(array);
 
         lock (_gate)
         {
@@ -235,15 +182,6 @@ public sealed class McpDraft
 
         McpAudit.Note("draft.globals", $"{globals.Count} declarations");
     }
-
-    /// <summary>
-    /// A string as it was written, or empty. A field of the wrong type is a shape the caller can fix
-    /// and not a reason to stop with a framework exception.
-    /// </summary>
-    private static string Text(JsonNode? node)
-        => node is JsonValue value && value.TryGetValue<string>(out var text) ? text : string.Empty;
-
-    private static string Default(string text, string fallback) => text.Length > 0 ? text : fallback;
 
     internal void MarkApplied()
     {
