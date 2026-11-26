@@ -45,9 +45,11 @@ public static class ClipboardImage
 
         var rows = Math.Abs(height);
         var stride = (width * bitCount + 31) / 32 * 4;
-        var table = bitCount <= 8 ? (1 << bitCount) * 4 : 0;
+
+        // Only 24- and 32-bit pictures are read above, so a colour table cannot be present; a
+        // bit-field picture still carries its masks right after the header.
         var masks = compression == 3 && header == HeaderSize ? BitFieldMasks : 0;
-        var start = header + table + masks;
+        var start = header + masks;
 
         if (bytes.Length < start + (long)stride * rows)
         {
