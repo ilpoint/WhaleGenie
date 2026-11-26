@@ -11,11 +11,12 @@ namespace WhaleGenie.Core.Execution;
 /// window goes through these, so a step that names one names it the same way everywhere, and the
 /// rule a step wrote is kept for the steps that say "the same as last time".
 /// </summary>
-internal sealed class WindowFacts(IDeviceLayer devices, VariableStore variables, RunState run)
+internal sealed class WindowFacts(IDeviceLayer devices, VariableStore variables, RunState run,
+    EvaluationContext evaluation)
 {
     /// <summary>The fields of one step, read the way the catalogue says they are written.</summary>
     private StepArguments Args(ExecutableStep step)
-        => new(step, variables, devices.Screen.RefreshMilliseconds);
+        => new(step, variables, devices.Screen.RefreshMilliseconds, evaluation);
 
     /// <summary>
     /// The window a step names, or a failure saying which one could not be found. "Match by" says
@@ -219,6 +220,6 @@ internal sealed class WindowFacts(IDeviceLayer devices, VariableStore variables,
             return value;
         }
 
-        return Expression.Evaluate(written, variables);
+        return Expression.Evaluate(written, variables, evaluation);
     }
 }

@@ -13,11 +13,11 @@ namespace WhaleGenie.Core.Execution;
 /// is worked out and handed back.
 /// </summary>
 internal sealed class ScreenPoints(IDeviceLayer devices, VariableStore variables,
-    WindowFacts windows)
+    WindowFacts windows, EvaluationContext evaluation)
 {
     /// <summary>The fields of one step, read the way the catalogue says they are written.</summary>
     private StepArguments Args(ExecutableStep step)
-        => new(step, variables, devices.Screen.RefreshMilliseconds);
+        => new(step, variables, devices.Screen.RefreshMilliseconds, evaluation);
 
     /// <summary>A yes/no field, with the answer a blank cell means.</summary>
     private static bool Flag(ExecutableStep step, string name, bool fallback)

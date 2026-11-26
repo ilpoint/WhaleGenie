@@ -14,7 +14,7 @@ namespace WhaleGenie.Core.Execution;
 /// every time round.
 /// </summary>
 internal sealed class ReferencePictures(IDeviceLayer devices, VariableStore variables,
-    RunState run)
+    RunState run, EvaluationContext evaluation)
 {
     /// <summary>
     /// The pictures a step looks for, in the order it listed them. A picture the step did not fill
@@ -67,7 +67,7 @@ internal sealed class ReferencePictures(IDeviceLayer devices, VariableStore vari
             return captured;
         }
 
-        var path = Expression.Evaluate(value, variables).AsText();
+        var path = Expression.Evaluate(value, variables, evaluation).AsText();
         var written = Written(path);
         if (written is { } stamp
             && run.References.TryGetValue(path, out var kept)

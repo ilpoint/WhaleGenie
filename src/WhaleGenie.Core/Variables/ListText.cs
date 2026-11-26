@@ -21,6 +21,11 @@ public static class ListText
     /// </summary>
     public static bool TryRead(ExpressionNode written, IVariableResolver? variables,
         out IReadOnlyList<Value> items, out ExpressionException? error)
+        => TryRead(written, variables, EvaluationContext.System, out items, out error);
+
+    /// <summary>The same read, against the clock and dice the caller hands in.</summary>
+    public static bool TryRead(ExpressionNode written, IVariableResolver? variables,
+        EvaluationContext evaluation, out IReadOnlyList<Value> items, out ExpressionException? error)
     {
         error = null;
         if (Formula.IsNothing(written))
@@ -37,7 +42,7 @@ public static class ListText
 
         try
         {
-            var value = Expression.Evaluate(written, variables);
+            var value = Expression.Evaluate(written, variables, evaluation);
             if (!value.IsList)
             {
                 error = ExpressionException.TypeMismatch($"\"{value.AsText()}\" is not a list");

@@ -175,7 +175,7 @@ internal static class FileCsvActions
 
         // The field is a line, so a name in it is worked out here rather than read from a shape the
         // way an ordinary field is: a macro writes "the columns I have" as the name of its list.
-        var value = Expression.Evaluate(Formula.Text(text), run.Variables);
+        var value = Expression.Evaluate(Formula.Text(text), run.Variables, run.Evaluation);
         if (value.IsList)
         {
             return [.. value.Items.Select(item => item.AsText())];

@@ -16,7 +16,7 @@ public sealed partial class MacroRunner
 {
     /// <summary>The reader for the fields of one step.</summary>
     private StepArguments Args(ExecutableStep step)
-        => new(step, Variables, _devices.Screen.RefreshMilliseconds);
+        => new(step, Variables, _devices.Screen.RefreshMilliseconds, Evaluation);
 
     /// <summary>
     /// The rectangle a record field names, or null when nobody filled it in. A value written there
@@ -77,7 +77,8 @@ public sealed partial class MacroRunner
     };
 
     /// <summary>What a shape comes to, with the names in it worked out where they stand.</summary>
-    private Value Read(ExpressionNode written) => Expression.Evaluate(written, Variables);
+    private Value Read(ExpressionNode written)
+        => Expression.Evaluate(written, Variables, Evaluation);
 
     /// <summary>
     /// Reads a line that stands for one value. Only the places that still hold a line — a default

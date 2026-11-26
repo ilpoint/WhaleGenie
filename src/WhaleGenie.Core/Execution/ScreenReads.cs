@@ -17,11 +17,11 @@ namespace WhaleGenie.Core.Execution;
 /// counts as found.
 /// </summary>
 internal sealed class ScreenReads(IDeviceLayer devices, VariableStore variables, RunState run,
-    StepProgress here, ScreenSight sight)
+    StepProgress here, ScreenSight sight, EvaluationContext evaluation)
 {
     /// <summary>The reader for the fields of one step.</summary>
     private StepArguments Args(ExecutableStep step)
-        => new(step, variables, devices.Screen.RefreshMilliseconds);
+        => new(step, variables, devices.Screen.RefreshMilliseconds, evaluation);
 
     /// <summary>A yes/no field, with the answer a blank cell means.</summary>
     private static bool Flag(ExecutableStep step, string name, bool fallback)
