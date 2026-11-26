@@ -27,6 +27,18 @@ internal sealed class WebOverlayWindow : Window
     private bool _noActivate;
     private bool _clickThrough;
 
+    /// <summary>The native control exists, but navigating before the window is shown aborts.</summary>
+    private bool _adapterReady;
+
+    /// <summary>False while the window is only being warmed: a hidden WebView must not be navigated.</summary>
+    private bool _navigateAllowed;
+
+    /// <summary>True once the first navigation was handed to the control.</summary>
+    private bool _navigated;
+
+    /// <summary>True while a navigation is being handed over, so a retry cannot overlap it.</summary>
+    private bool _navigating;
+
     /// <summary>True once the page has been loaded in the background.</summary>
     private bool _warmed;
 
@@ -77,13 +89,13 @@ internal sealed class WebOverlayWindow : Window
         SendMessage(handle, WmNcLeftButtonDown, HtCaption, IntPtr.Zero);
     }
 
-    /// <summary>The warm-up load no longer owns the window; a real open must not be hidden by it.</summary>
+    /// <summary>The warm-up window no longer owns the page; a real open decides when it loads.</summary>
     internal void EndWarm() => _warming = false;
 
     /// <summary>
-    /// Loads the page while nobody is looking: the window is placed off screen, shown, and hidden
-    /// again as soon as the navigation finishes. A first open then costs a <c>Show()</c> (S0: 9 ms)
-    /// instead of a WebView cold start (S0: about 0.6 s).
+    /// Builds the adapter and window while nobody is looking, so opening the overlay does not pay
+    /// for creating them. The page itself is loaded only when the window is shown for a person:
+    /// navigating a hidden or off-screen controller aborts with E_ABORT.
     /// </summary>
     internal void Warm()
     {
@@ -95,6 +107,17 @@ internal sealed class WebOverlayWindow : Window
         _warming = true;
         Position = new PixelPoint(-20000, -20000);
         Show();
+        _warmed = true;
+    }
+
+    /// <summary>
+    /// The window is about to be shown for a person. A hidden or off-screen WebView2 controller
+    /// aborts <c>put_Source</c> with E_ABORT, so the page is loaded only from here on.
+    /// </summary>
+    internal void AllowNavigate()
+    {
+        _navigateAllowed = true;
+        TryNavigate();
     }
 
     /// <summary>Pinned overlays stay up when the user clicks another program.</summary>
@@ -123,7 +146,11 @@ internal sealed class WebOverlayWindow : Window
         // reaches the WebView2 controller as its default background.
         _web.Background = Brushes.Transparent;
         _web.AdapterCreated += OnAdapterCreated;
-        Opened += (_, _) => ApplyStyles();
+        Opened += (_, _) =>
+        {
+            ApplyStyles();
+            TryNavigate();
+        };
 
         Content = _web;
         _channel = new WebBridge(_web);
@@ -140,18 +167,44 @@ internal sealed class WebOverlayWindow : Window
 
         // The control applies Background to the controller; a value set before the adapter exists
         // can miss it, so it is written again here. Clearing first is what makes the property change.
+        _adapterReady = true;
         _web.Background = null;
         _web.Background = Brushes.Transparent;
         ApplyStyles();
         _bridge.Attach(_surface, channel);
-        if (_warming)
+        TryNavigate();
+    }
+
+    /// <summary>Hands the page to the control once it has an adapter and a window that is shown.</summary>
+    private void TryNavigate()
+    {
+        if (!_adapterReady || !_navigateAllowed || _navigated || _navigating)
         {
-            _web.NavigationCompleted += OnWarmNavigationCompleted;
+            return;
         }
 
-        var url = StartUrl();
-        WhaleGenie.Runtime.AppDiagnostics.Note("overlay.url", url.AbsoluteUri);
-        _web.Navigate(url);
+        _navigating = true;
+        try
+        {
+            var url = StartUrl();
+            WhaleGenie.Runtime.AppDiagnostics.Note("overlay.url", url.AbsoluteUri);
+            _web.Navigate(url);
+            _navigated = true;
+        }
+        catch (COMException error) when (error.HResult == unchecked((int)0x80004004))
+        {
+            WhaleGenie.Runtime.AppDiagnostics.Note("overlay.navigate",
+                "aborted; waiting for a shown window");
+            if (_warming)
+            {
+                _warming = false;
+                Hide();
+            }
+        }
+        finally
+        {
+            _navigating = false;
+        }
     }
 
     private Uri StartUrl()
@@ -247,14 +300,6 @@ internal sealed class WebOverlayWindow : Window
         public int Y;
     }
 
-
-    private void OnWarmNavigationCompleted(object? sender, EventArgs args)
-    {
-        _web.NavigationCompleted -= OnWarmNavigationCompleted;
-        _warmed = true;
-        _warming = false;
-        Hide();
-    }
 
     /// <summary>Centres a square of <paramref name="contentSize"/> on a screen point.</summary>
     internal void PlaceCenteredAt(PixelPoint centre, double contentSize)

@@ -27,6 +27,7 @@ internal sealed class PanelOverlayHost(BridgeServer bridge, PanelSurfaceBridge f
     {
         var window = Ensure();
         window.EndWarm();
+        window.AllowNavigate();
         _placing = true;
         window.SetNoActivate(true);
         window.Width = width;

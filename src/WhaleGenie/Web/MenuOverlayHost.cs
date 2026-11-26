@@ -137,6 +137,7 @@ internal sealed class MenuOverlayHost(BridgeServer bridge, IDeviceLayer devices,
         _pinned = settings.LoadRememberMenuPin() && settings.LoadMenuPinned();
         _window.Pinned = _pinned;
         _window.EndWarm();
+        _window.AllowNavigate();
         _window.SetNoActivate(true);
         _window.Topmost = !AutoCloseSuspended;
         _window.PlaceNearCursor(350, 667);

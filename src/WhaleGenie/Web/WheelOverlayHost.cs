@@ -257,6 +257,7 @@ internal sealed class WheelOverlayHost(BridgeServer bridge, WheelSurfaceBridge w
             // back where it sat in the topmost band, which is below anything that became topmost
             // in the meantime — the game the wheel is opened over, a pinned shell, a panel. Ask for
             // the top of the band before and after the show; both are idempotent.
+            window.AllowNavigate();
             window.EnsureTopmost();
             window.Show();
             window.EnsureTopmost();
