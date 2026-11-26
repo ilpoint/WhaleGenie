@@ -55,7 +55,7 @@ try {
                 '**/Expressions/Formula.cs'
                 '**/Expressions/ExpressionCompiler.cs'
             )
-            Filter = 'FullyQualifiedName~ExpressionCoverageTests|FullyQualifiedName~FormulaShapeTests|FullyQualifiedName~ExpressionTests|FullyQualifiedName~ExpressionDateLiteralTests|FullyQualifiedName~ExpressionContextTests|FullyQualifiedName~ExpressionArgumentTests|FullyQualifiedName~ExpressionWriterTests'
+            Filter = 'FullyQualifiedName~ExpressionCoverageTests|FullyQualifiedName~FormulaShapeTests|FullyQualifiedName~ExpressionTests|FullyQualifiedName~ExpressionDateLiteralTests|FullyQualifiedName~ExpressionContextTests|FullyQualifiedName~ExpressionArgumentTests|FullyQualifiedName~ExpressionWriterTests|FullyQualifiedName~FormulaTextTests'
         },
         @{
             Name = 'rules'
