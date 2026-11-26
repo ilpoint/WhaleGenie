@@ -20,13 +20,13 @@
 
 **实现状态**：`TransferPlanner` 是包转移的纯核心（计划行、冲突、选择、决定、报告）；`PackageShapeReader`、
 `PackageManifestBuilder`、`PackageReadme` 把包形状、manifest 与 README 从 ZIP/时钟外壳中拆出；
+`PackagePlan` 在开 ZIP 前算出节点、manifest、README 与资源落点，`AssetSourceResolver` 只解析源路径；
 `McpDraftRules` 是草稿校验的纯核心，`McpPreview.Of` 的列表版本把 diff 也从草稿锁中拆出；子宏删除判断
-`SubMacroEditor.CanDelete` 与列表修改分开。纯核心测试不需要文件、工程、草稿会话或时钟。运行时的纯化排在“值的形状边界”之后；包、MCP 与编辑器的纯核心已经落地，不受影响。
+`SubMacroEditor.CanDelete` 与列表修改分开。纯核心测试不需要文件、工程、草稿会话或时钟。运行时的纯化排在
+“值的形状边界”之后；包、MCP 与编辑器的纯核心已经落地，不受影响。
 
 **下一步**：
 
-- 继续把包 codec 的节点文档组装/资源收集边界收紧，`FilePackageStore` 只保留 zip、资源解包、
-  临时文件与备份；
 - MCP 草稿的客户端 JSON 解析与 diff 只留纯函数，宿主保留权限、审计与 revision 闸门；
 - 编辑器只继续抽步骤树、子宏复制/改名的纯变换，`EditorDocumentSet`/会话仍保持命令式外壳。
 

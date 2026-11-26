@@ -1,15 +1,8 @@
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.IO;
 using System.IO.Compression;
-using System.Linq;
-using System.Security.Cryptography;
 using System.Text;
-using System.Text.Json;
-using System.Text.Json.Nodes;
-using WhaleGenie.Core.Expressions;
-using WhaleGenie.Localization;
 using WhaleGenie.Models;
 
 
@@ -23,74 +16,23 @@ public static partial class MacroPackage
         IReadOnlyList<VariableDefinition> globals, string appVersion, string? assetFolder,
         bool projectSection, IReadOnlyList<PublicMacroEntry>? library = null)
     {
-        var assets = new AssetCollector(archive,
+        var resolver = new AssetSourceResolver(
             [AssetFolderFor(packagePath), Path.GetDirectoryName(packagePath), assetFolder]);
-        var manifestMacros = new List<PackageManifestMacro>();
-        var libraryEntries = new List<PackageManifestLibraryEntry>();
-        var files = new List<(string Name, string Trigger, string Loop, int Steps)>();
-        var index = 0;
+        var plan = BuildPlan(appVersion, DateTime.UtcNow, DateTime.Now,
+            macros, triggers, globals, projectSection, library, resolver.Resolve);
 
-        foreach (var macro in macros)
+        foreach (var asset in plan.Assets)
         {
-            index++;
-            var entryName = $"{NodesFolder}{index:00}-{Slug(macro.Name)}.json";
-            var document = macro.ToJson();
-            RewriteAssets(document, assets.Import);
-            WriteEntry(archive, entryName, document.ToJsonString(Indented));
-
-            manifestMacros.Add(new PackageManifestMacro(
-                macro.Name, macro.IsEnabled, entryName, macro.Steps.Count));
-
-            var entries = triggers.ForMacro(macro.Name);
-            files.Add((macro.Name, string.Join(" / ", entries.Select(entry => entry.KindLabel)),
-                entries.Count.ToString(CultureInfo.InvariantCulture), macro.Steps.Count));
+            var entry = archive.CreateEntry(asset.EntryName, CompressionLevel.Optimal);
+            using var target = entry.Open();
+            using var origin = File.OpenRead(asset.SourcePath);
+            origin.CopyTo(target);
         }
 
-        foreach (var entry in library ?? [])
+        foreach (var entry in plan.Entries)
         {
-            index++;
-            var entryName =
-                $"{NodesFolder}{index:00}-library-{Slug(entry.Macro.Name)}.json";
-            var document = entry.Macro.ToJson();
-            RewriteAssets(document, assets.Import);
-            WriteEntry(archive, entryName, document.ToJsonString(Indented));
-            libraryEntries.Add(new PackageManifestLibraryEntry(
-                entry.Id, Math.Max(1, entry.Version), entry.Macro.Name.Trim(),
-                entry.Macro.Description, entryName));
+            WriteEntry(archive, entry.Name, entry.Content);
         }
-
-        var manifestVariables = new List<PackageManifestVariable>();
-        foreach (var variable in globals)
-        {
-            manifestVariables.Add(new PackageManifestVariable(
-                variable.Name, variable.Type.ToString(), FormulaJson.Write(variable.Default),
-                variable.Description));
-        }
-
-        var triggersNode = triggers.ToJson();
-        RewriteMenuIcons(triggersNode, assets.Import);
-        var manifest = PackageManifestBuilder.Build(appVersion, DateTime.UtcNow,
-            manifestMacros, manifestVariables, assets.Stored);
-
-        WriteEntry(archive, ManifestEntry, manifest.ToJsonString(Indented));
-        if (projectSection)
-        {
-            WriteEntry(archive, TriggersEntry, triggersNode.ToJsonString(Indented));
-        }
-        else if (library is null)
-        {
-            throw new InvalidOperationException("a package needs a project or library section");
-        }
-
-        if (library is not null)
-        {
-            WriteEntry(archive, LibraryEntriesEntry,
-                PackageManifestBuilder.BuildLibrary(libraryEntries).ToJsonString(Indented));
-        }
-
-        WriteEntry(archive, ReadmeEntry,
-            PackageReadme.Build(appVersion, files, globals, assets.Stored, projectSection,
-                library is not null, DateTime.Now));
     }
 
     /// <summary>Turns a macro name into something safe to use as a file name.</summary>

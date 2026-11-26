@@ -10,8 +10,9 @@
 `library/entries.json` 的库条目区段，或两者同时存在。库条目区段保存条目 id、版本与文档路径；
 工程包里的这一区段是**本工程内嵌公共宏**，随后者保存和打开，不写本机公共库。库条目区段自己带
 结构版本 1，外层包版本不因它改变。`PackageShapeReader` 只从 manifest 和两个区段标记判断形状，
-`PackageManifestBuilder`/`PackageReadme` 只从已收集的文档名、变量、资源和时间组装 JSON/说明；ZIP、
-资源解包、临时文件和备份仍留在 `FilePackageStore`/`MacroPackage` 外壳。引用只写名字（`{"name"}`），
+`PackageManifestBuilder`/`PackageReadme` 只从已收集的文档名、变量、资源和时间组装 JSON/说明；
+`PackagePlan` 在开 ZIP 前组装节点、manifest、README 与资源落点，`AssetSourceResolver` 只解析源路径；
+ZIP、资源解包、临时文件和备份仍留在 `FilePackageStore`/`MacroPackage` 外壳。引用只写名字（`{"name"}`），
 运行期只按名字取值；更早的包会被拒绝。不兼容的形状变化必须升级包格式，不保留旧包迁移分支；版本沿革
 由 git 与发布说明保存。
 

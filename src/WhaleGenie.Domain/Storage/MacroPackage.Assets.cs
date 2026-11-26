@@ -1,20 +1,13 @@
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.IO;
-using System.IO.Compression;
 using System.Linq;
-using System.Security.Cryptography;
-using System.Text;
-using System.Text.Json;
 using System.Text.Json.Nodes;
-using WhaleGenie.Localization;
-using WhaleGenie.Models;
 
 
 namespace WhaleGenie.Storage;
 
-// Collecting the assets a project uses into the package.
+// Finding the files a project's asset values name; the plan decides what the package calls them.
 public static partial class MacroPackage
 {
 
@@ -24,64 +17,27 @@ public static partial class MacroPackage
     private static bool ReadBool(JsonObject node, string name, bool fallback)
         => node[name] is JsonValue value && value.TryGetValue<bool>(out var result) ? result : fallback;
 
-    private static string DefaultIfEmpty(string value, string fallback)
-        => value.Length == 0 ? fallback : value;
-
-    /// <summary>Copies referenced images into the package as it is written.</summary>
-    internal sealed class AssetCollector
+    /// <summary>
+    /// Finds the file a picture value names. This is the file-system edge of packaging: it reads
+    /// no bytes and writes nothing, so the plan can be tested with a dictionary of paths.
+    /// </summary>
+    internal sealed class AssetSourceResolver
     {
-        private readonly ZipArchive _archive;
         private readonly IReadOnlyList<string> _sourceFolders;
-        private readonly Dictionary<string, string> _mapped = new(StringComparer.OrdinalIgnoreCase);
-        private readonly HashSet<string> _taken = new(StringComparer.OrdinalIgnoreCase);
 
         /// <param name="sourceFolders">
         /// Where to look for a picture, in order: beside the file being written first, then wherever
         /// the project it came from kept them. More than one is the normal case for an export.
         /// </param>
-        public AssetCollector(ZipArchive archive, IEnumerable<string?> sourceFolders)
+        public AssetSourceResolver(IEnumerable<string?> sourceFolders)
         {
-            _archive = archive;
             _sourceFolders = [.. sourceFolders
                 .Where(folder => !string.IsNullOrWhiteSpace(folder))
                 .Select(folder => Path.GetFullPath(folder!))
                 .Distinct(StringComparer.OrdinalIgnoreCase)];
         }
 
-        /// <summary>Entry names written so far, in the order they were added.</summary>
-        public List<string> Stored { get; } = [];
-
-        public string Import(string value)
-        {
-            var source = Resolve(value);
-            if (source is null)
-            {
-                return value;
-            }
-
-            if (_mapped.TryGetValue(source, out var existing))
-            {
-                return existing;
-            }
-
-            var name = UniqueName(Path.GetFileName(source));
-            var entryName = AssetsFolder + name;
-            var entry = _archive.CreateEntry(entryName, CompressionLevel.Optimal);
-            using (var target = entry.Open())
-            using (var origin = File.OpenRead(source))
-            {
-                origin.CopyTo(target);
-            }
-
-            _mapped[source] = entryName;
-            Stored.Add(entryName);
-            return entryName;
-        }
-
-        private static string? ResolveFile(string path)
-            => File.Exists(path) ? Path.GetFullPath(path) : null;
-
-        private string? Resolve(string value)
+        public string? Resolve(string value)
         {
             if (Path.IsPathRooted(value))
             {
@@ -110,22 +66,7 @@ public static partial class MacroPackage
             return ResolveFile(value);
         }
 
-        private string UniqueName(string name)
-        {
-            if (name.Length == 0)
-            {
-                name = "image.png";
-            }
-
-            var candidate = name;
-            var counter = 1;
-            while (!_taken.Add(candidate))
-            {
-                counter++;
-                candidate = $"{Path.GetFileNameWithoutExtension(name)}-{counter}{Path.GetExtension(name)}";
-            }
-
-            return candidate;
-        }
+        private static string? ResolveFile(string path)
+            => File.Exists(path) ? Path.GetFullPath(path) : null;
     }
 }
