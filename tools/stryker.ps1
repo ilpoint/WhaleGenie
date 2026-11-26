@@ -1,13 +1,14 @@
 <#
     Runs the mutation baseline one area at a time.
 
-    Stryker mutates a project against the tests that decide it: an area is the files to mutate, the
-    tests that should be enough to kill every mutant, and the report to leave behind. Reports go to
-    TestResults/Stryker/<area> and are not committed; the numbers that matter are written down in
-    the program's testing notes.
+    An area is a small set of files with one meaning, and the tests that decide them. Small areas
+    are what keeps a gate useful: a mutant is only judged by the tests that cover it, so an area
+    whose files are covered by slow device tests costs minutes per run, while one covered by the
+    value tests costs seconds. Reports go to TestResults/Stryker/<area> and are not committed.
 #>
 param(
-    [ValidateSet('formula-json', 'recording', 'expressions', 'rules', 'devices', 'all')]
+    [ValidateSet('formula-json', 'recording', 'expressions-value', 'expressions-writer', 'rules',
+        'devices-names', 'devices-colour', 'devices-window', 'devices-files', 'all')]
     [string]$Area = 'all'
 )
 
@@ -36,19 +37,25 @@ try {
             Filter = 'FullyQualifiedName~RecordingTests'
         },
         @{
-            Name = 'expressions'
+            Name = 'expressions-value'
             Mutate = @(
                 '**/Expressions/Value.cs'
                 '**/Expressions/ValueRules.cs'
-                '**/Expressions/Formula.cs'
-                '**/Expressions/FormulaJson.cs'
                 '**/Expressions/JsonValues.cs'
-                '**/Expressions/Expression.cs'
-                '**/Expressions/ExpressionCompiler.cs'
-                '**/Expressions/ExpressionWriter.cs'
-                '**/Expressions/ExpressionNodes.cs'
+                '**/Expressions/FormulaJson.cs'
             )
-            Filter = ''
+            Filter = 'FullyQualifiedName~ExpressionTests|FullyQualifiedName~FormulaJsonTests|FullyQualifiedName~ValueRulesTests|FullyQualifiedName~ValueDateTests|FullyQualifiedName~ValueSameTests|FullyQualifiedName~ValueImageTests|FullyQualifiedName~WhereColumnTests|FullyQualifiedName~RecordValueTests|FullyQualifiedName~ExpressionArgumentTests|FullyQualifiedName~ListTextTests|FullyQualifiedName~ExpressionContextTests'
+        },
+        @{
+            Name = 'expressions-writer'
+            Mutate = @(
+                '**/Expressions/ExpressionWriter.cs'
+                '**/Expressions/Expression.cs'
+                '**/Expressions/ExpressionNodes.cs'
+                '**/Expressions/Formula.cs'
+                '**/Expressions/ExpressionCompiler.cs'
+            )
+            Filter = 'FullyQualifiedName~ExpressionCoverageTests|FullyQualifiedName~FormulaShapeTests|FullyQualifiedName~ExpressionTests|FullyQualifiedName~ExpressionDateLiteralTests|FullyQualifiedName~ExpressionContextTests|FullyQualifiedName~ExpressionArgumentTests'
         },
         @{
             Name = 'rules'
@@ -67,25 +74,39 @@ try {
                 '**/Execution/Templates.cs'
                 '**/Execution/StepRows.cs'
             )
-            Filter = ''
+            Filter = 'FullyQualifiedName~StepMetaTests|FullyQualifiedName~HitSortTests|FullyQualifiedName~HitOrderTests|FullyQualifiedName~StepOutcomeTests|FullyQualifiedName~MacroRunnerTests|FullyQualifiedName~RunLookTests|FullyQualifiedName~WhereColumnTests|FullyQualifiedName~ActionRoutingTests|FullyQualifiedName~ActionPreviewTests|FullyQualifiedName~IrreversibleStepTests'
         },
         @{
-            Name = 'devices'
+            Name = 'devices-names'
+            Mutate = @('**/Devices/KeyNames.cs')
+            Filter = 'FullyQualifiedName~KeyNameTests'
+        },
+        @{
+            Name = 'devices-colour'
             Mutate = @(
-                '**/Devices/KeyNames.cs'
+                '**/Devices/Colour.cs'
                 '**/Devices/TextCompare.cs'
-                '**/Devices/MousePath.cs'
                 '**/Devices/PixelSearch.cs'
+                '**/Devices/ColourReach.cs'
+                '**/Devices/ClipboardImage.cs'
                 '**/Devices/PngWriter.cs'
                 '**/Devices/OcrPreprocess.cs'
-                '**/Devices/DelimitedFile.cs'
-                '**/Devices/ColourReach.cs'
-                '**/Devices/WindowHow.cs'
-                '**/Devices/WindowRule.cs'
-                '**/Devices/Colour.cs'
-                '**/Devices/ClipboardImage.cs'
+                '**/Devices/MousePath.cs'
             )
-            Filter = ''
+            Filter = 'FullyQualifiedName~ColourNearnessTests|FullyQualifiedName~TextCompareTests|FullyQualifiedName~TransparentColourTests|FullyQualifiedName~PngWriterTests|FullyQualifiedName~OcrPreprocessTests|FullyQualifiedName~ClipboardImageTests|FullyQualifiedName~MousePathTests|FullyQualifiedName~ImageOrderTests|FullyQualifiedName~UiAnchorTests'
+        },
+        @{
+            Name = 'devices-window'
+            Mutate = @(
+                '**/Devices/WindowRule.cs'
+                '**/Devices/WindowHow.cs'
+            )
+            Filter = 'FullyQualifiedName~DeviceActionTests|FullyQualifiedName~WindowActionTests|FullyQualifiedName~UiAnchorTests'
+        },
+        @{
+            Name = 'devices-files'
+            Mutate = @('**/Devices/DelimitedFile.cs')
+            Filter = 'FullyQualifiedName~FileActionTests|FullyQualifiedName~DataActionTests|FullyQualifiedName~SampleCsvTests|FullyQualifiedName~SampleJsonTests'
         }
     )
 
@@ -102,9 +123,6 @@ try {
             thresholds = @{ high = 90; low = 80; break = 0 }
         }
 
-        # An area whose covering tests are spread over many classes runs the whole suite and lets
-        # the per-test coverage analysis pick the tests that cover each mutant; a filter that misses
-        # one of those classes reports its mutants as uncovered rather than as gaps in the tests.
         if ($run.Filter.Length -gt 0) {
             $settings['test-case-filter'] = $run.Filter
         }

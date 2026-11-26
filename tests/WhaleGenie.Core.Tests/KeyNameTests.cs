@@ -27,6 +27,88 @@ public class KeyNameTests
     public void PlainNameStaysSideAgnostic(int code)
         => Assert.Equal("Shift", KeyNames.Name(KeyNames.Key((HookCode)code)));
 
+    /// <summary>
+    /// The everyday spellings a macro may write for a key, one row per alias the table carries:
+    /// these are the words people type, and each has to land on the key it names.
+    /// </summary>
+    [Theory]
+    [InlineData("ctrl", (int)HookCode.LeftControl)]
+    [InlineData("control", (int)HookCode.LeftControl)]
+    [InlineData("leftctrl", (int)HookCode.LeftControl)]
+    [InlineData("lctrl", (int)HookCode.LeftControl)]
+    [InlineData("左ctrl", (int)HookCode.LeftControl)]
+    [InlineData("rightctrl", (int)HookCode.RightControl)]
+    [InlineData("rctrl", (int)HookCode.RightControl)]
+    [InlineData("右ctrl", (int)HookCode.RightControl)]
+    [InlineData("shift", (int)HookCode.LeftShift)]
+    [InlineData("leftshift", (int)HookCode.LeftShift)]
+    [InlineData("lshift", (int)HookCode.LeftShift)]
+    [InlineData("左shift", (int)HookCode.LeftShift)]
+    [InlineData("rightshift", (int)HookCode.RightShift)]
+    [InlineData("rshift", (int)HookCode.RightShift)]
+    [InlineData("右shift", (int)HookCode.RightShift)]
+    [InlineData("alt", (int)HookCode.LeftAlt)]
+    [InlineData("leftalt", (int)HookCode.LeftAlt)]
+    [InlineData("lalt", (int)HookCode.LeftAlt)]
+    [InlineData("左alt", (int)HookCode.LeftAlt)]
+    [InlineData("rightalt", (int)HookCode.RightAlt)]
+    [InlineData("ralt", (int)HookCode.RightAlt)]
+    [InlineData("右alt", (int)HookCode.RightAlt)]
+    [InlineData("win", (int)HookCode.LeftMeta)]
+    [InlineData("windows", (int)HookCode.LeftMeta)]
+    [InlineData("meta", (int)HookCode.LeftMeta)]
+    [InlineData("super", (int)HookCode.LeftMeta)]
+    [InlineData("leftwin", (int)HookCode.LeftMeta)]
+    [InlineData("lwin", (int)HookCode.LeftMeta)]
+    [InlineData("左win", (int)HookCode.LeftMeta)]
+    [InlineData("rightwin", (int)HookCode.RightMeta)]
+    [InlineData("rwin", (int)HookCode.RightMeta)]
+    [InlineData("右win", (int)HookCode.RightMeta)]
+    [InlineData("esc", (int)HookCode.Escape)]
+    [InlineData("escape", (int)HookCode.Escape)]
+    [InlineData("return", (int)HookCode.Enter)]
+    [InlineData("spacebar", (int)HookCode.Space)]
+    [InlineData("pgup", (int)HookCode.PageUp)]
+    [InlineData("pageup", (int)HookCode.PageUp)]
+    [InlineData("pgdn", (int)HookCode.PageDown)]
+    [InlineData("pagedown", (int)HookCode.PageDown)]
+    [InlineData("del", (int)HookCode.Delete)]
+    [InlineData("ins", (int)HookCode.Insert)]
+    [InlineData("plus", (int)HookCode.Equals)]
+    [InlineData("-", (int)HookCode.Minus)]
+    [InlineData("=", (int)HookCode.Equals)]
+    [InlineData(",", (int)HookCode.Comma)]
+    [InlineData(".", (int)HookCode.Period)]
+    [InlineData("/", (int)HookCode.Slash)]
+    [InlineData(";", (int)HookCode.Semicolon)]
+    [InlineData("'", (int)HookCode.Quote)]
+    [InlineData("\u0060", (int)HookCode.BackQuote)]
+    [InlineData("[", (int)HookCode.OpenBracket)]
+    [InlineData("]", (int)HookCode.CloseBracket)]
+    [InlineData("\\", (int)HookCode.Backslash)]
+    public void An_everyday_spelling_names_the_key_it_means(string written, int code)
+        => Assert.Equal((HookCode?)code, KeyNames.ResolveCode(written));
+
+    /// <summary>
+    /// Every key with a name reads back as itself under the sided spelling a trigger binding uses:
+    /// a right-hand modifier must come back as that half, not as the left one.
+    /// </summary>
+    [Fact]
+    public void Every_key_with_a_name_reads_back_as_itself()
+    {
+        foreach (var code in Enum.GetValues<HookCode>())
+        {
+            if (code == HookCode.Undefined)
+            {
+                continue;
+            }
+
+            var name = KeyNames.Name(code, sided: true);
+            Assert.False(string.IsNullOrWhiteSpace(name), code.ToString());
+            Assert.Equal((HookCode?)code, KeyNames.ResolveCode(name));
+        }
+    }
+
     [Fact]
     public void The_list_of_names_holds_every_key_a_picker_offers()
     {
