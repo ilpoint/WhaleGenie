@@ -175,11 +175,15 @@ public class HeadlessActionSessionTests
         var session = Open(out _);
         session.OpenActionDraft("vision.findImage");
         session.ActionForm.AddRow("region");
+        session.ActionForm.AddRow("region");
         session.ActionForm.PatchRow("region", 0, "variable", string.Empty,
             [new EditorValuePartSnapshot("name", string.Empty, "区域")]);
+        session.ActionForm.PatchRow("region", 1, "x", string.Empty,
+            [new EditorValuePartSnapshot("name", string.Empty, "坐标")]);
 
         var step = session.ActionForm.BuildStepForSave();
         var region = step.Parameters.First(parameter => parameter.Name == "region");
-        Assert.IsType<VariableNode>(region.Rows.Single().Cell("text"));
+        Assert.IsType<VariableNode>(region.Rows[0].Cell("text"));
+        Assert.IsType<VariableNode>(region.Rows[1].Cell("x"));
     }
 }
