@@ -102,7 +102,7 @@ Release 基线（2026-11，本机）：
 | devices-files | 50 | 76.00% | 引号、双引号、单元格里的换行、空白行开关、自动分隔与写回都已补用例 |
 | expressions-value | 208 | 58.17% | 多数存活是 `Value` 构造与格式化里的等价路径；bool/date 的读数已补 |
 | expressions-writer | 196 | 54.59% | 渲染补了 12 条（括号、优先级、转义、占位），这才是编辑器的显示契约；剩下的是 `Expression`/`Formula` 的构造与改名路径 |
-| rules | 466 | 57.73% | 需要按文件看：`CallBinder`/`StepChecks` 的断言偏“调用到了” |
+| rules | 475 | 58.53% | 重试的三个决定抽成 `RetryPolicy` 并用 16 条用例钉住；其余需要按文件看：`CallBinder`/`StepChecks` 的断言偏“调用到了” |
 
 形状往返的判定仍以 `FormulaJsonTests` 的规范比较为准；录制区域的判定是 `RecordingTests`。
 

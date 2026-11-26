@@ -164,7 +164,7 @@ public sealed partial class MacroRunner
         async Task<Signal?> RetryOrStop(ExecutableStep failed, int attempt,
             CancellationToken stopToken)
         {
-            var decided = attempt < failed.Meta.RetryCount
+            var decided = RetryPolicy.Allows(failed.Meta, attempt)
                 ? Decision.Retry
                 : await Decide(failed, stopToken);
             if (decided is not Decision.Retry)
@@ -291,7 +291,7 @@ public sealed partial class MacroRunner
         }
 
         var pause = RetryPause(step, attempt + 1);
-        if (pause >= remaining)
+        if (!RetryPolicy.CanAfford(pause, remaining))
         {
             return false;
         }
@@ -387,7 +387,7 @@ public sealed partial class MacroRunner
     /// pause, so a step can back off further with every attempt instead of hammering away.
     /// </summary>
     private int RetryPause(ExecutableStep step, int attempt)
-        => Pace(step.Meta.RetryDelayFor(attempt));
+        => RetryPolicy.PauseMs(step.Meta, attempt, DelayScale);
 
     /// <summary>
     /// Runs one step, turning a broken expression into a failure the step can report and
