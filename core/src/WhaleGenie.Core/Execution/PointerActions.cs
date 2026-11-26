@@ -87,28 +87,15 @@ internal static class PointerActions
                 await Pacing.Pause(interval, token);
             }
 
-            if (smooth <= 0)
-            {
-                run.Input(step).Scroll(direction, total, point.Device.X, point.Device.Y);
-                continue;
-            }
-
-            // One event per 15 ms is about 66 a second: roughly the fastest an application would
-            // draw its scrolling at, and never more events than there are units to send.
-            var events = Math.Clamp(smooth / 15, 1, total);
-            var share = total / events;
-            var extra = total % events;
-
-            for (var index = 0; index < events; index++)
+            foreach (var turn in WheelPlan.Of(total, smooth))
             {
                 token.ThrowIfCancellationRequested();
-                if (index > 0)
+                if (turn.PauseBeforeMs > 0)
                 {
-                    await Pacing.Pause(smooth / events, token);
+                    await Pacing.Pause(turn.PauseBeforeMs, token);
                 }
 
-                run.Input(step).Scroll(direction, share + (index < extra ? 1 : 0),
-                    point.Device.X, point.Device.Y);
+                run.Input(step).Scroll(direction, turn.Units, point.Device.X, point.Device.Y);
             }
         }
 
