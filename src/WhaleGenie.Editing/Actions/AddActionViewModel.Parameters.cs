@@ -192,9 +192,15 @@ public partial class AddActionViewModel
             foreach (var argument in CallableSignature.Arguments(call))
             {
                 loaded.TryGetValue(argument.Name, out var written);
-                CallArgumentRows.Add(new CallArgumentRowViewModel(
+                var row = new CallArgumentRowViewModel(
                     argument.Name, argument.Hint, argument.Required, declared: true,
-                    written.Given, written.Value ?? string.Empty));
+                    written.Given, string.Empty);
+                if (written.Value is { } shape)
+                {
+                    row.Write(shape);
+                }
+
+                CallArgumentRows.Add(row);
             }
         }
 
@@ -209,8 +215,14 @@ public partial class AddActionViewModel
                 continue;
             }
 
-            CallArgumentRows.Add(new CallArgumentRowViewModel(
-                name, string.Empty, required: false, declared: false, given, value));
+            var row = new CallArgumentRowViewModel(
+                name, string.Empty, required: false, declared: false, given, string.Empty);
+            if (value is { } shape)
+            {
+                row.Write(shape);
+            }
+
+            CallArgumentRows.Add(row);
         }
 
         OnPropertyChanged(nameof(HasCallArguments));
@@ -245,7 +257,7 @@ public partial class AddActionViewModel
                 .SelectMany(parameter => parameter.Rows)
                 .Select(row => (
                     Name: row.Text(FieldNames.Name).Trim(),
-                    Value: row.Text(FieldNames.Value),
+                    Value: row.Cell(FieldNames.Value),
                     Given: string.Equals(row.Text(FieldNames.Given).Trim(), "true",
                         StringComparison.OrdinalIgnoreCase)))
                 .Where(row => row.Name.Length > 0),
@@ -306,11 +318,11 @@ public partial class AddActionViewModel
             return;
         }
 
-        var arguments = new Dictionary<string, (string Value, bool Given)>(
+        var arguments = new Dictionary<string, (ExpressionNode Value, bool Given)>(
             StringComparer.OrdinalIgnoreCase);
         foreach (var row in CallArgumentRows)
         {
-            arguments[row.Name] = (row.Value, row.Given);
+            arguments[row.Name] = (row.Shape, row.Given);
         }
 
         var results = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);

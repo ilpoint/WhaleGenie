@@ -101,7 +101,7 @@ public partial class MacroPackageFormatTests
         {
             if (value is not null)
             {
-                row.SetLine(column, value);
+                row.Set(column, Formula.Text(value));
             }
         }
 

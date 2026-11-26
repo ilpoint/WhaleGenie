@@ -29,8 +29,19 @@ public partial class CallArgumentRowViewModel : ViewModelBase
         IsRequired = required;
         IsDeclared = declared;
         Value = value;
+        _shape = Formula.Text(value);
         Given = given;
     }
+
+    /// <summary>
+    /// The value as the step stores it. The box beside it is a rendering: a name that went through
+    /// it would come back as the word it was drawn as, which is how an argument stopped being the
+    /// variable it was written as.
+    /// </summary>
+    private ExpressionNode _shape = Formula.Nothing;
+
+    /// <summary>The value as the shape the step keeps, rather than the line the box shows.</summary>
+    public ExpressionNode Shape => _shape;
 
     private string _hint;
 
@@ -90,6 +101,11 @@ public partial class CallArgumentRowViewModel : ViewModelBase
     /// </summary>
     partial void OnValueChanged(string value)
     {
+        if (!_loading)
+        {
+            _shape = Formula.Text(value);
+        }
+
         if (!_loading && value.Trim().Length > 0 && Given)
         {
             Given = false;
@@ -105,13 +121,29 @@ public partial class CallArgumentRowViewModel : ViewModelBase
     }
 
     /// <summary>Fills the row from what a saved step says, both boxes as they were written.</summary>
-    public void Load(string value, bool given)
+    public void Load(ExpressionNode value, bool given)
     {
         _loading = true;
         try
         {
-            Value = value;
+            _shape = value;
+            Value = Formula.Word(value);
             Given = given;
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    /// <summary>Puts a value in from a shape the caller already has, such as the step being edited.</summary>
+    public void Write(ExpressionNode value)
+    {
+        _loading = true;
+        try
+        {
+            _shape = value;
+            Value = Formula.Word(value);
         }
         finally
         {
@@ -141,9 +173,10 @@ public partial class CallArgumentRowViewModel : ViewModelBase
             },
         };
 
-        // The value box is where a person writes a line, so the name in it is read once here. A
-        // value that arrived as a shape is put in with Set instead.
-        row.SetLine(FieldNames.Value, value);
+        if (!Formula.IsNothing(_shape))
+        {
+            row.Set(FieldNames.Value, _shape);
+        }
 
         if (Given)
         {

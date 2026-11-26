@@ -185,10 +185,10 @@ internal sealed partial class HeadlessActionSession
                     var row = At(parameter.Regions, index);
                     switch (column)
                     {
-                        case "x": row.X.Text = value; break;
-                        case "y": row.Y.Text = value; break;
-                        case "width": row.Width.Text = value; break;
-                        case "height": row.Height.Text = value; break;
+                        case "x": row.X.Write(Formula.Text(value)); break;
+                        case "y": row.Y.Write(Formula.Text(value)); break;
+                        case "width": row.Width.Write(Formula.Text(value)); break;
+                        case "height": row.Height.Write(Formula.Text(value)); break;
                         case "variable": row.OrVariable = value; break;
                         default: throw new InvalidOperationException("unknown region column " + column);
                     }
@@ -301,7 +301,7 @@ internal sealed partial class HeadlessActionSession
 
         if (value is not null)
         {
-            row.Value = value;
+            row.Write(Formula.Text(value));
         }
 
         return Snapshot();

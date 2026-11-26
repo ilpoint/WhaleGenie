@@ -83,7 +83,7 @@ public partial class AddActionViewModel : ViewModelBase
     /// switching to another macro and back leaves the values where the author left them rather
     /// than emptying the form on the way through.
     /// </summary>
-    private readonly Dictionary<string, (Dictionary<string, (string Value, bool Given)> Arguments,
+    private readonly Dictionary<string, (Dictionary<string, (ExpressionNode Value, bool Given)> Arguments,
         Dictionary<string, string> Results)> _callFill = new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
@@ -91,7 +91,7 @@ public partial class AddActionViewModel : ViewModelBase
     /// kept apart from what the form holds now so a renamed argument can be told from another
     /// macro: the rows written for a macro this call no longer names are not this call's to show.
     /// </summary>
-    private IReadOnlyList<(string Name, string Value, bool Given)> _loadedArguments = [];
+    private IReadOnlyList<(string Name, ExpressionNode Value, bool Given)> _loadedArguments = [];
 
     /// <summary>The macro those loaded rows belong to, or empty when the step was just created.</summary>
     private string _loadedFor = string.Empty;

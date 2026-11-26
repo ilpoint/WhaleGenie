@@ -75,7 +75,7 @@ public class ShapeContractTests
     {
         var row = new StepParameterRow();
 
-        row.SetLine("path", "C:\\logs\\$100 off");
+        row.Set("path", Formula.Text("C:\\logs\\$100 off"));
 
         Assert.Equal(Formula.Text("C:\\logs\\$100 off"), row.Cell("path"));
         Assert.Equal("C:\\logs\\$100 off", row.Text("path"));

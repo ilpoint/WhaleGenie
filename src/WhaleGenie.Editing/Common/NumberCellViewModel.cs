@@ -68,6 +68,13 @@ public partial class NumberCellViewModel : ViewModelBase
     /// <summary>The shape the value window starts from, which is the value this cell keeps.</summary>
     public ExpressionNode Seed => _shape;
 
+    /// <summary>
+    /// The shape this number keeps, as the step stores it. A row is built from these rather than
+    /// from <see cref="Text"/>: the line is a rendering, and a name or a formula that went through
+    /// it would come back as the words it was drawn as.
+    /// </summary>
+    public ExpressionNode Shape => _shape;
+
     /// <summary>What this number says, whether it is a plain number or a formula.</summary>
     [ObservableProperty]
     public partial string Text { get; set; } = string.Empty;

@@ -1,11 +1,13 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Globalization;
 using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using WhaleGenie.Core.Execution;
 using WhaleGenie.Core.Expressions;
+using WhaleGenie.Core.Variables;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 
@@ -144,15 +146,45 @@ public partial class RegionRowViewModel : ViewModelBase
         var named = OrVariable.Trim();
         if (named.Length > 0)
         {
-            row.SetLine("text", named);
+            row.Set("text", TextCell(named));
             return row;
         }
 
-        Keep(row, "x", X);
-        Keep(row, "y", Y);
-        Keep(row, FieldNames.Width, Width);
-        Keep(row, FieldNames.Height, Height);
+        Keep(row, "x", X.Shape);
+        Keep(row, "y", Y.Shape);
+        Keep(row, FieldNames.Width, Width.Shape);
+        Keep(row, FieldNames.Height, Height.Shape);
         return row;
+    }
+
+    /// <summary>
+    /// What a row written as one thing says: a rectangle written out is text, and anything else
+    /// is the name of a variable. The box is the only place a person names a variable here, so a
+    /// word that is not a rectangle is a name rather than text that happens to look like one.
+    /// </summary>
+    internal static ExpressionNode TextCell(string text)
+    {
+        var written = text.Trim();
+        return LooksLikeRectangle(written) || !VariableName.IsName(written)
+            ? Formula.Text(written)
+            : Formula.Name(written);
+    }
+
+    /// <summary>
+    /// True when the line is one or more rectangles written out: four numbers, one rectangle a
+    /// line. A name never has four comma-separated numbers in it, so the two uses of the cell do
+    /// not have to be guessed apart.
+    /// </summary>
+    private static bool LooksLikeRectangle(string text)
+    {
+        var places = text.Split([';', '\n', '\r'],
+            StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        return places.Length > 0 && places.All(place =>
+        {
+            var cells = place.Split(',', StringSplitOptions.TrimEntries);
+            return cells.Length == 4 && cells.All(cell =>
+                double.TryParse(cell, NumberStyles.Float, CultureInfo.InvariantCulture, out _));
+        });
     }
 
     /// <summary>One row back out of the macro file.</summary>
@@ -176,12 +208,11 @@ public partial class RegionRowViewModel : ViewModelBase
         return place;
     }
 
-    private static void Keep(StepParameterRow row, string column, NumberCellViewModel cell)
+    private static void Keep(StepParameterRow row, string column, ExpressionNode shape)
     {
-        var written = cell.Text.Trim();
-        if (written.Length > 0)
+        if (!Formula.IsNothing(shape))
         {
-            row.SetLine(column, written);
+            row.Set(column, shape);
         }
     }
 

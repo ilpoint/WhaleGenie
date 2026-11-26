@@ -384,8 +384,33 @@ internal sealed partial class HeadlessEditorSession
             throw new InvalidOperationException("step " + stepId + " has no row " + index);
         }
 
-        parameter.Rows[index].SetLine(column, value);
+        var row = parameter.Rows[index];
+        row.Set(column, ShapeOf(parameter, column, value));
         _model.IsDirty = true;
+    }
+
+    /// <summary>
+    /// The shape a line typed into an inline row makes. A rectangle's four numbers are numbers;
+    /// the one thing a region can name is read by the same rule the form uses, because a name that
+    /// went through the line as text is how a region stopped pointing at its variable.
+    /// </summary>
+    private static ExpressionNode ShapeOf(StepParameter parameter, string column, string value)
+    {
+        if (parameter.Kind is ActionParameterKind.Region)
+        {
+            if (column == "text")
+            {
+                return RegionRowViewModel.TextCell(value);
+            }
+
+            if (decimal.TryParse(value.Trim(), NumberStyles.Float, CultureInfo.InvariantCulture,
+                    out var number))
+            {
+                return Formula.Number((double)number);
+            }
+        }
+
+        return Formula.Text(value);
     }
 
     private StepParameter FindParameter(string stepId, string name)

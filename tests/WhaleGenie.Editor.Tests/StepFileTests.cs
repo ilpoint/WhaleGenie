@@ -81,7 +81,7 @@ public class StepFileTests
         row.Set("given", Formula.Constant("true"));
         row.Set("note", Formula.Run([
             Formula.Text("共 "), Formula.Name("count"), Formula.Text(" 件")]));
-        row.SetLine("typed", "共 count 件");
+        row.Set("typed", Formula.Text("共 count 件"));
 
         Assert.Equal(Formula.Name("count"), row.Cell("value"));
         Assert.Equal(Formula.Constant("true"), row.Cell("given"));

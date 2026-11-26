@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Text.Encodings.Web;
+using System.Text.Json;
 using System.Text.Json.Nodes;
 using WhaleGenie.Core.Expressions;
 
@@ -15,6 +17,15 @@ namespace WhaleGenie.Models;
 /// </summary>
 public partial class StepParameter
 {
+    /// <summary>
+    /// The rule text kept in a step is read by a person as well as by the parser, so a window
+    /// title stays the writing it is instead of \uXXXX escapes.
+    /// </summary>
+    private static readonly JsonSerializerOptions Readable = new()
+    {
+        Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+    };
+
     /// <summary>Writes the value as the JSON type the runtime expects.</summary>
     /// <remarks>
     /// A number is written as the number it is, and anything else is written as what it says. A
@@ -131,12 +142,15 @@ public partial class StepParameter
                 Kind = ActionParameterKind.Steps,
                 Steps = [.. array.OfType<JsonObject>().Select(MacroStep.FromJson)],
             },
-            JsonObject record when definition?.Kind is ActionParameterKind.WindowRule => new StepParameter
-            {
-                Name = name,
-                Kind = ActionParameterKind.WindowRule,
-                Written = Formula.Text(record.ToJsonString()),
-            },
+            JsonObject record when definition?.Kind is ActionParameterKind.WindowRule =>
+                new StepParameter
+                {
+                    Name = name,
+                    Kind = ActionParameterKind.WindowRule,
+                    Written = IsShape(record)
+                        ? FormulaJson.Read(record)
+                        : Formula.Text(record.ToJsonString(Readable)),
+                },
             _ => new StepParameter
             {
                 Name = name,
@@ -146,6 +160,17 @@ public partial class StepParameter
             },
         };
     }
+
+    /// <summary>
+    /// True when the object is one of the tagged shapes a value is written as rather than a window
+    /// rule written out. A rule is title/process/class/handle/how and the switches beside them;
+    /// none of those keys is a shape tag, so a variable that holds a rule is not read as a literal
+    /// rule with every field empty.
+    /// </summary>
+    private static bool IsShape(JsonObject written)
+        => written.ContainsKey("name") || written.ContainsKey("run") || written.ContainsKey("call")
+           || written.ContainsKey("op") || written.ContainsKey("list")
+           || written.ContainsKey("group") || written.ContainsKey("date");
 
     /// <summary>One row of a list parameter, read back out of the object it was written as.</summary>
     private static StepParameterRow Row(JsonObject written)
@@ -163,15 +188,11 @@ public partial class StepParameter
     }
 
     /// <summary>
-    /// One value read back out of the file. A node written as text is the text it is — the file
-    /// writes a string only for a value that names nothing, because anything with a name or a
-    /// formula in it is written as the shape it is — and a node written as a tagged shape is that
-    /// shape. Nothing is parsed here: a file is not a place a formula is typed.
+    /// One value read back out of the file, in the one reader the shape has. The codec already
+    /// tells a string from a shape, so this must not ask a second question first: a number whose
+    /// CLR type the reader did not expect is exactly how a value became text.
     /// </summary>
-    private static ExpressionNode ValueOf(JsonNode? node)
-        => node is JsonValue value && value.TryGetValue<string>(out var text)
-            ? Formula.Text(text)
-            : FormulaJson.Read(node);
+    private static ExpressionNode ValueOf(JsonNode? node) => FormulaJson.Read(node);
 
     /// <summary>Writes a nested step list as a JSON array.</summary>
     public static JsonArray BuildArray(IEnumerable<MacroStep> steps)
