@@ -107,6 +107,24 @@ public class WhereColumnTests
             Names(Expression.Evaluate(Formula.Call("where", Formula.Name("rows"), Formula.Text("age"), Formula.Text(">"), Formula.Text("40")), store)));
     }
 
+    /// <summary>Where an expression says what it left out, for the checks that ask.</summary>
+    private sealed class Notes : IExpressionNotes
+    {
+        public List<(string Key, object[] Arguments)> Taken { get; } = [];
+
+        public void Note(string key, IReadOnlyList<object> arguments)
+            => Taken.Add((key, [.. arguments]));
+    }
+
+    /// <summary>Works out one shape with somewhere for its notes to go.</summary>
+    private static (Value Value, List<(string Key, object[] Arguments)> Notes) EvaluateWithNotes(
+        ExpressionNode tree, IVariableResolver? variables = null)
+    {
+        var notes = new Notes();
+        var value = Expression.Evaluate(tree, variables, EvaluationContext.System.WithNotes(notes));
+        return (value, notes.Taken);
+    }
+
     [Fact]
     public void Where_leaves_out_a_row_that_cannot_answer_and_says_so()
     {
@@ -115,9 +133,9 @@ public class WhereColumnTests
             ("Grace", Value.FromText("eighty-five"), "New York"),
             ("Alan", Value.FromNumber(41), "London"));
 
-        Expression.BeginDiagnostics();
-        var kept = Expression.Evaluate(Formula.Call("where", Formula.Name("rows"), Formula.Text("age"), Formula.Text(">"), Formula.Number("40", 40d)), store);
-        var notes = Expression.TakeDiagnostics();
+        var (kept, notes) = EvaluateWithNotes(
+            Formula.Call("where", Formula.Name("rows"), Formula.Text("age"), Formula.Text(">"),
+                Formula.Number("40", 40d)), store);
 
         Assert.Equal(["Alan"], Names(kept));
         var note = Assert.Single(notes);
@@ -130,9 +148,10 @@ public class WhereColumnTests
     {
         var store = Table(("Ada", Value.FromNumber(36), "London"));
 
-        Expression.BeginDiagnostics();
-        var kept = Expression.Evaluate(Formula.Call("where", Formula.Name("rows"), Formula.Text("nope"), Formula.Text("contains"), Formula.Text("x")), store);
-        var note = Assert.Single(Expression.TakeDiagnostics());
+        var (kept, notes) = EvaluateWithNotes(
+            Formula.Call("where", Formula.Name("rows"), Formula.Text("nope"),
+                Formula.Text("contains"), Formula.Text("x")), store);
+        var note = Assert.Single(notes);
 
         Assert.Empty(kept.AsList());
         Assert.Equal(LogKeys.ListFieldMissing, note.Key);
@@ -168,9 +187,10 @@ public class WhereColumnTests
             Value.FromRecord([("name", Value.FromText("Grace"))]),
         ]));
 
-        Expression.BeginDiagnostics();
-        var ages = Expression.Evaluate(Formula.Call("column", Formula.Name("rows"), Formula.Text("age")), store).AsList();
-        var note = Assert.Single(Expression.TakeDiagnostics());
+        var (value, notes) = EvaluateWithNotes(
+            Formula.Call("column", Formula.Name("rows"), Formula.Text("age")), store);
+        var ages = value.AsList();
+        var note = Assert.Single(notes);
 
         Assert.Equal([36d], ages.Select(age => age.AsNumber()));
         Assert.Equal(LogKeys.ListFieldMissing, note.Key);

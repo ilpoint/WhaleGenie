@@ -134,7 +134,7 @@ internal static partial class FunctionLibrary
     /// that cannot answer — it is not a record, has no such field, or holds text where a number
     /// was asked for — is left out and reported rather than read as zero.
     /// </summary>
-    private static Value Where(IReadOnlyList<Func<Value>> args)
+    private static Value Where(EvaluationContext environment, IReadOnlyList<Func<Value>> args)
     {
         var rows = L(args, 0);
         var field = S(args, 1).Trim();
@@ -175,13 +175,13 @@ internal static partial class FunctionLibrary
             var row = rows[index];
             if (!row.IsRecord)
             {
-                Expression.Report(LogKeys.ListRowNotRecord, index + 1);
+                environment.Notes?.Note(LogKeys.ListRowNotRecord, [index + 1]);
                 continue;
             }
 
             if (row.Field(field) is not { } value)
             {
-                Expression.Report(LogKeys.ListFieldMissing, index + 1, field);
+                environment.Notes?.Note(LogKeys.ListFieldMissing, [index + 1, field]);
                 continue;
             }
 
@@ -189,7 +189,8 @@ internal static partial class FunctionLibrary
             {
                 if (!TryNumber(value, out var number))
                 {
-                    Expression.Report(LogKeys.ListFieldNotNumber, index + 1, field, value.AsText());
+                    environment.Notes?.Note(LogKeys.ListFieldNotNumber,
+                        [index + 1, field, value.AsText()]);
                     continue;
                 }
 
@@ -215,7 +216,7 @@ internal static partial class FunctionLibrary
     /// a list in which no record has it says which fields the records do have, because those names
     /// come from the action that made the records.
     /// </summary>
-    private static Value Column(IReadOnlyList<Func<Value>> args)
+    private static Value Column(EvaluationContext environment, IReadOnlyList<Func<Value>> args)
     {
         var rows = L(args, 0);
         var field = S(args, 1).Trim();
@@ -231,13 +232,13 @@ internal static partial class FunctionLibrary
             var row = rows[index];
             if (!row.IsRecord)
             {
-                Expression.Report(LogKeys.ListRowNotRecord, index + 1);
+                environment.Notes?.Note(LogKeys.ListRowNotRecord, [index + 1]);
                 continue;
             }
 
             if (row.Field(field) is not { } value)
             {
-                Expression.Report(LogKeys.ListFieldMissing, index + 1, field);
+                environment.Notes?.Note(LogKeys.ListFieldMissing, [index + 1, field]);
                 continue;
             }
 

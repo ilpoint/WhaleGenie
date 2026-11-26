@@ -13,11 +13,21 @@ public sealed class EvaluationContext
     /// <summary>The clock and the dice of the machine this program is running on.</summary>
     public static EvaluationContext System { get; } = new(TimeProvider.System, Random.Shared);
 
-    public EvaluationContext(TimeProvider clock, Random random)
+    public EvaluationContext(TimeProvider clock, Random random, IExpressionNotes? notes = null)
     {
         Clock = clock ?? throw new ArgumentNullException(nameof(clock));
         Random = random ?? throw new ArgumentNullException(nameof(random));
+        Notes = notes;
     }
+
+    /// <summary>
+    /// Where a function says what it left out, or null when nobody asked to hear it. The same
+    /// expression evaluated for a preview and for a run differ here rather than in what they compute.
+    /// </summary>
+    public IExpressionNotes? Notes { get; }
+
+    /// <summary>The same clock and dice, with somewhere for the notes to go.</summary>
+    public EvaluationContext WithNotes(IExpressionNotes? notes) => new(Clock, Random, notes);
 
     /// <summary>The clock a date function reads when nothing was given to it.</summary>
     public TimeProvider Clock { get; }

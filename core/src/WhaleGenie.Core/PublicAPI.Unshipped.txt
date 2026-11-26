@@ -1,7 +1,7 @@
 #nullable enable
 WhaleGenie.Core.Expressions.EvaluationContext
 static WhaleGenie.Core.Expressions.EvaluationContext.System.get -> WhaleGenie.Core.Expressions.EvaluationContext!
-WhaleGenie.Core.Expressions.EvaluationContext.EvaluationContext(System.TimeProvider! clock, System.Random! random) -> void
+WhaleGenie.Core.Expressions.EvaluationContext.EvaluationContext(System.TimeProvider! clock, System.Random! random, WhaleGenie.Core.Expressions.IExpressionNotes? notes = null) -> void
 WhaleGenie.Core.Expressions.EvaluationContext.Clock.get -> System.TimeProvider!
 WhaleGenie.Core.Expressions.EvaluationContext.Random.get -> System.Random!
 WhaleGenie.Core.Expressions.EvaluationContext.Now.get -> System.DateTimeOffset
@@ -11,3 +11,8 @@ static WhaleGenie.Core.Variables.ListText.TryRead(WhaleGenie.Core.Expressions.Ex
 WhaleGenie.Core.Execution.MacroRunner.MacroRunner(WhaleGenie.Core.Variables.VariableStore! variables, WhaleGenie.Core.Execution.IRunHost? host, WhaleGenie.Core.Devices.IDeviceLayer? devices, double delayScale, WhaleGenie.Core.Execution.IMacroLibrary? macros, WhaleGenie.Core.Execution.IRunLooks? looks, WhaleGenie.Core.Expressions.EvaluationContext? evaluation) -> void
 WhaleGenie.Core.Execution.MacroRunner.Evaluation.get -> WhaleGenie.Core.Expressions.EvaluationContext!
 WhaleGenie.Core.Devices.IFileDevice.LastWritten(string! path) -> System.DateTimeOffset?
+WhaleGenie.Core.Expressions.IExpressionNotes.Note(string! key, System.Collections.Generic.IReadOnlyList<object!>! arguments) -> void
+WhaleGenie.Core.Expressions.EvaluationContext.Notes.get -> WhaleGenie.Core.Expressions.IExpressionNotes?
+WhaleGenie.Core.Expressions.EvaluationContext.WithNotes(WhaleGenie.Core.Expressions.IExpressionNotes? notes) -> WhaleGenie.Core.Expressions.EvaluationContext!
+
+WhaleGenie.Core.Expressions.IExpressionNotes
