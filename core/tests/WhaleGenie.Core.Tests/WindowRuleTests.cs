@@ -82,6 +82,44 @@ public class WindowRuleTests
         => Assert.Equal((match, compare), WindowHow.Read(how));
 
     [Fact]
+    public void Every_way_is_named_and_no_two_labels_say_the_same_thing()
+    {
+        Assert.All(WindowHow.Labels, label => Assert.False(string.IsNullOrWhiteSpace(label)));
+        Assert.Equal(WindowHow.Labels.Count, WindowHow.Labels.Distinct(StringComparer.Ordinal).Count());
+        Assert.Equal(WindowHow.Values.Count, WindowHow.Labels.Count);
+    }
+
+    [Fact]
+    public void Following_is_written_as_a_yes_rather_than_merely_being_there()
+        => Assert.True(new WindowRule(Follow: true).ToJson()[FieldNames.Follow]!.GetValue<bool>());
+
+    [Fact]
+    public void A_rule_that_leaves_a_way_out_reads_as_the_oldest_way()
+    {
+        Assert.Equal(WindowHow.TitleContains, WindowRule.FromJson(new JsonObject()).How);
+
+        // A way the ten do not name is kept as it was written and read as the oldest way, so a
+        // file written by a newer build still names a window here rather than finding nothing.
+        var unknown = new JsonObject { [FieldNames.How] = "nobody-writes-this" };
+        Assert.Equal((WindowMatch.Title, TextCompare.Contains),
+            WindowRule.FromJson(unknown).Reading);
+    }
+
+    [Fact]
+    public void A_rule_that_leaves_a_switch_out_reads_as_its_default()
+    {
+        var rule = WindowRule.FromJson(new JsonObject
+        {
+            [FieldNames.Title] = "订单",
+        });
+
+        Assert.True(rule.Trim);
+        Assert.False(rule.CaseSensitive);
+        Assert.False(rule.Multiline);
+        Assert.False(rule.Follow);
+    }
+
+    [Fact]
     public void The_words_and_their_labels_are_kept_in_one_order()
     {
         Assert.Equal(10, WindowHow.Values.Count);
