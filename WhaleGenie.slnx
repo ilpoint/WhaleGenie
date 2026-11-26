@@ -19,6 +19,9 @@
   <Project Path="tools/WhaleGenie.ContractsGen/WhaleGenie.ContractsGen.csproj">
     <Platform Solution="*|x64" Project="x64" />
   </Project>
+  <Project Path="tools/WhaleGenie.ProjectScan/WhaleGenie.ProjectScan.csproj">
+    <Platform Solution="*|x64" Project="x64" />
+  </Project>
   <Project Path="tests/WhaleGenie.App.TestSupport/WhaleGenie.App.TestSupport.csproj">
     <Platform Solution="*|x64" Project="x64" />
   </Project>

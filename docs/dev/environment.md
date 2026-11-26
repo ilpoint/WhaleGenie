@@ -58,6 +58,12 @@ dotnet run --project src/WhaleGenie -c Release -- --mcp-doctor --report TestResu
 dotnet run --project src/WhaleGenie -c Release -- --mcp
 ```
 
+项目包里的行单元格可以用扫描器只读检查。它列出被压成文本的区域名字、公式和调用参数，不写回文件：
+
+```powershell
+dotnet run --project tools/WhaleGenie.ProjectScan -- "D:\projects\example.wgmacro"
+```
+
 报告属于本机验证产物，不提交到仓库。MCP 服务使用标准输入输出，不监听网络端口；权限来自
 `settings.json`，命令行不提供权限参数。
 
