@@ -83,6 +83,96 @@ public class ClipboardImageTests
         Assert.Null(ClipboardImage.FromDib(dib));
     }
 
+    [Fact]
+    public void The_header_a_picture_is_written_with_says_what_every_reader_expects()
+    {
+        var image = Frame(3, 2);
+        var dib = ClipboardImage.ToDib(image);
+
+        Assert.Equal(40, ReadInt(dib, 0));
+        Assert.Equal(3, ReadInt(dib, 4));
+        Assert.Equal(2, ReadInt(dib, 8));
+        Assert.Equal(1, ReadShort(dib, 12));
+        Assert.Equal(32, ReadShort(dib, 14));
+        Assert.Equal(0, ReadInt(dib, 16));
+        Assert.Equal(3 * 4 * 2, ReadInt(dib, 20));
+
+        // Bottom-up: the first row in the file is the last row of the picture.
+        Assert.Equal(image.Bgra[12..16], dib[40..44]);
+    }
+
+    [Fact]
+    public void A_bit_field_picture_skips_the_masks_between_the_header_and_the_pixels()
+    {
+        var bytes = new byte[40 + 12 + 4];
+        SetInt(bytes, 0, 40);
+        SetInt(bytes, 4, 1);
+        SetInt(bytes, 8, 1);
+        SetShort(bytes, 12, 1);
+        SetShort(bytes, 14, 32);
+        SetInt(bytes, 16, 3);
+        bytes[52] = 10;
+        bytes[53] = 20;
+        bytes[54] = 30;
+        bytes[55] = 40;
+
+        var back = ClipboardImage.FromDib(bytes);
+
+        Assert.NotNull(back);
+        Assert.Equal(new PixelColor(30, 20, 10), back![0, 0]);
+        Assert.Equal(40, back.Bgra[3]);
+    }
+
+    [Fact]
+    public void A_twenty_four_bit_row_is_padded_to_the_stride_it_is_read_with()
+    {
+        var bytes = new byte[40 + 12];
+        SetInt(bytes, 0, 40);
+        SetInt(bytes, 4, 3);
+        SetInt(bytes, 8, 1);
+        SetShort(bytes, 12, 1);
+        SetShort(bytes, 14, 24);
+        bytes[40] = 10;
+        bytes[41] = 20;
+        bytes[42] = 30;
+        bytes[43] = 40;
+        bytes[44] = 50;
+        bytes[45] = 60;
+        bytes[46] = 70;
+        bytes[47] = 80;
+        bytes[48] = 90;
+
+        var back = ClipboardImage.FromDib(bytes);
+
+        Assert.NotNull(back);
+        Assert.Equal(3, back!.Width);
+        Assert.Equal(new PixelColor(30, 20, 10), back[0, 0]);
+        Assert.Equal(new PixelColor(60, 50, 40), back[1, 0]);
+        Assert.Equal(new PixelColor(90, 80, 70), back[2, 0]);
+        Assert.Equal(255, back.Bgra[3]);
+    }
+
+    [Theory]
+    [InlineData(0, 2, 32, 0)]     // a header that is not one
+    [InlineData(39, 2, 32, 0)]
+    [InlineData(40, 0, 32, 0)]    // nothing wide
+    [InlineData(40, 2, 32, 0)]    // height zero, set below
+    [InlineData(40, 2, 16, 0)]    // a depth the reader does not know
+    [InlineData(40, 2, 32, 1)]    // a compression the reader does not know
+    [InlineData(40, 2, 32, 4)]
+    public void A_header_that_does_not_describe_an_ordinary_picture_is_none(
+        int header, int width, int bitCount, int compression)
+    {
+        var bytes = new byte[40 + 32];
+        SetInt(bytes, 0, header);
+        SetInt(bytes, 4, width);
+        SetInt(bytes, 8, header == 40 ? 0 : 2);
+        SetShort(bytes, 14, bitCount);
+        SetInt(bytes, 16, compression);
+
+        Assert.Null(ClipboardImage.FromDib(bytes));
+    }
+
     /// <summary>A picture where every byte is different, so a mixed-up row shows up at once.</summary>
     private static ImageFrame Frame(int width, int height)
     {
@@ -122,4 +212,9 @@ public class ClipboardImageTests
         bytes[at] = (byte)value;
         bytes[at + 1] = (byte)(value >> 8);
     }
+
+    private static int ReadInt(byte[] bytes, int at)
+        => bytes[at] | bytes[at + 1] << 8 | bytes[at + 2] << 16 | bytes[at + 3] << 24;
+
+    private static int ReadShort(byte[] bytes, int at) => bytes[at] | bytes[at + 1] << 8;
 }
