@@ -79,17 +79,22 @@ Remove-Item Env:ACTION_MATRIX_REPORT
 
 ### 变异测试
 
-值编解码用 Stryker.NET 5.1.0 做开发期基线（Apache-2.0，不随 NuGet 包发布）：
+值编解码、录制翻译与动作规则用 Stryker.NET 5.1.0 做开发期基线（Apache-2.0，不随 NuGet 包发布）：
 
 ```pwsh
 dotnet tool restore
-pwsh tools/stryker.ps1
+pwsh tools/stryker.ps1 -Area recording   # 或 formula-json / expressions / rules / devices / all
 ```
 
-只变异 `src/WhaleGenie.Core/Expressions/FormulaJson.cs`，由 `FormulaJsonTests` 判定；报告写
-`TestResults/Stryker/`，不提交。本次 Release 基线为 36 个计分变异中的 91.67%：其余三项不是行为缺口——
-JSON 标量默认分支与数字解析失败的消息只出现在不可达输入上，`Number` 的 decimal 快路径与 fallback
-对合法 JSON 数字等价。形状往返的判定仍以 `FormulaJsonTests` 的规范比较为准。
+每个区域是一组要变异的文件与判定它的用例；报告写 `TestResults/Stryker/<区域>/`，不提交。
+Release 基线：
+
+| 区域 | 计分变异 | 分数 | 说明 |
+| --- | --- | --- | --- |
+| formula-json（`FormulaJson.cs`） | 36 | 91.67% | 其余三项不是行为缺口：JSON 标量默认分支与数字解析失败的消息只出现在不可达输入上，`Number` 的 decimal 快路径与 fallback 对合法 JSON 数字等价 |
+| recording（`RecordingTranslator.cs`） | 231 | 77.49% | 存活的是拖拽/滚轮的合并间隔与点击按住、双击间隔的边界，另有一批拖拽与滚轮合并的分支没有用例走到；补用例是本区域的下一步 |
+
+形状往返的判定仍以 `FormulaJsonTests` 的规范比较为准；录制区域的判定是 `RecordingTests`。
 
 只有 64 位 Windows 能编：适配器依赖的 OpenCV 与 Playwright 驱动都只有 x64 一份。SDK 版本由
 `global.json` 钉住（10.0.400，允许向后取特性带）。引擎本身是 `net10.0`，任何平台都能引用它。
