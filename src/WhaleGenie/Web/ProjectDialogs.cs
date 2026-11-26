@@ -1,5 +1,4 @@
 using System;
-using System.IO;
 using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Platform.Storage;
@@ -9,7 +8,6 @@ using WhaleGenie.Localization;
 using WhaleGenie.Models;
 using WhaleGenie.Runtime;
 using WhaleGenie.Storage;
-using WhaleGenie.Views;
 
 namespace WhaleGenie.Web;
 
@@ -17,7 +15,12 @@ namespace WhaleGenie.Web;
 internal sealed class ProjectDialogs(Func<Window?> window) : IFileDialogs
 {
     public Task<string?> OpenPackageAsync()
-        => PickPackageAsync();
+        => PickAsync(new FilePickerOpenOptions
+        {
+            Title = Strings.Get("Main.OpenProjectTitle"),
+            AllowMultiple = false,
+            FileTypeFilter = [PackageFileType()],
+        });
 
     public Task<string?> SavePackageAsync(string suggestedName)
         => PickSaveAsync(new FilePickerSaveOptions
@@ -45,44 +48,6 @@ internal sealed class ProjectDialogs(Func<Window?> window) : IFileDialogs
 
     private static FilePickerFileType PackageFileType()
         => new(Strings.Get("Package.Filter")) { Patterns = [$"*{MacroPackage.Extension}"] };
-
-    private async Task<string?> PickPackageAsync()
-    {
-        if (window() is not { } target)
-        {
-            return null;
-        }
-
-        try
-        {
-            // The Windows open dialog loads shell context-menu extensions into this process. A
-            // package file's registered handler can bring the editor down when a person right-clicks
-            // it, so packages are picked in a window this program owns instead.
-            return await OnUiThread(() => PackagePickerWindow.PickAsync(
-                target, Strings.Get("Main.OpenProjectTitle"), PackageFolder()));
-        }
-        catch (Exception error) when (error is not OperationCanceledException)
-        {
-            AppDiagnostics.Record("dialogs.openPackage", error);
-            return null;
-        }
-    }
-
-    /// <summary>The folder the last package came from, so the picker starts where the person works.</summary>
-    private static string PackageFolder()
-    {
-        var last = AppSettings.Shared.LastProject();
-        if (last is { Length: > 0 })
-        {
-            var folder = Path.GetDirectoryName(last);
-            if (folder is { Length: > 0 } && Directory.Exists(folder))
-            {
-                return folder;
-            }
-        }
-
-        return AppPaths.Projects;
-    }
 
     private async Task<string?> PickAsync(FilePickerOpenOptions options)
     {
