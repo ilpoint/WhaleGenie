@@ -50,11 +50,40 @@ public class FormulaJsonTests
     }
 
     [Fact]
+    public void A_unary_minus_keeps_its_operator()
+    {
+        var minus = new UnaryNode("-", Formula.Name("x"));
+        var written = FormulaJson.Write(minus)!.AsObject();
+
+        Assert.Equal("-", written["op"]!.GetValue<string>());
+        Assert.Equal(minus, FormulaJson.Read(written));
+    }
+
+    [Fact]
+    public void A_name_that_is_not_text_is_refused()
+    {
+        var written = JsonNode.Parse("{\"name\":1}")!.AsObject();
+
+        var error = Assert.Throws<InvalidDataException>(() => FormulaJson.Read(written));
+        Assert.Contains("a name that is not text", error.Message);
+    }
+
+    [Fact]
+    public void An_array_where_a_value_is_expected_is_refused()
+    {
+        var written = JsonNode.Parse("[1,2]")!;
+
+        var error = Assert.Throws<InvalidDataException>(() => FormulaJson.Read(written));
+        Assert.Contains("shape that is not one", error.Message);
+    }
+
+    [Fact]
     public void An_unknown_object_is_refused()
     {
         var written = JsonNode.Parse("{\"wat\":1}")!.AsObject();
 
-        Assert.Throws<InvalidDataException>(() => FormulaJson.Read(written));
+        var error = Assert.Throws<InvalidDataException>(() => FormulaJson.Read(written));
+        Assert.Contains("not a known shape", error.Message);
     }
 
     [Fact]
@@ -143,7 +172,9 @@ public class FormulaJsonTests
         yield return Formula.Run([Formula.Text("取 "), Formula.Name("item"), Formula.Text(" 里的值")]);
         yield return Formula.List(Formula.Number(1), Formula.Text("a"), Formula.Name("n"));
         yield return Formula.Call("upper", Formula.Name("name"));
+        yield return Formula.Call("now");
         yield return Formula.Unary("not", Formula.Name("flag"));
+        yield return Formula.Unary("-", Formula.Name("x"));
         yield return Formula.Binary("+", Formula.Name("x"), Formula.Number(10));
         yield return new GroupNode(Formula.Binary("+", Formula.Name("x"), Formula.Number(10)));
     }

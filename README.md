@@ -65,6 +65,20 @@ dotnet pack src/WhaleGenie.Platform.Windows/WhaleGenie.Platform.Windows.csproj -
 包落在 `dist/nuget/`。三套用例（引擎、画面获取、Windows 适配器）都在这个仓库里，适配器那套会
 驱动真实的 Windows 设备。
 
+### 变异测试
+
+值编解码用 Stryker.NET 5.1.0 做开发期基线（Apache-2.0，不随 NuGet 包发布）：
+
+```pwsh
+dotnet tool restore
+pwsh tools/stryker.ps1
+```
+
+只变异 `src/WhaleGenie.Core/Expressions/FormulaJson.cs`，由 `FormulaJsonTests` 判定；报告写
+`TestResults/Stryker/`，不提交。本次 Release 基线为 36 个计分变异中的 91.67%：其余三项不是行为缺口——
+JSON 标量默认分支与数字解析失败的消息只出现在不可达输入上，`Number` 的 decimal 快路径与 fallback
+对合法 JSON 数字等价。形状往返的判定仍以 `FormulaJsonTests` 的规范比较为准。
+
 只有 64 位 Windows 能编：适配器依赖的 OpenCV 与 Playwright 驱动都只有 x64 一份。SDK 版本由
 `global.json` 钉住（10.0.400，允许向后取特性带）。引擎本身是 `net10.0`，任何平台都能引用它。
 
