@@ -107,23 +107,29 @@ public class RuntimeHookSafetyTests
         Assert.Equal(GlobalHotkeyAction.None, off.Match("P", ["左Ctrl", "左Alt"]).Action);
     }
 
+    /// <summary>
+    /// 这一步问的是"项目触发键会不会抢走开关键"，与这台机器把开关键改成了什么无关：设置从一份
+    /// 自己的文件读，开关键就是默认的 Home。读本机设置时，改过开关键的人会看到一条与代码无关的
+    /// 红——CI 上是默认值，反而只在开发机上失败。
+    /// </summary>
     [Fact]
     public void A_project_hotkey_only_claims_the_system_switch_while_enabled()
-    {
-        var viewModel = new MainViewModel();
-        viewModel.Triggers.Entries.Add(new TriggerEntry
+        => InOwnSettings(string.Empty, () =>
         {
-            MacroName = "macro",
-            Spec = new KeySpec("Home"),
+            var viewModel = new MainViewModel();
+            viewModel.Triggers.Entries.Add(new TriggerEntry
+            {
+                MacroName = "macro",
+                Spec = new KeySpec("Home"),
+            });
+
+            Assert.Equal(GlobalHotkeyAction.ToggleSystem,
+                Plan(viewModel).Match("Home", []).Action);
+
+            viewModel.IsRunning = true;
+            Assert.Equal(GlobalHotkeyAction.None,
+                Plan(viewModel).Match("Home", []).Action);
         });
-
-        Assert.Equal(GlobalHotkeyAction.ToggleSystem,
-            Plan(viewModel).Match("Home", []).Action);
-
-        viewModel.IsRunning = true;
-        Assert.Equal(GlobalHotkeyAction.None,
-            Plan(viewModel).Match("Home", []).Action);
-    }
 
     [Fact]
     public void A_published_plan_does_not_change_when_the_project_does()
