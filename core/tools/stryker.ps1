@@ -106,7 +106,7 @@ try {
         @{
             Name = 'devices-files'
             Mutate = @('**/Devices/DelimitedFile.cs')
-            Filter = 'FullyQualifiedName~FileActionTests|FullyQualifiedName~DataActionTests|FullyQualifiedName~SampleCsvTests|FullyQualifiedName~SampleJsonTests'
+            Filter = 'FullyQualifiedName~FileActionTests|FullyQualifiedName~DataActionTests|FullyQualifiedName~SampleCsvTests|FullyQualifiedName~SampleJsonTests|FullyQualifiedName~DelimitedFileTests'
         }
     )
 

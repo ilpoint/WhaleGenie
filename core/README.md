@@ -99,7 +99,7 @@ Release 基线（2026-11，本机）：
 | devices-names | 172 | 80.81% | 别名与有符号拼写已覆盖，剩下的别名不是宏会写出来的字 |
 | devices-colour | 672 | 73.96% | 存活集中在 PNG 头的位深分支与颜色近似的边界 |
 | devices-window | 39 | 61.54% | `WindowRule`/`WindowHow` 的 JSON 读写、十种比较与默认值已补 24 条；其余覆盖仍靠带 Window 名字的动作测试 |
-| devices-files | 50 | 32.00% | CSV 解析的断言偏少：引号、内嵌换行与分隔符的边界没有用例 |
+| devices-files | 50 | 76.00% | 引号、双引号、单元格里的换行、空白行开关、自动分隔与写回都已补用例 |
 | expressions-value | 208 | 58.17% | 多数存活是 `Value` 构造与格式化里的等价路径；bool/date 的读数已补 |
 | expressions-writer | 196 | 54.59% | 渲染补了 12 条（括号、优先级、转义、占位），这才是编辑器的显示契约；剩下的是 `Expression`/`Formula` 的构造与改名路径 |
 | rules | 466 | 57.73% | 需要按文件看：`CallBinder`/`StepChecks` 的断言偏“调用到了” |
