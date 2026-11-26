@@ -53,6 +53,80 @@ public class ValueRulesTests
             ValueRules.Canonical(Value.FromText("1.0")));
     }
 
+    /// <summary>The bool words a declaration or a comparison may write.</summary>
+    [Theory]
+    [InlineData("true", true)]
+    [InlineData("TRUE", true)]
+    [InlineData("False", false)]
+    [InlineData("1", true)]
+    [InlineData("0", false)]
+    public void A_bool_is_read_the_way_it_is_written(string text, bool expected)
+    {
+        Assert.True(ValueRules.Accepts(ValueKind.Bool, Value.FromText(text)));
+        Assert.True(ValueRules.TryParse(text, ValueKind.Bool, out var value));
+        Assert.Equal(ValueKind.Bool, value.Kind);
+        Assert.Equal(expected, value.Flag);
+    }
+
+    [Theory]
+    [InlineData("yes")]
+    [InlineData("2")]
+    public void Anything_else_is_not_a_bool(string text)
+    {
+        Assert.False(ValueRules.Accepts(ValueKind.Bool, Value.FromText(text)));
+        Assert.False(ValueRules.TryParse(text, ValueKind.Bool, out _));
+    }
+
+    /// <summary>The date shapes a text field may hold, read the same way the expression language reads them.</summary>
+    [Theory]
+    [InlineData("2026-03-04")]
+    [InlineData("2026-03-04 12:30:00")]
+    [InlineData("2026/03/04 12:30")]
+    public void A_date_is_read_the_way_it_is_written(string text)
+    {
+        Assert.True(ValueRules.Accepts(ValueKind.Date, Value.FromText(text)));
+        Assert.True(ValueRules.TryParse(text, ValueKind.Date, out var value));
+        Assert.Equal(ValueKind.Date, value.Kind);
+    }
+
+    [Fact]
+    public void Anything_else_is_not_a_date()
+    {
+        Assert.False(ValueRules.Accepts(ValueKind.Date, Value.FromText("soon")));
+        Assert.False(ValueRules.TryParse("soon", ValueKind.Date, out _));
+    }
+
+    /// <summary>A picture is a handle, and a line that reads like one is still only a line.</summary>
+    [Fact]
+    public void A_picture_is_only_a_picture()
+    {
+        Assert.True(ValueRules.Accepts(ValueKind.Image, Value.FromImage("shot")));
+        Assert.False(ValueRules.Accepts(ValueKind.Image, Value.FromText("shot")));
+        Assert.False(ValueRules.TryParse("shot", ValueKind.Image, out _));
+    }
+
+    /// <summary>A list and a record are not written as a line, so they cannot be read from one.</summary>
+    [Fact]
+    public void A_list_or_a_record_is_not_read_from_a_line()
+    {
+        Assert.False(ValueRules.TryParse("a", ValueKind.List, out _));
+        Assert.False(ValueRules.TryParse("a", ValueKind.Record, out _));
+        Assert.True(ValueRules.TryParse("a", ValueKind.Text, out var text));
+        Assert.Equal("a", text.AsText());
+    }
+
+    /// <summary>Every kind has the empty value a declaration starts at.</summary>
+    [Fact]
+    public void Every_kind_starts_at_its_own_empty_value()
+    {
+        Assert.Equal(ValueKind.Number, ValueRules.Empty(ValueKind.Number).Kind);
+        Assert.Equal(0, ValueRules.Empty(ValueKind.Number).AsNumber());
+        Assert.False(ValueRules.Empty(ValueKind.Bool).AsBool());
+        Assert.Empty(ValueRules.Empty(ValueKind.List).AsList());
+        Assert.Equal(string.Empty, ValueRules.Empty(ValueKind.Image).AsText());
+        Assert.Equal(string.Empty, ValueRules.Empty(ValueKind.Text).AsText());
+    }
+
     [Fact]
     public void Nothing_written_yet_is_allowed_for_every_kind()
     {

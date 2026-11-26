@@ -83,16 +83,24 @@ Remove-Item Env:ACTION_MATRIX_REPORT
 
 ```pwsh
 dotnet tool restore
-pwsh tools/stryker.ps1 -Area recording   # 或 formula-json / expressions / rules / devices / all
+pwsh tools/stryker.ps1 -Area recording   # 或上表的任一区域，或 all
 ```
 
-每个区域是一组要变异的文件与判定它的用例；报告写 `TestResults/Stryker/<区域>/`，不提交。
-Release 基线：
+每个区域是一小组文件、判定它的用例与自己的报告；报告写 `TestResults/Stryker/<区域>/`，不提交。
+区域按“一组测试大概多久”切开：值规则与键名由快用例判定，窗口与动作规则由替身动作用例判定，
+一个区域跑几分钟，才适合每次改完都跑。
+
+Release 基线（2026-11，本机）：
 
 | 区域 | 计分变异 | 分数 | 说明 |
 | --- | --- | --- | --- |
-| formula-json（`FormulaJson.cs`） | 36 | 91.67% | 其余三项不是行为缺口：JSON 标量默认分支与数字解析失败的消息只出现在不可达输入上，`Number` 的 decimal 快路径与 fallback 对合法 JSON 数字等价 |
-| recording（`RecordingTranslator.cs`） | 231 | 90.48% | 补了 11 条边界用例：键按住 700 ms、双击 400 ms、滚轮合并 400 ms、拖拽容差 6 px 与滚轮 60 格上限；剩下的是录制器写不出的形状（释放名与按下名不同进不来）和不改变输出的路径 |
+| formula-json | 36 | 91.67% | 其余三项不是行为缺口：JSON 标量默认分支与数字解析失败的消息只出现在不可达输入上，`Number` 的 decimal 快路径对合法 JSON 数字等价 |
+| recording | 231 | 90.48% | 边界用例已补；余下是录制器写不出的形状与不改变输出的路径 |
+| devices-names | 172 | 80.81% | 别名与有符号拼写已覆盖，剩下的别名不是宏会写出来的字 |
+| devices-colour | 672 | 73.96% | 存活集中在 PNG 头的位深分支与颜色近似的边界 |
+| expressions-value | 208 | 58.17% | 多数存活是 `Value` 构造与格式化里的等价路径；bool/date 的读数已补 |
+| expressions-writer | 196 | 33.67% | 渲染没有断言：下一步按节点类型写 `Render` 用例，这才是编辑器的显示契约 |
+| rules | 466 | 57.73% | 需要按文件看：`CallBinder`/`StepChecks` 的断言偏“调用到了” |
 
 形状往返的判定仍以 `FormulaJsonTests` 的规范比较为准；录制区域的判定是 `RecordingTests`。
 
