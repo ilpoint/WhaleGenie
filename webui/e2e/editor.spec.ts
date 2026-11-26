@@ -834,15 +834,10 @@ test('把步骤拖进空分节会落到该分节里', async ({ page }) => {
     .toBe(true);
 });
 
-test('页签条返回列表，关闭最后一个文档自动返回，宏设置没有多余的图标保存', async ({ page }) => {
+test('关闭最后一个文档自动返回列表，宏设置没有多余的图标保存', async ({ page }) => {
   await openEditor(page);
   await expect(page.locator('wg-editor .save-all')).toHaveCount(0);
 
-  await page.locator('wg-editor-tabs .back').click();
-  await expect(page.locator('wg-macros')).toBeVisible();
-
-  await page.locator('wg-macros .card', { hasText: '自动保存' }).dblclick();
-  await expect(page.locator('wg-editor-tabs .tab').first()).toBeVisible();
   await page.locator('wg-editor-tabs .tab[aria-selected="true"] + .close').click();
   await expect(page.locator('wg-macros')).toBeVisible();
 });

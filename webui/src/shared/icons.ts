@@ -1,7 +1,6 @@
 import { unsafeSVG } from 'lit/directives/unsafe-svg.js';
 import appWindow from 'lucide-static/icons/app-window.svg?raw';
 import arrowDown from 'lucide-static/icons/arrow-down.svg?raw';
-import arrowLeft from 'lucide-static/icons/arrow-left.svg?raw';
 import arrowUp from 'lucide-static/icons/arrow-up.svg?raw';
 import bookOpen from 'lucide-static/icons/book-open.svg?raw';
 import box from 'lucide-static/icons/box.svg?raw';
@@ -85,7 +84,6 @@ const icons = {
   'save-all': saveAll,
   'chevron-right': chevronRight,
   'chevron-down': chevronDown,
-  'arrow-left': arrowLeft,
   'arrow-up': arrowUp,
   'arrow-down': arrowDown,
   'layout-grid': layoutGrid,
