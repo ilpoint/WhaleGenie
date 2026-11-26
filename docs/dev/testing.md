@@ -83,15 +83,22 @@ pwsh tools/stryker.ps1 -Target domain   # 或 editing / all
 | Domain 的 `StepParameter.File.cs` | 44 | 100% |
 | 库仓的 `FormulaJson.cs` | 36 | 91.67% |
 | 库仓的 `RecordingTranslator.cs` | 231 | 90.48% |
+| 库仓的 `devices-names`（`KeyNames.cs`） | 172 | 80.81% |
+| 库仓的 `devices-colour`（颜色、找色、PNG、OCR 预处理、鼠标路径） | 672 | 73.96% |
+| 库仓的 `expressions-value`（`Value`、`ValueRules`、`JsonValues`、`FormulaJson`） | 208 | 58.17% |
+| 库仓的 `expressions-writer`（`Expression`、`Formula`、`ExpressionWriter`、`ExpressionCompiler`） | 196 | 33.67% |
+| 库仓的 `rules`（`StepMeta`、`HitSort`、`StepChecks`、`CallBinder` 等） | 466 | 57.73% |
 | Editing 的 `RowShapes.cs`、`EditorValueParts.cs` | 67 | 100% |
 
 Editing 只变异纯行变换与 parts 转换（67 个计分变异，100%）；行 VM 里的显示、占位、`Prepare`/`Remove`
 不在变异范围。Stryker 的 CompileError 与 Ignored 不计分。
 
-库仓的 `tools/stryker.ps1` 按区域跑（`formula-json`、`recording`、`expressions`、`rules`、
-`devices`），在这里只记最近一次基线；`FormulaJson` 剩的三项是 JSON 标量默认分支与数字解析失败的消息
-（只在不可达输入上出现）和 `Number` 的 decimal 快路径（对合法 JSON 数字等价），录制区域补过一轮边界用例后也到了 90%，剩下的
-是录制器写不出的形状。
+库仓的 `tools/stryker.ps1` 按区域跑（`formula-json`、`recording`、`expressions-value`、
+`expressions-writer`、`rules`、`devices-names`、`devices-colour`、`devices-window`、
+`devices-files`），在这里只记最近一次基线；`FormulaJson` 剩的三项是 JSON 标量默认分支与数字解析失败的
+消息（只在不可达输入上出现）和 `Number` 的 decimal 快路径（对合法 JSON 数字等价），录制区域补过一轮边界
+用例后也到了 90%。表达式写入与规则两处低于 60%：前者是渲染根本没有断言，后者多是“调用到了”的断言，补用例
+是下一步。
 
 ### 界面与无头测试注意事项
 
