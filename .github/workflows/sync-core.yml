@@ -1,13 +1,19 @@
 name: sync-core
 
-# 库（ilpoint/WhaleGenie.Core）以 git subtree 住在 core/ 下。这条流水线每天取一次，取到新东西
-# 就先构建、跑测试，全绿才推回本仓——GITHUB_TOKEN 推的提交不会再触发 ci.yml，所以验证必须在
-# 推之前做完，否则合并后的树就没人看过。
+# 库（ilpoint/WhaleGenie.Core）以 git subtree 住在 core/ 下。这条流水线每天把库取回默认分支，
+# 取到新东西就先构建、跑测试，全绿才推回本仓——GITHUB_TOKEN 推的提交不会再触发 ci.yml，所以
+# 验证必须在推之前做完，否则合并后的树就没人看过。手动触发时可以点名一个分支（例如 webview），
+# 不必等它从 master 合并过来。
 on:
   schedule:
     # 每天一次。库仓是公开的，拉取不需要任何凭据。
     - cron: '17 3 * * *'
   workflow_dispatch:
+    inputs:
+      branch:
+        description: '取回到哪个分支；留空就是触发时所处的分支'
+        required: false
+        default: ''
 
 permissions:
   contents: write
@@ -23,6 +29,8 @@ jobs:
     steps:
       - uses: actions/checkout@v5
         with:
+          # 手动触发时可以点名分支；定时触发时 inputs.branch 是空的，取的就是默认分支。
+          ref: ${{ inputs.branch || github.ref_name }}
           # 全历史：git subtree 靠历史里那条 "Squashed 'core/'" 记录来判断目录有没有被引入过，
           # 浅克隆看不到它，pull 会直接报 "was never added"。
           fetch-depth: 0
@@ -79,4 +87,4 @@ jobs:
       - name: Push the merge
         if: steps.pull.outputs.changed == 'true'
         shell: bash
-        run: git push origin "HEAD:${{ github.ref_name }}"
+        run: git push origin "HEAD:${{ inputs.branch || github.ref_name }}"

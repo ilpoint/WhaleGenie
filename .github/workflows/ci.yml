@@ -2,7 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [master]
+    # webview 是网页壳当前的开发分支，直接提交也要过同一套门禁：只挂 master 时，它的提交要
+    # 等到一次拉取请求才被验到。
+    branches: [master, webview]
   pull_request:
   workflow_dispatch:
 
