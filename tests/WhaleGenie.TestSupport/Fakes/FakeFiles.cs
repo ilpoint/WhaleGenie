@@ -64,6 +64,13 @@ internal sealed class FakeFiles(FakeDesk desk) : IFileDevice
         return PathExists || Store.ContainsKey(path) || Blobs.ContainsKey(path);
     }
 
+    /// <summary>The time a file says it was written at, or null for one the fake never facts about.</summary>
+    public DateTimeOffset? LastWritten(string path)
+    {
+        desk.Note($"fileWritten {path}");
+        return Facts.TryGetValue(path, out var facts) ? facts.Modified : null;
+    }
+
     public string ReadText(string path, string encoding)
     {
         desk.Note($"readFile {path} {encoding}");

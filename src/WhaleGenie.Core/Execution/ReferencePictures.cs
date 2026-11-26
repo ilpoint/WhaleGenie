@@ -1,7 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
-using System.Security;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Expressions;
 using WhaleGenie.Core.Variables;
@@ -87,21 +85,11 @@ internal sealed class ReferencePictures(IDeviceLayer devices, VariableStore vari
     }
 
     /// <summary>
-    /// When a file was last written, or null when it cannot be asked — a picture held in a
-    /// variable, or a path this run has no business reading. Nothing is kept for those.
+    /// When a file was last written, asked of the machine through the device contract rather than
+    /// read where the answer is used: a picture held in a variable, or a path this run has no
+    /// business reading, answers nothing and is not kept.
     /// </summary>
-    private static DateTime? Written(string path)
-    {
-        try
-        {
-            return File.Exists(path) ? File.GetLastWriteTimeUtc(path) : null;
-        }
-        catch (Exception error) when (error is IOException or UnauthorizedAccessException
-            or ArgumentException or NotSupportedException or SecurityException)
-        {
-            return null;
-        }
-    }
+    private DateTimeOffset? Written(string path) => devices.Files.LastWritten(path);
 }
 
 /// <summary>One reference picture of a step: how the step wrote it down, and the picture itself.</summary>

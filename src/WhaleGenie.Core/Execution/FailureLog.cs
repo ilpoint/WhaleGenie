@@ -19,7 +19,7 @@ namespace WhaleGenie.Core.Execution;
 /// so a failure here is only logged.
 /// </remarks>
 internal sealed class FailureLog(IRunContext run, IRunHost host, IReadOnlyList<LogEntry> entries,
-    string folder, string name)
+    string folder, string name, DateTimeOffset now)
 {
     /// <summary>How much of the macro's name a file name keeps before it is cut short.</summary>
     private const int LongestNameInFile = 40;
@@ -29,7 +29,6 @@ internal sealed class FailureLog(IRunContext run, IRunHost host, IReadOnlyList<L
     {
         try
         {
-            var now = DateTimeOffset.Now;
             var stem = "failure-" + NameForFile()
                 + now.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture);
             var relative = Path.Combine(folder, stem + ".log");

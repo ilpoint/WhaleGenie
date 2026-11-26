@@ -58,27 +58,23 @@ public partial class RunLookTests
     }
 
     [Fact]
-    public async Task The_same_reference_picture_is_read_from_disk_once_and_a_changed_one_is_read_again()
+    public async Task The_same_reference_picture_is_read_once_and_a_changed_one_is_read_again()
     {
-        var path = Path.Combine(Path.GetTempPath(), $"wg-look-{Guid.NewGuid():N}.png");
-        File.WriteAllBytes(path, PngWriter.Encode(new ImageFrame(2, 2, new byte[16])));
-        try
-        {
-            var devices = Screen();
-            var runner = new MacroRunner(new VariableStore(), new SilentRunHost(), devices);
+        // The stamp a file says it was written at is the device's answer, so the check says what
+        // the device answers rather than writing a file and hoping the disk and the run agree.
+        var path = @"C:\images\cached.png";
+        var written = DateTimeOffset.UtcNow;
+        var devices = Screen();
+        devices.Files.Facts[path] = (16, written);
+        var runner = new MacroRunner(new VariableStore(), new SilentRunHost(), devices);
 
-            await runner.RunAsync([Find(path)]);
-            await runner.RunAsync([Find(path)]);
-            Assert.Single(devices.Calls, call => call.StartsWith("load ", StringComparison.Ordinal));
+        await runner.RunAsync([Find(path)]);
+        await runner.RunAsync([Find(path)]);
+        Assert.Single(devices.Calls, call => call.StartsWith("load ", StringComparison.Ordinal));
 
-            File.SetLastWriteTimeUtc(path, DateTime.UtcNow.AddSeconds(5));
-            await runner.RunAsync([Find(path)]);
-            Assert.Equal(2, devices.Calls.Count(call => call.StartsWith("load ", StringComparison.Ordinal)));
-        }
-        finally
-        {
-            File.Delete(path);
-        }
+        devices.Files.Facts[path] = (16, written.AddSeconds(5));
+        await runner.RunAsync([Find(path)]);
+        Assert.Equal(2, devices.Calls.Count(call => call.StartsWith("load ", StringComparison.Ordinal)));
     }
 
     [Fact]

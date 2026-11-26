@@ -241,5 +241,5 @@ public sealed partial class MacroRunner
     /// Leaves the whole log of this run behind as a text file when it stops on a failure.
     /// </summary>
     private void LeaveFailureLog()
-        => new FailureLog(this, _host, _run.Log, FailureLogFolder, RunName).Write();
+        => new FailureLog(this, _host, _run.Log, FailureLogFolder, RunName, Evaluation.Now).Write();
 }
