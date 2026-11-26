@@ -25,7 +25,7 @@
 2. **一行字变成形状只发生一次。** 只在输入适配器（表单输入、页面补丁）里发生，且只变成 `Formula.Text`。名字只能来自取值窗口，落成 `VariableNode`。区域 `text` 列按内容判断：看起来像矩形字面量 → `Formula.Text`，否则 → `Formula.Name`；照 [ColourRowViewModel](../../src/WhaleGenie.Editing/Actions/ColourRowViewModel.cs) 的 `Stored()` 写法。
 3. **线缆表达力必须不小于模型表达力。** 能持有名字或公式的行单元格，载荷必须带 `EditorValuePartSnapshot`（已有类型）或等价的 {kind, text, name}；只有纯文字字段可以只传字符串。命令回传同样的结构，未编辑的单元格不重写。
 4. **纯变换与表单分开。** `ToRow`、`ToStep`、`ApplyValue` 一类放进 `Editing/Value` 的纯函数；表单 VM 只持有草稿与显示，不产出模型。页面只渲染 parts、收集输入，不解释形状。
-5. **等式用规范化 JSON，不用 record 默认相等。** `ConcatNode`、`CallNode`、`ListNode` 内部是 `IReadOnlyList`，record 相等对列表是引用比较。法则里的 `≡` 定义为 `JsonNode.DeepEquals(FormulaJson.Write(a), FormulaJson.Write(b))`；步骤层用 `JsonNode.DeepEquals(step.ToJson(), other.ToJson())`。`HoleNode` 是编辑期占位，与 `Nothing` 视为同一，不进入文件。
+5. **文件用规范化 JSON，模型用结构相等。** `ConcatNode`、`CallNode`、`ListNode` 内部是 `IReadOnlyList`，record 相等对列表是引用比较。文件法则（L2、L4）用 `JsonNode.DeepEquals`；模型法则（L1、L3、L5）用测试侧的结构比较器，不新增 Core 公共 API：JSON 相等分不清 `Formula.Text("{\"name\":\"窗口\"}")` 与 `Formula.Name("窗口")`，而窗口规则写成变量与写成字面量在文件里都是对象。`HoleNode` 是编辑期占位，与 `Nothing` 视为同一，不进入文件。
 6. **两仓改动按库仓优先。** Core 的 codec 与 L1/L2 在 [ilpoint/WhaleGenie.Core](https://github.com/ilpoint/WhaleGenie.Core) 提交并验收；主仓 `core/` 只读，按 [dev/environment.md](../dev/environment.md) 的 subtree/`sync-core` 流程取回。`FormulaJson.Read` 签名不变，不新增公共比较器；Core 公共面基线不变。
 
 ## 法则
@@ -34,9 +34,9 @@
 
 - **L1 值往返**：对每个 `ExpressionNode` v（`HoleNode` 除外），`Read(Write(v)) ≡ v`。
 - **L2 文件幂等**：对 `Write` 产生的规范 JSON j，`Write(Read(j)) ≡ j`。
-- **L3 步骤往返**：对每个动作、参数与行形状，`FromJson(ToJson(s)) ≡ s`。
+- **L3 步骤往返**：对每个动作、参数与行形状，每个参数的 `Written`、行单元格与子步骤结构相等，且 `ToJson` 相等。
 - **L4 保存幂等**：`ToJson(FromJson(ToJson(s))) ≡ ToJson(s)`。
-- **L5 草稿往返**：对每个 `StepParameter` p，`ToStep(Apply(p)) ≡ p`；改一格时只有该格的 JSON 变化。
+- **L5 草稿往返**：对每个结构合法的 `StepParameter` p（区域行只写名字或只写四个数字），`ToStep(Apply(p)) ≡ p`；改一格时只有该格变化。
 - **L6 线缆往返**：对每个字段类型，`model(decode(encode(snapshot))) ≡ snapshot`。
 
 测试位置：L1/L2 在库仓的 `WhaleGenie.Core.Tests`；L3/L4 在 `WhaleGenie.Domain.Tests`；L5 在 `WhaleGenie.Editor.Tests`；L6 在桥测试。生成器覆盖 Text、Number、Date、Name、Run、Call、Unary、Binary、Group、List 与中文名字；数字用 decimal/double/int 三种 JSON 表示。
@@ -69,6 +69,7 @@
 - 已被写成文本的行无法自动恢复（信息已丢），只能由只读扫描器列出可疑行，人工修。扫描器不自动改。
 - 行单元格契约变更会重新生成 TypeScript；`ContractGenerationTests` 守住一致性。
 - 法则与变异测试进入验收；codec 与行变换的存活变异须逐条给理由。
+- `WindowRule` 的变量与字面量曾在读回时都变成字面量文本，由 L3 的模型比较抓出并修正；窗口规则的文本用可读 JSON 保存，中文不写成 \uXXXX。
 - Core 公共成员不变；`PublicAPI.Shipped.txt` 不动。
 
 ## 非目标
