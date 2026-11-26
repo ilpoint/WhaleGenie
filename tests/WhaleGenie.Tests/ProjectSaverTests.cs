@@ -96,6 +96,11 @@ public class ProjectSaverTests
             project.AddMacro(new MacroItem { Name = "kept" });
 
             await Until(() => File.Exists(package) && !project.IsDirty);
+
+            // The quiet write remembers the package in the settings file as well, after the package
+            // itself; waiting for it is what keeps the folder removable on a loaded machine, where
+            // the last write can still be running when the test is over.
+            await auto.FlushAsync();
             Assert.Equal(package, project.CurrentPath);
             Assert.Null(auto.Error);
         }
