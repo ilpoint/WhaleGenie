@@ -7,7 +7,7 @@
 ```powershell
 dotnet build WhaleGenie.slnx -c Release
 dotnet test WhaleGenie.slnx -c Release
-dotnet format WhaleGenie.slnx --verify-no-changes   # 格式检查；让它先还原（界面自省包只在 Debug 还原）
+dotnet format WhaleGenie.slnx --verify-no-changes   # 格式检查；让它先还原（诊断包只在 Debug 还原）
 dotnet build core/WhaleGenie.Core.slnx -c Release
 dotnet run --project src/WhaleGenie
 pwsh build/site.ps1
@@ -184,12 +184,5 @@ act 的宿主工作区里运行，因此 `%TEMP%` 与进程创建不受本机命
 | `Lucide.Avalonia` | 界面：动作、工具栏和菜单图标 |
 | `ModelContextProtocol`、`Microsoft.Extensions.Hosting` | Mcp：stdio 协议服务、草稿与工具；界面：MCP 宿主与工具发现 |
 | `AvaloniaUI.DiagnosticsSupport` | 仅 Debug：界面诊断支持 |
-| `Declarative.Avalonia.AgentTools` | 仅 Debug：进程内的 MCP 检查器，让 agent 自己调试正在运行的界面 |
 | `lit`、`@fluentui/web-components`、`@fluentui/tokens`（npm） | webui：网页壳的组件与设计令牌；以脚本形式内嵌进 `index.html` 随包分发 |
 | `vite`、`typescript`、`eslint`、`vitest`、`jsdom`、`@playwright/test`（npm，dev） | webui：构建、类型检查、静态检查、单测与端到端冒烟；只在开发与 CI 使用，不随包分发 |
-
-### Debug 构建与分部窗口
-
-`Declarative.Avalonia.AgentTools` 顺带引入一个声明式视图注册生成器。它按类声明逐个生成，窗口拆成
-分部类后会重复写出同名 hintName 并报 CS8785。本项目界面全部是 XAML，不需要这份注册；
-`WhaleGenie.csproj` 在 `CoreCompile` 前移除该分析器，自省通道与 Release 构建都不受影响。

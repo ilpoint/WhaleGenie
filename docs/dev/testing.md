@@ -20,7 +20,7 @@
 | 外部程序 | `BrowserTabTests`、`ScriptHostRunTests` | 无头 Edge、真实脚本宿主和命名管道桥 |
 | 真实桌面 | 手动验收 | 系统输入、真实窗口、抓屏取色、UIA、录制和驱动级输入 |
 | 公共面与依赖方向 | `WhaleGenie.Tests`（`LayeringTests`）与 PublicAPI 分析器 | 引擎的引用闭包、目标框架、IVT 名单、画面工程的方向；公共成员与基线一致 |
-| 界面观感 | agent 自省通道（Debug） | 连运行中的程序读树、点、截图，核对对齐、裁字与遮挡 |
+| 界面观感 | 网页壳 CDP（Debug） | Playwright 连 9223 读页面、点、截图；原生窗口按手动清单验收 |
 
 跑全部：`dotnet test WhaleGenie.slnx`（八个套件并行，约两分钟）。只跑一个工程时加
 `-p:Platform=x64`：解决方案把测试产物放在 `bin/x64/`，裸跑工程会另建一份 `bin/Debug/`，

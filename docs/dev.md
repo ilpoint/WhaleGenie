@@ -13,7 +13,7 @@
 | [dev/actions.md](dev/actions.md) | 修改动作的顺序、表单分块与各族的字段顺序 |
 | [dev/field-names.md](dev/field-names.md) | 同名字段的保留理由与新增例外规则 |
 | [dev/testing.md](dev/testing.md) | 测试分层、契约对账、界面与无头测试注意事项 |
-| [dev/validation.md](dev/validation.md) | Debug 界面自省通道、手动验收清单与截图评审 |
+| [dev/validation.md](dev/validation.md) | 手动验收清单与截图评审 |
 | [dev/delivery.md](dev/delivery.md) | 界面出图、介绍页、性能测量、提交、CI 与发布 |
 
 ## 文档修改与检查

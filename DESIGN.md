@@ -193,7 +193,7 @@ RequestedThemeVariant="HighContrast" 制造半套主题。系统高对比度下�
 - 拾取器：取色/区域/点位/UIA/窗口/偏差点选各打开一次，确认读数、选框与放大镜在深浅两色和
   150% DPI 下都读得出来，取消后鲸灵窗口恢复。
 - 问话框：触发器、后台运行与退出未保存各触发一次，长文案换行、默认按钮与 Esc 取消都按预期。
-- 出图优先用 Debug 自省通道截运行中的窗口；手动清单见 [docs/dev/validation.md](docs/dev/validation.md)。
+- 出图优先截运行中的窗口：网页壳用 Debug 的 CDP（Playwright），原生窗口用系统截图；手动清单见 [docs/dev/validation.md](docs/dev/validation.md)。
 
 ## 12. 变更流程
 

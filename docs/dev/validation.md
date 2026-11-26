@@ -1,67 +1,6 @@
-# 手动验收与界面自省
+# 手动验收与截图评审
 
 所属：[WhaleGenie 开发说明](../dev.md)。
-
-## 让 agent 自己调试界面（只能 Debug）
-
-`Declarative.Avalonia.AgentTools` 是一个**跑在进程里**的 MCP 检查器：它把正在运行的这一份界面交给
-agent，让 agent 自己读、自己点、自己看结果，而不是由人截图转述。它读的是真的那一扇窗，不是无头重绘。
-**只在 Debug 编译里存在**：Release 既不还原 `AvaloniaUI.DiagnosticsSupport`，也不会把这个服务开起来
-——用 Release 二进制或安装包启动时，`get_app_info` 一定失败；这时先去检查启动的是不是 Debug 版，
-不要先怀疑 MCP 配置。
-
-用法就是普通 MCP：按你用的客户端配一个 `avalonia-agent-inspector` 即可——端点、传输方式与各客户端的
-配置片段都在包自带的 README 与 `docs/agent-tools.md` 里，这里不重复。程序这边只负责在 Debug 下把服务
-开起来。`EnableInteraction` 打开后才有 `tap`/`invoke`/`type` 这一类真驱动界面的工具，只读那一层默认就有。
-
-```bash
-# 1. 结束上一次的进程。文件被锁时新编的 exe 不会生效，跑的还是旧进程。
-taskkill /IM WhaleGenie.exe /F
-
-# 2. 必须用 Debug 编，并且是 x64：解决方案只提供 x64 平台，
-#    Debug 输出在 bin/x64/Debug/<框架>/，不是 bin/Debug/，也不是 bin/x64/Release/。
-dotnet build WhaleGenie.slnx -c Debug -p:Platform=x64
-
-# 3. 用后台任务启动它（前台运行会一直占着这次调用，超时被杀，等于没看）
-src/WhaleGenie/bin/x64/Debug/net10.0-windows10.0.19041/WhaleGenie.exe
-```
-
-起来之后先调一次 `get_app_info`：连不上就是没开 Debug 版，或者进程已经退出了。
-
-**按要回答的问题选工具**：
-
-| 问题 | 工具 |
-|---|---|
-| 这扇窗里有什么、焦点在哪、有没有 popup | `get_app_info`（先调它认路） |
-| 视觉树长什么样、某个控件在哪 | `get_visual_tree`（带 `abs=`/`center=` 坐标）、`find_text`、`hit_test` |
-| 这个控件为什么这么大、为什么看不见 | `get_layout`、`layout_audit`（零尺寸、越界、重叠、文字被裁） |
-| 这个值从哪来（本地、样式、模板、动画、继承） | `get_properties`、`get_property_sources` |
-| 绑定对不对、DataContext 是什么 | `get_data_context`、`get_errors`（绑定、转换器、事件里的异常） |
-| 程序自己打印了什么 | `get_logs`（Avalonia 的 `Logger` 与 stdout/stderr 都在环形缓冲里） |
-| 改这一处要动哪个文件 | `get_source`（可带 `file:line`） |
-| 版面有没有变慢、掉帧 | `get_render_stats`（fps、布局耗时、视觉数） |
-| 看一帧画面 | `screenshot_window`（`maxWidth` 压到 1100 以内够看版式）、`screenshot_region`（`scale=3` 放大看一块）、`compare_screenshots`（前后像素差） |
-| 说明气泡正文与行内基线 | `get_properties`（正文色/字号/行高、图标 24×24）、`get_property_sources`（来源是 `TextPrimary` 等资源）、`get_layout`（中线、间距、命中区）、`screenshot_region`（深色正文观感） |
-| 把界面真的驱动一遍 | `tap`/`click_at`/`invoke`/`type`/`key`（`EnableInteraction` 打开后）、`wait_for`/`wait_idle` |
-
-工具是给 agent 自己闭环用的：改一版、驱动一次、读一遍错误和版面，再决定下一步。**截图只是其中一种
-读法**，不是这条通道的用途。
-
-**踩过的坑，按发生频率排**：
-
-- **进程必须在后台活着**。这条路连的是"一扇正在跑的窗口"，进程退出就没有可看的东西。在 shell 里用
-  `&` 起进程不算后台：调用一返回它就被收走，下一次 `get_app_info` 直接报 POST 失败。用工具自带的
-  后台运行起进程；前台跑会一直占着这次调用，超时被杀，等于什么都没看。
-- **发的是旧二进制**。调试版的输出在 `bin/x64/Debug/<框架>/`，而 `dotnet build src/WhaleGenie/WhaleGenie.csproj`
-  默认写到 `bin/Debug/<框架>/`——两者不是同一份文件。改完代码要么 `-p:Platform=x64`，要么整解编译；
-  启动前先 `taskkill /IM WhaleGenie.exe /F`，否则文件被锁、跑的还是上一次的进程。
-- **截图里没有 popup**。下拉、`Flyout`、菜单都是独立的 top-level，`screenshot_window` 只画这一扇窗，
-  所以"截图里没看到"不等于"没弹出来"。用 `get_app_info` 的 `Open popups` 计数判断，确实要看图时
-  用程序自己的抓屏读那块屏幕。
-- **交互是异步的**。点完先 `wait_idle` 或再取一次 `get_app_info`，再截图；窗口列表里窗口消失往往
-  就是"按钮按下去、对话框关掉"的证据。
-- **`screenshot_window` 的 `windowId`** 写窗口标题（"宏编辑器"、"动作编辑器"）比写序号稳，序号会随
-  窗口开合变。
 
 ## 手动验收清单
 
