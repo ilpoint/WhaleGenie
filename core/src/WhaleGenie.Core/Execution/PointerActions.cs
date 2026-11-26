@@ -267,7 +267,8 @@ internal static class PointerActions
         }
 
         run.Input(step).MoveMouseAlong(
-            MousePath.Plan(route, from, to, MousePath.StepsFor(route, duration)), duration);
+            MousePath.Plan(route, from, to, MousePath.StepsFor(route, duration),
+                run.Evaluation.Random), duration);
     }
 
     /// <summary>Presses, travels, and lets go: the same shape of path as a plain move.</summary>
@@ -300,7 +301,8 @@ internal static class PointerActions
             else
             {
                 run.Input(step).DragAlong(run.Button(step),
-                    MousePath.Plan(route, from.Device, to.Device, steps), duration);
+                    MousePath.Plan(route, from.Device, to.Device, steps, run.Evaluation.Random),
+                    duration);
             }
 
             run.Points.GivePoints(step, from.Screen, from.Window, "screenStartPoint",
@@ -314,8 +316,8 @@ internal static class PointerActions
         // how a drag onto something turns into a drag past it. That is three calls rather than the
         // one the devices offer, because the one they offer lets go before it comes back.
         run.Input(step).MouseDown(run.Button(step), from.Device.X, from.Device.Y);
-        run.Input(step).MoveMouseAlong(MousePath.Plan(route, from.Device, to.Device, steps),
-            duration);
+        run.Input(step).MoveMouseAlong(
+            MousePath.Plan(route, from.Device, to.Device, steps, run.Evaluation.Random), duration);
         await Pacing.Pause(settle, token);
         run.Input(step).MouseUp(run.Button(step), to.Device.X, to.Device.Y);
         run.Points.GivePoints(step, from.Screen, from.Window, "screenStartPoint",

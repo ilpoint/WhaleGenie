@@ -334,10 +334,10 @@ internal sealed class ScreenPoints(IDeviceLayer devices, VariableStore variables
     /// A point with the drift the step asked for on it, so a run of clicks is spread over a button
     /// rather than landing on one pixel. A drift of nothing is the point itself, to the pixel.
     /// </summary>
-    private static ScreenPoint Scattered(ScreenPoint point, int spread)
+    private ScreenPoint Scattered(ScreenPoint point, int spread)
         => spread <= 0
             ? point
             : new ScreenPoint(
-                point.X + Random.Shared.Next(-spread, spread + 1),
-                point.Y + Random.Shared.Next(-spread, spread + 1));
+                point.X + evaluation.Random.Next(-spread, spread + 1),
+                point.Y + evaluation.Random.Next(-spread, spread + 1));
 }

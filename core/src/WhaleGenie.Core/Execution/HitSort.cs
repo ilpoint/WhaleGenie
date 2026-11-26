@@ -27,23 +27,26 @@ internal static class HitSort
     }
 
     /// <summary>The places a picture search found, in the order the step counts them in.</summary>
-    public static void Sort(List<ImageMatch> hits, HitOrder order)
-        => Arrange(hits, order, hit => new Rank(hit.Score, hit.Location, hit.Size));
+    public static void Sort(List<ImageMatch> hits, HitOrder order, Random? random = null)
+        => Arrange(hits, order, hit => new Rank(hit.Score, hit.Location, hit.Size), random);
 
     /// <summary>The things a model found, in the order the step counts them in.</summary>
-    public static void Sort(List<Sighting> found, HitOrder order)
-        => Arrange(found, order, hit => new Rank(hit.Match.Score, hit.Match.Location, hit.Match.Size));
+    public static void Sort(List<Sighting> found, HitOrder order, Random? random = null)
+        => Arrange(found, order, hit => new Rank(hit.Match.Score, hit.Match.Location,
+            hit.Match.Size), random);
 
     /// <summary>
     /// What was read off the screen, in the order the step counts it in. A reading is ranked like
     /// any other hit; the model already hands the lines over in the order they were read, which is
     /// why the families that read writing offer no direction of their own.
     /// </summary>
-    public static void Sort(List<TextSpan> spans, HitOrder order)
-        => Arrange(spans, order, span => new Rank(span.Confidence, span.Location, span.Size));
+    public static void Sort(List<TextSpan> spans, HitOrder order, Random? random = null)
+        => Arrange(spans, order, span => new Rank(span.Confidence, span.Location, span.Size),
+            random);
 
     /// <summary>One list put in order, ranked through the projection that fits its hit kind.</summary>
-    private static void Arrange<T>(List<T> items, HitOrder order, Func<T, Rank> rank)
+    private static void Arrange<T>(List<T> items, HitOrder order, Func<T, Rank> rank,
+        Random? random)
     {
         if (items.Count < 2)
         {
@@ -52,7 +55,7 @@ internal static class HitSort
 
         if (order.Kind is MatchOrder.Random)
         {
-            Shuffle(items);
+            Shuffle(items, random);
             return;
         }
 
@@ -132,11 +135,12 @@ internal static class HitSort
     }
 
     /// <summary>Shuffles in place, so a macro that takes the first of several does not always take the same one.</summary>
-    private static void Shuffle<T>(IList<T> items)
+    private static void Shuffle<T>(IList<T> items, Random? random)
     {
+        var dice = random ?? Random.Shared;
         for (var index = items.Count - 1; index > 0; index--)
         {
-            var other = Random.Shared.Next(index + 1);
+            var other = dice.Next(index + 1);
             (items[index], items[other]) = (items[other], items[index]);
         }
     }

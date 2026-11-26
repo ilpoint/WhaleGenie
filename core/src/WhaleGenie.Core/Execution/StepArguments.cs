@@ -160,7 +160,7 @@ internal readonly struct StepArguments
             return value;
         }
 
-        var bend = 1 + (((Random.Shared.NextDouble() * 2) - 1) * (double)jitter);
+        var bend = 1 + (((_evaluation.Random.NextDouble() * 2) - 1) * (double)jitter);
         return (int)Math.Round(value * bend);
     }
 
