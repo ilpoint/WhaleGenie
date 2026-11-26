@@ -56,15 +56,16 @@ internal sealed partial class HeadlessEditorSession
         var draft = _model.Draft();
         if (_owner is not null)
         {
-            if (!_owner.ApplyChildDraft(_submacroOriginal, draft.Macro))
+            var applied = _owner.ApplyChildDraft(_submacroOriginal, draft.Macro);
+            if (applied is null)
             {
                 return new DocumentSaveOutcome(EditorSaveOutcomes.Conflict,
                     Strings.Format("Editor.Save.TargetGone", Name));
             }
 
-            _existing = draft.Macro;
-            _submacroOriginal = draft.Macro.Name;
-            _originalName = draft.Macro.Name;
+            _existing = applied;
+            _submacroOriginal = applied.Name;
+            _originalName = applied.Name;
             _model.IsDirty = false;
             return new DocumentSaveOutcome(EditorSaveOutcomes.Saved, null);
         }
@@ -102,30 +103,20 @@ internal sealed partial class HeadlessEditorSession
     /// that owns it is saved; touching the project's own macro here would make the parent's later
     /// save look unchanged and lose the edit.
     /// </summary>
-    internal bool ApplyChildDraft(string originalName, MacroItem updated)
+    internal MacroItem? ApplyChildDraft(string originalName, MacroItem updated)
     {
-        if (originalName.Trim().Length == 0)
+        var (children, applied, found) = SubMacroEditor.WithChild(
+            _model.SubMacros, originalName, updated, TakenMacroNames());
+        if (!found)
         {
-            // A new child was opened as a document before it belonged to the macro. Saving that
-            // document is the moment it enters the list; an abandoned tab never did.
-            updated.Name = SubMacroEditor.UniqueName(TakenMacroNames(), updated.Name);
-            _model.SubMacros.Add(updated);
-            _model.IsDirty = true;
-            RefreshCallables();
-            return true;
+            return null;
         }
 
-        var index = _model.SubMacros.FindIndex(macro =>
-            string.Equals(macro.Name, originalName, StringComparison.OrdinalIgnoreCase));
-        if (index < 0)
-        {
-            return false;
-        }
-
-        _model.SubMacros[index] = updated;
+        _model.SubMacros.Clear();
+        _model.SubMacros.AddRange(children);
         _model.IsDirty = true;
         RefreshCallables();
-        return true;
+        return applied;
     }
 
 }

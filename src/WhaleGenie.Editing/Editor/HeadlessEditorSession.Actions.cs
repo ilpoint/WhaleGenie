@@ -165,7 +165,7 @@ internal sealed partial class HeadlessEditorSession
     private HashSet<string> CollectStepIds()
     {
         var ids = new HashSet<string>(StringComparer.Ordinal);
-        foreach (var (list, index) in Walk(_model.Steps))
+        foreach (var (list, index) in StepTree.Walk(_model.Steps))
         {
             ids.Add(list[index].Id);
         }

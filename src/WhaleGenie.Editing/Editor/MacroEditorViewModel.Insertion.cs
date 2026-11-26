@@ -11,6 +11,7 @@ using CommunityToolkit.Mvvm.Input;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
 using WhaleGenie.Core.Expressions;
+using WhaleGenie.Editing;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 using WhaleGenie.Runtime;
@@ -242,50 +243,13 @@ public partial class MacroEditorViewModel
     /// Writes the given steps as the JSON array that copy and cut place on the clipboard.
     /// </summary>
     public static string SerializeSteps(IEnumerable<MacroStep> steps)
-    {
-        var array = new JsonArray();
-        foreach (var step in steps)
-        {
-            array.Add(step.ToJson());
-        }
-
-        return array.ToJsonString();
-    }
+        => StepTree.Serialize(steps);
 
     /// <summary>
     /// Rebuilds steps from clipboard text, or returns <c>null</c> when the text is not a
     /// step array, so pasting an unrelated phrase leaves the list untouched.
     /// </summary>
-    public static List<MacroStep>? DeserializeSteps(string? text)
-    {
-        if (string.IsNullOrWhiteSpace(text))
-        {
-            return null;
-        }
-
-        try
-        {
-            if (JsonNode.Parse(text) is not JsonArray array)
-            {
-                return null;
-            }
-
-            var steps = new List<MacroStep>();
-            foreach (var node in array)
-            {
-                if (node is JsonObject obj)
-                {
-                    steps.Add(MacroStep.FromJson(obj));
-                }
-            }
-
-            return steps.Count > 0 ? steps : null;
-        }
-        catch (JsonException)
-        {
-            return null;
-        }
-    }
+    public static List<MacroStep>? DeserializeSteps(string? text) => StepTree.Deserialize(text);
 
     /// <summary>Records what the action list has highlighted, so the palette can react.</summary>
     public void SetSelection(IEnumerable<MacroStep> steps)

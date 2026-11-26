@@ -269,7 +269,7 @@ internal sealed partial class HeadlessEditorSession
 
     public string CopySteps(IReadOnlyList<string> stepIds)
     {
-        var text = MacroEditorViewModel.SerializeSteps(FindSteps(stepIds));
+        var text = StepTree.Serialize(FindSteps(stepIds));
         ClipboardText = text;
         return text;
     }
@@ -284,7 +284,7 @@ internal sealed partial class HeadlessEditorSession
     public void PasteSteps(string? text, string? afterStepId)
     {
         var payload = string.IsNullOrWhiteSpace(text) ? ClipboardText : text;
-        var steps = MacroEditorViewModel.DeserializeSteps(payload);
+        var steps = StepTree.Deserialize(payload);
         if (steps is null)
         {
             return;
@@ -432,9 +432,11 @@ internal sealed partial class HeadlessEditorSession
             return;
         }
 
-        var step = found.List[found.Index];
-        found.List.RemoveAt(found.Index);
-        found.List.Insert(target, step);
+        if (!StepTree.Move(found.List, found.Index, target))
+        {
+            return;
+        }
+
         _model.IsDirty = true;
     }
 
@@ -449,7 +451,7 @@ internal sealed partial class HeadlessEditorSession
     {
         var found = Find(stepId)
             ?? throw new InvalidOperationException("the macro has no step " + stepId);
-        var copy = MacroStep.FromJson(found.List[found.Index].ToJson());
+        var copy = StepTree.Clone(found.List[found.Index]);
         found.List.Insert(found.Index + 1, copy);
         _model.SettleStepIds();
         _model.IsDirty = true;

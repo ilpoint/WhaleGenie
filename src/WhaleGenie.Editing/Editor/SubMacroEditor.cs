@@ -122,6 +122,32 @@ internal static class SubMacroEditor
     }
 
     /// <summary>
+    /// The child list after one child is saved: a new child is copied under a free name and
+    /// appended; an existing one is replaced where the original name sits. The input list and the
+    /// saved macro are not changed, so the session can swap the list and keep the applied name.
+    /// </summary>
+    public static (IReadOnlyList<MacroItem> Children, MacroItem Applied, bool Found) WithChild(
+        IReadOnlyList<MacroItem> children, string originalName, MacroItem updated,
+        IReadOnlyCollection<string> taken)
+    {
+        if (string.IsNullOrWhiteSpace(originalName))
+        {
+            var added = Copy(updated, taken, updated.Name);
+            return ([.. children, added], added, true);
+        }
+
+        var index = children.ToList().FindIndex(macro => Named(macro, originalName));
+        if (index < 0)
+        {
+            return (children, updated, false);
+        }
+
+        var replaced = children.ToList();
+        replaced[index] = updated;
+        return (replaced, updated, true);
+    }
+
+    /// <summary>
     /// Whether a step anywhere inside the macro calls the named child. The name is read the way a
     /// row reads its call and compared without case, so a call typed in another case is still the
     /// same call rather than an unused child and a call into nothing.

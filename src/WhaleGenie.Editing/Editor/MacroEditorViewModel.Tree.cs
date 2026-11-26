@@ -11,6 +11,7 @@ using CommunityToolkit.Mvvm.Input;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
 using WhaleGenie.Core.Expressions;
+using WhaleGenie.Editing;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 using WhaleGenie.Runtime;
@@ -101,28 +102,7 @@ public partial class MacroEditorViewModel
         }
     }
 
-    private static MacroStep Clone(MacroStep step) => new()
-    {
-        Type = step.Type,
-        Id = step.Id,
-        Parameters = step.Parameters.Select(Clone).ToList(),
-        Meta = step.Meta,
-        IsExpanded = step.IsExpanded,
-    };
-
-    /// <summary>
-    /// Copies a parameter together with the steps nested inside it,
-    /// so duplicating a loop or an if keeps its body.
-    /// </summary>
-    private static StepParameter Clone(StepParameter parameter) => new()
-    {
-        Name = parameter.Name,
-        Kind = parameter.Kind,
-        Written = parameter.Written,
-        Jitter = parameter.Jitter,
-        Steps = parameter.Steps.Select(Clone).ToList(),
-        Rows = parameter.Rows.Select(row => row.Copy()).ToList(),
-    };
+    private static MacroStep Clone(MacroStep step) => StepTree.Clone(step);
 
     /// <summary>
     /// The given steps in the order they are written, nested ones included, so a run of them

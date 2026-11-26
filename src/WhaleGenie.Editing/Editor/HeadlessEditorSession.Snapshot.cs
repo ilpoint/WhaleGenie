@@ -279,52 +279,15 @@ internal sealed partial class HeadlessEditorSession
     }
 
     private List<MacroStep> FindSteps(IReadOnlyList<string> stepIds)
-    {
-        var steps = new List<MacroStep>();
-        foreach (var id in stepIds)
-        {
-            if (FindStep(id) is { } step && !steps.Contains(step))
-            {
-                steps.Add(step);
-            }
-        }
-
-        return steps;
-    }
+        => StepTree.FindSteps(_model.Steps, stepIds);
 
     private static string? ClipboardText;
 
-    private MacroStep? FindTreeStep(string stepId)
-        => Find(stepId) is { } found ? found.List[found.Index] : null;
+    private MacroStep? FindTreeStep(string stepId) => StepTree.FindStep(_model.Steps, stepId);
 
-    private MacroStep? FindStep(string stepId)
-        => Find(stepId) is { } found ? found.List[found.Index] : null;
+    private MacroStep? FindStep(string stepId) => StepTree.FindStep(_model.Steps, stepId);
 
     private (IList<MacroStep> List, int Index)? Find(string stepId)
-    {
-        foreach (var (list, index) in Walk(_model.Steps))
-        {
-            if (string.Equals(list[index].Id, stepId, StringComparison.Ordinal))
-            {
-                return (list, index);
-            }
-        }
-
-        return null;
-    }
-
-    private static IEnumerable<(IList<MacroStep> List, int Index)> Walk(IList<MacroStep> steps)
-    {
-        for (var index = 0; index < steps.Count; index++)
-        {
-            yield return (steps, index);
-            foreach (var children in steps[index].Parameters
-                         .Where(parameter => parameter.Kind == ActionParameterKind.Steps)
-                         .SelectMany(parameter => Walk(parameter.Steps)))
-            {
-                yield return children;
-            }
-        }
-    }
+        => StepTree.Find(_model.Steps, stepId);
 
 }
