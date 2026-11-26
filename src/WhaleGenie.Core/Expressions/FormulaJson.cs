@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Text.Json;
 using System.Text.Json.Nodes;
 
 namespace WhaleGenie.Core.Expressions;
@@ -106,28 +107,61 @@ public static class FormulaJson
             case JsonObject written:
                 return Object(written);
             case JsonValue value:
-                if (value.TryGetValue<string>(out var text))
-                {
-                    return Formula.Text(text);
-                }
-
-                // A JSON number or truth value is the shape it is. Nothing is spelled out as a
-                // line and parsed back: the file is not a place a formula is typed.
-                if (value.TryGetValue<double>(out var number))
-                {
-                    return Formula.Number(number);
-                }
-
-                if (value.TryGetValue<bool>(out var flag))
-                {
-                    return Formula.Constant(flag ? "true" : "false");
-                }
-
-                return Formula.Text(value.ToJsonString());
+                return Scalar(value);
             default:
                 throw new InvalidDataException(
                     $"A value is written as a shape that is not one: {node.ToJsonString()}");
         }
+    }
+
+    /// <summary>
+    /// A JSON scalar as the shape it is. The kind is asked for rather than one CLR type: a node
+    /// built in memory keeps the type it was made with — decimal, double, long — and asking for
+    /// one of them would turn the others into text, which is a value that no longer says what it
+    /// did. Nothing is parsed into a formula: the file is not a place a formula is typed.
+    /// </summary>
+    private static ExpressionNode Scalar(JsonValue value)
+    {
+        switch (value.GetValueKind())
+        {
+            case JsonValueKind.String:
+                return Formula.Text(value.GetValue<string>());
+
+            case JsonValueKind.Number:
+                return Number(value);
+
+            case JsonValueKind.True:
+                return Formula.Constant("true");
+
+            case JsonValueKind.False:
+                return Formula.Constant("false");
+
+            case JsonValueKind.Null:
+                return Formula.Nothing;
+
+            default:
+                throw new InvalidDataException(
+                    $"A value is written as a scalar that is not one: {value.ToJsonString()}");
+        }
+    }
+
+    /// <summary>
+    /// One JSON number as the number it is. The spelling is not what decides the shape: a decimal,
+    /// a double and an integer built in memory all read back the same way, and the value is a
+    /// double because that is what the language works in.
+    /// </summary>
+    private static ExpressionNode Number(JsonValue value)
+    {
+        if (value.TryGetValue<decimal>(out var exact))
+        {
+            return Formula.Number((double)exact);
+        }
+
+        var written = value.ToJsonString();
+        return double.TryParse(written, NumberStyles.Float, CultureInfo.InvariantCulture,
+            out var number)
+            ? Formula.Number(number)
+            : throw new InvalidDataException($"A number that cannot be read: {written}");
     }
 
     private static ExpressionNode Object(JsonObject written)

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.Json.Nodes;
@@ -124,6 +125,90 @@ public class FormulaJsonTests
         Assert.Equal(Formula.Constant("true"), FormulaJson.Read(JsonValue.Create(true)));
         Assert.Equal(Formula.Constant("false"), FormulaJson.Read(JsonValue.Create(false)));
         Assert.Equal(Formula.Text("n + 1"), FormulaJson.Read(JsonValue.Create("n + 1")));
+    }
+
+    /// <summary>
+    /// Every shape a field can hold, so the round trip is checked over the language rather than
+    /// over one sample. The empty value is in here too: a field nobody filled in is still a field.
+    /// </summary>
+    public static IEnumerable<ExpressionNode> EveryShape()
+    {
+        yield return Formula.Nothing;
+        yield return Formula.Text("a piece of text");
+        yield return Formula.Text("你好，世界");
+        yield return Formula.Number(20);
+        yield return Formula.Number("1.0", 1d);
+        yield return new DateNode("2026-11-26");
+        yield return Formula.Name("区域");
+        yield return Formula.Run([Formula.Text("取 "), Formula.Name("item"), Formula.Text(" 里的值")]);
+        yield return Formula.List(Formula.Number(1), Formula.Text("a"), Formula.Name("n"));
+        yield return Formula.Call("upper", Formula.Name("name"));
+        yield return Formula.Unary("not", Formula.Name("flag"));
+        yield return Formula.Binary("+", Formula.Name("x"), Formula.Number(10));
+        yield return new GroupNode(Formula.Binary("+", Formula.Name("x"), Formula.Number(10)));
+    }
+
+    [Fact]
+    public void Every_shape_comes_back_from_the_file_as_the_same_value()
+    {
+        // The file is the only copy of the work once the program has closed. What is written has
+        // to be what comes back, shape for shape; a line that reads the same is not the same
+        // answer when the shape was a name or a formula.
+        foreach (var value in EveryShape())
+        {
+            var written = FormulaJson.Write(value);
+            var read = FormulaJson.Read(written);
+            Assert.True(JsonNode.DeepEquals(written, FormulaJson.Write(read)),
+                value.GetType().Name + " did not come back: "
+                + (written?.ToJsonString() ?? "nothing"));
+        }
+    }
+
+    [Fact]
+    public void A_number_is_read_as_a_number_whatever_json_type_it_was_built_with()
+    {
+        // A node built in memory keeps the CLR type it was made with, and asking one of them for
+        // the value turns the others into text. The decimal case is the one a save plan copies
+        // through, and it used to come back as a string.
+        var nodes = new JsonNode[]
+        {
+            JsonValue.Create(20),
+            JsonValue.Create(20L),
+            JsonValue.Create(20m),
+            JsonValue.Create(20d),
+            JsonValue.Create(20f),
+            JsonNode.Parse("20")!,
+            JsonNode.Parse("20.5")!,
+            JsonNode.Parse("1e3")!,
+        };
+
+        foreach (var node in nodes)
+        {
+            var read = FormulaJson.Read(node);
+            Assert.True(read is NumberNode, node.ToJsonString() + " came back as "
+                + read.GetType().Name);
+        }
+    }
+
+    [Fact]
+    public void Reading_a_scalar_and_writing_it_back_keeps_the_json_it_was()
+    {
+        foreach (var json in new[]
+                 {
+                     "\"你好\"",
+                     "\"n + 1\"",
+                     "20",
+                     "20.5",
+                     "true",
+                     "false",
+                     "{\"name\":\"区域\"}",
+                     "{\"run\":[\"取 \",{\"name\":\"item\"}]}",
+                 })
+        {
+            var node = JsonNode.Parse(json);
+            Assert.True(JsonNode.DeepEquals(node, FormulaJson.Write(FormulaJson.Read(node))),
+                json);
+        }
     }
 
     private static string Evaluate(ExpressionNode tree, params (string Name, string Value)[] variables)
