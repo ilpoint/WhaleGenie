@@ -79,12 +79,16 @@ pwsh tools/stryker.ps1 -Target domain   # 或 editing / all
 | 范围 | 计分变异 | 分数 |
 | --- | --- | --- |
 | Domain 的 `StepParameter.File.cs` | 44 | 100% |
+| 库仓的 `FormulaJson.cs` | 36 | 91.67% |
 | Editing 的 `RegionRowViewModel`、`CallArgumentRowViewModel`、`EditorValueParts` | 119 | 31.43% |
 
 Editing 的 56 个 NoCoverage 与 64 个存活集中在显示文案、占位提示、`Prepare`/`Remove` 与等价判断，
 不在形状边界内；行变换本身由 `ShapeDraftTests`、`EditorValuePartsTests` 与
 `HeadlessActionSessionTests` 覆盖。要把它变成 100% 门禁，先把纯变换从行 VM 抽到单独文件，再只变异
 那一份。Stryker 的 CompileError 与 Ignored 不计分。
+
+库仓 clone 里的同一份 `tools/stryker.ps1` 只跑 `FormulaJson.cs`；它剩的三项是 JSON 标量默认分支与
+数字解析失败的消息（只在不可达输入上出现）和 `Number` 的 decimal 快路径（对合法 JSON 数字等价）。
 
 ### 界面与无头测试注意事项
 
