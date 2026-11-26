@@ -47,11 +47,9 @@ public sealed partial class MacroRunner
     /// run that reports success after skipping the rest of a macro is a lie the user cannot see.
     /// </summary>
     private Signal LeaveLoop(Signal signal, ExecutableStep step)
-    {
-        // A break also has somewhere to go inside a switch; a continue only ever means a loop.
-        var reachable = signal is Signal.Break ? _run.Loops > 0 || _run.Switches > 0 : _run.Loops > 0;
-        return reachable ? signal : throw new StepFailure(LoopControlKey(signal), step.Type);
-    }
+        => LoopControl.HasSomethingToLeave(signal, _run.Loops, _run.Switches)
+            ? signal
+            : throw new StepFailure(LoopControl.FailureKey(signal), step.Type);
 
     private async Task<Signal> RunForEach(ExecutableStep step, int depth, CancellationToken token)
     {
