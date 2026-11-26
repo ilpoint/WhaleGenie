@@ -288,8 +288,8 @@ public class RegionPickerTests
     /// </summary>
     private sealed class Desk : IScreenDevice
     {
-        public ScreenLayout Desktop { get; } = new(new ScreenArea(0, 0, 1920, 1080),
-            [new ScreenDisplay(new ScreenArea(0, 0, 1920, 1080), true)]);
+        public ScreenLayout Desktop { get; } = new(new ScreenRect(0, 0, 1920, 1080),
+            [new ScreenDisplay(new ScreenRect(0, 0, 1920, 1080), true)]);
 
         /// <summary>The region the last picture was asked for.</summary>
         public (int X, int Y, int Width, int Height) Took { get; private set; }

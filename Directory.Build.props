@@ -11,6 +11,8 @@
       another window is covering. It is a ceiling on the API the build may use, not a floor on
       where the program runs: a machine older than this one has no graphics capture, so those
       actions fall back to the other ways of reading the screen. See WindowsScreenDevice.
+      The engine sets its own: WhaleGenie.Core is net10.0, so only the projects that touch the
+      machine carry the version.
     -->
     <TargetFramework>net10.0-windows10.0.19041</TargetFramework>
     <LangVersion>latest</LangVersion>
@@ -30,6 +32,13 @@
       -p:Version 覆盖这里，标签继续是正式版本号的唯一来源。
     -->
     <Version>0.1.0</Version>
+
+    <!--
+      Everything in this repository is part of the program; the library that does ship as packages
+      is vendored under core/ and carries its own build settings, including which of its projects
+      are packable. This line keeps a stray `dotnet pack` from publishing the editor.
+    -->
+    <IsPackable>false</IsPackable>
 
     <!-- A warning is a defect that has not been fixed yet, so the build stops on one. -->
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>

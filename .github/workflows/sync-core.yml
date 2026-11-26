@@ -1,0 +1,82 @@
+name: sync-core
+
+# 库（ilpoint/WhaleGenie.Core）以 git subtree 住在 core/ 下。这条流水线每天取一次，取到新东西
+# 就先构建、跑测试，全绿才推回本仓——GITHUB_TOKEN 推的提交不会再触发 ci.yml，所以验证必须在
+# 推之前做完，否则合并后的树就没人看过。
+on:
+  schedule:
+    # 每天一次。库仓是公开的，拉取不需要任何凭据。
+    - cron: '17 3 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sync-core-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  pull:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          # 全历史：git subtree 靠历史里那条 "Squashed 'core/'" 记录来判断目录有没有被引入过，
+          # 浅克隆看不到它，pull 会直接报 "was never added"。
+          fetch-depth: 0
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+
+      - name: Pull the library into core/
+        id: pull
+        shell: bash
+        run: |
+          # git subtree 是 contrib 里的脚本，个别 Git 发行版不带；缺了就明确报错，别让下面的
+          # 命令给出"unknown command"这种难查的失败。
+          if ! git subtree 2>&1 | head -5 | grep -q 'usage'; then
+            echo "::error::this runner's Git has no subtree command"
+            exit 1
+          fi
+
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+
+          git remote add core https://github.com/ilpoint/WhaleGenie.Core.git || true
+          git fetch core main
+
+          before=$(git rev-parse HEAD)
+          git subtree pull --prefix=core core main --squash \
+            -m "同步库仓 $(git rev-parse --short core/main)"
+
+          if [ "$before" = "$(git rev-parse HEAD)" ]; then
+            echo "库仓没有新提交，什么都不做。"
+            echo changed=false >> "$GITHUB_OUTPUT"
+          else
+            echo "取到了新的库提交：$(git log -1 --format=%s)"
+            echo changed=true >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Restore
+        if: steps.pull.outputs.changed == 'true'
+        run: dotnet restore WhaleGenie.slnx
+
+      - name: Build
+        # 这一关是真的门禁：subtree 合并最常见的坏法是库的 API 变了而界面没跟上，那就是编不过。
+        if: steps.pull.outputs.changed == 'true'
+        run: dotnet build WhaleGenie.slnx -c Release --no-restore
+
+      - name: Test
+        # 也是真门禁：GITHUB_TOKEN 推的提交不会再触发 ci.yml，推之前必须自己把八套件跑一遍。
+        # 依赖真实设备的用例缺东西就跳过（AutoHotkey、Python、浏览器、真 NuGet），预算也按
+        # 八套件并行的 runner 放宽过，所以这里的红不是环境噪声。
+        if: steps.pull.outputs.changed == 'true'
+        run: dotnet test WhaleGenie.slnx -c Release --no-build --no-restore
+
+      - name: Push the merge
+        if: steps.pull.outputs.changed == 'true'
+        shell: bash
+        run: git push origin "HEAD:${{ github.ref_name }}"

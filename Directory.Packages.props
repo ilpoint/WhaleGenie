@@ -3,46 +3,24 @@
   <!--
     每个 NuGet 包只在这里写一次版本。工程文件里只写 Include 与它真正的条件（只在 Debug 还原、
     IncludeAssets/PrivateAssets），于是「这个包是哪个版本」只有一个答案，升级时不十八处各改一遍。
-    MSBuild 按向上查找加载本文件，放在根上就覆盖 src/、tests/ 里的所有工程。
+
+    库（引擎、画面获取、Windows 适配器）是被 vendor 到 core/ 的一份独立仓库，包版本跟着它自己走
+    （core/Directory.Packages.props）。这份文件只管程序自己的工程，两边不共享版本号。
   -->
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
     <!--
       不启用 CentralPackageTransitivePinningEnabled：它会把每条传递依赖也钉成直接依赖，解析图
-      随之改变。这里只收拢现有的 34 个包，传递依赖仍由包自己决定。
+      随之改变。这里只收拢程序自己用到的包，传递依赖仍由包自己决定。
     -->
   </PropertyGroup>
 
-  <!-- 引擎与文档：Core 只有 CSV 这一个包，Domain 与界面共用可观察属性。 -->
-  <ItemGroup Label="引擎、文档与应用层">
+  <!-- 文档与应用层：Domain 与界面共用可观察属性，App 用容器与宿主。 -->
+  <ItemGroup Label="文档与应用层">
     <PackageVersion Include="CommunityToolkit.Mvvm" Version="8.4.2" />
-    <PackageVersion Include="CsvHelper" Version="33.1.0" />
     <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="10.0.10" />
     <PackageVersion Include="Microsoft.Extensions.Hosting" Version="10.0.10" />
     <PackageVersion Include="ModelContextProtocol" Version="2.2.0" />
-  </ItemGroup>
-
-  <!-- Windows 适配器与脚本宿主：键鼠钩子、界面自动化、找图找色、浏览器、脚本编译器。 -->
-  <ItemGroup Label="Windows 适配器">
-    <PackageVersion Include="FlaUI.UIA3" Version="5.0.0" />
-    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="5.9.0" />
-    <PackageVersion Include="Microsoft.Playwright" Version="1.63.0" />
-    <PackageVersion Include="NuGet.Frameworks" Version="7.9.0" />
-    <PackageVersion Include="NuGet.Packaging" Version="7.9.0" />
-    <PackageVersion Include="NuGet.Protocol" Version="7.9.0" />
-    <PackageVersion Include="NuGet.Versioning" Version="7.9.0" />
-    <PackageVersion Include="OpenCvSharp5.Windows" Version="5.0.0.20260702" />
-    <PackageVersion Include="Sdcb.SimdPaddleOCR" Version="2.0.0" />
-    <PackageVersion Include="Sdcb.SimdPaddleOCR.Models.ChineseV6Tiny" Version="1.0.0" />
-    <PackageVersion Include="SharpHook" Version="8.0.0" />
-    <!-- 只钉解析版本，理由写在 WhaleGenie.Platform.Windows 引用它的那一处。 -->
-    <PackageVersion Include="System.Security.Cryptography.Pkcs" Version="10.0.13" />
-  </ItemGroup>
-
-  <!-- 画面获取：Direct3D 与 DXGI 的托管包装。 -->
-  <ItemGroup Label="画面获取">
-    <PackageVersion Include="Vortice.Direct3D11" Version="3.8.3" />
-    <PackageVersion Include="Vortice.DXGI" Version="3.8.3" />
   </ItemGroup>
 
   <!-- 界面：Avalonia 与 FluentAvalonia。诊断支持与进程内自省只在 Debug 还原，条件写在工程里。 -->
@@ -59,7 +37,7 @@
     <PackageVersion Include="Lucide.Avalonia" Version="0.2.27" />
   </ItemGroup>
 
-  <!-- 测试：八个套件跑在同一套宿主上，两个支持库也用同一份 xunit。 -->
+  <!-- 测试：界面四个套件跑在同一套宿主上，两个支持库也用同一份 xunit。 -->
   <ItemGroup Label="测试">
     <PackageVersion Include="Avalonia.Headless" Version="12.1.2" />
     <PackageVersion Include="coverlet.collector" Version="6.0.4" />

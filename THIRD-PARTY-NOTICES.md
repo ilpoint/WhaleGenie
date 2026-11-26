@@ -139,6 +139,9 @@ Lucide.Avalonia 0.2.27. Lucide is licensed under ISC and Lucide.Avalonia under M
 - AvaloniaUI.DiagnosticsSupport — 只在 Debug 构建里接上（按 F12 打开 Avalonia 开发者工具），
   发行包里没有它，也就不随程序分发
   <https://avaloniaui.net/>
+- Microsoft.CodeAnalysis.PublicApiAnalyzers（Roslyn 分析器）— MIT，只在编译引擎时检查公共 API
+  基线，不产出任何运行时代码，发行包里没有它
+  <https://github.com/dotnet/roslyn-analyzers>
 
 ## 用户自己装的组件
 

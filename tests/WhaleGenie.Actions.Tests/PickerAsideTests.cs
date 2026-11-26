@@ -382,8 +382,8 @@ public class PickerAsideTests
 
         public ScreenPoint Cursor { get; set; }
 
-        public ScreenLayout Desktop { get; } = new(new ScreenArea(0, 0, 1920, 1080),
-            [new ScreenDisplay(new ScreenArea(0, 0, 1920, 1080), true)]);
+        public ScreenLayout Desktop { get; } = new(new ScreenRect(0, 0, 1920, 1080),
+            [new ScreenDisplay(new ScreenRect(0, 0, 1920, 1080), true)]);
 
         public PixelColor PixelAt(int x, int y) => Colour;
 

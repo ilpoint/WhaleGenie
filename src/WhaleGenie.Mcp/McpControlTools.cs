@@ -10,7 +10,6 @@ using System.Threading.Tasks;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 using WhaleGenie.Core.Devices;
-using WhaleGenie.GraphicsCapture;
 
 namespace WhaleGenie.Mcp;
 

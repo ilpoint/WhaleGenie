@@ -4,7 +4,7 @@
     <BuildType Name="Release" />
     <Platform Name="x64" />
   </Configurations>
-  <Project Path="tests/WhaleGenie.Core.Tests/WhaleGenie.Core.Tests.csproj" Id="8302107e-15b8-4668-b07f-99e8cd751013">
+  <Project Path="core/tests/WhaleGenie.Core.Tests/WhaleGenie.Core.Tests.csproj" Id="8302107e-15b8-4668-b07f-99e8cd751013">
     <Platform Solution="*|x64" Project="x64" />
   </Project>
   <Project Path="src/WhaleGenie.App/WhaleGenie.App.csproj">
@@ -13,13 +13,13 @@
   <Project Path="tests/WhaleGenie.App.TestSupport/WhaleGenie.App.TestSupport.csproj">
     <Platform Solution="*|x64" Project="x64" />
   </Project>
-  <Project Path="src/WhaleGenie.Core/WhaleGenie.Core.csproj">
+  <Project Path="core/src/WhaleGenie.Core/WhaleGenie.Core.csproj">
     <Platform Solution="*|x64" Project="x64" />
   </Project>
-  <Project Path="tests/WhaleGenie.GraphicsCapture.Tests/WhaleGenie.GraphicsCapture.Tests.csproj">
+  <Project Path="core/tests/WhaleGenie.GraphicsCapture.Tests/WhaleGenie.GraphicsCapture.Tests.csproj">
     <Platform Solution="*|x64" Project="x64" />
   </Project>
-  <Project Path="src/WhaleGenie.GraphicsCapture/WhaleGenie.GraphicsCapture.csproj">
+  <Project Path="core/src/WhaleGenie.GraphicsCapture/WhaleGenie.GraphicsCapture.csproj">
     <Platform Solution="*|x64" Project="x64" />
   </Project>
   <Project Path="src/WhaleGenie/WhaleGenie.csproj">
@@ -40,13 +40,13 @@
   <Project Path="src/WhaleGenie.Localization/WhaleGenie.Localization.csproj">
     <Platform Solution="*|x64" Project="x64" />
   </Project>
-  <Project Path="src/WhaleGenie.Platform.Windows/WhaleGenie.Platform.Windows.csproj">
+  <Project Path="core/src/WhaleGenie.Platform.Windows/WhaleGenie.Platform.Windows.csproj">
     <Platform Solution="*|x64" Project="x64" />
   </Project>
-  <Project Path="tests/WhaleGenie.TestSupport/WhaleGenie.TestSupport.csproj">
+  <Project Path="core/tests/WhaleGenie.TestSupport/WhaleGenie.TestSupport.csproj">
     <Platform Solution="*|x64" Project="x64" />
   </Project>
-  <Project Path="tests/WhaleGenie.Platform.Tests/WhaleGenie.Platform.Tests.csproj">
+  <Project Path="core/tests/WhaleGenie.Platform.Tests/WhaleGenie.Platform.Tests.csproj">
     <Platform Solution="*|x64" Project="x64" />
   </Project>
   <Project Path="tests/WhaleGenie.Editor.Tests/WhaleGenie.Editor.Tests.csproj">

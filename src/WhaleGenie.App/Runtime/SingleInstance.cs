@@ -142,13 +142,19 @@ internal static class SingleInstance
             return;
         }
 
+        // The names change when a check takes a place of its own. A listener must keep the events
+        // it was started for: reading the fields on every turn lets an older listener drift to a
+        // newer place, and two listeners then race for the same auto-reset ask.
+        var asked = _asked;
+        var came = _came;
+
         var thread = new Thread(() =>
         {
             while (true)
             {
                 try
                 {
-                    _asked.WaitOne();
+                    asked.WaitOne();
                 }
                 catch (ObjectDisposedException)
                 {
@@ -164,7 +170,7 @@ internal static class SingleInstance
                 {
                     try
                     {
-                        _came?.Set();
+                        came?.Set();
                     }
                     catch (ObjectDisposedException)
                     {

@@ -1,0 +1,89 @@
+###############################################################################
+# Set default behavior to automatically normalize line endings.
+###############################################################################
+* text=auto
+
+###############################################################################
+# Git 钩子由 bash 读取，必须保持 LF；基线是逐行格式，也不随各机器换行习惯变化。
+###############################################################################
+.githooks/pre-commit text eol=lf
+.githooks/large-file-inventory.tsv text eol=lf
+
+###############################################################################
+# Set default behavior for command prompt diff.
+#
+# This is need for earlier builds of msysgit that does not have it on by
+# default for csharp files.
+# Note: This is only used by command line
+###############################################################################
+#*.cs     diff=csharp
+
+###############################################################################
+# Set the merge driver for project and solution files
+#
+# Merging from the command prompt will add diff markers to the files if there
+# are conflicts (Merging from VS is not affected by the settings below, in VS
+# the diff markers are never inserted). Diff markers may cause the following 
+# file extensions to fail to load in VS. An alternative would be to treat
+# these files as binary and thus will always conflict and require user
+# intervention with every merge. To do so, just uncomment the entries below
+###############################################################################
+#*.sln       merge=binary
+#*.csproj    merge=binary
+#*.vbproj    merge=binary
+#*.vcxproj   merge=binary
+#*.vcproj    merge=binary
+#*.dbproj    merge=binary
+#*.fsproj    merge=binary
+#*.lsproj    merge=binary
+#*.wixproj   merge=binary
+#*.modelproj merge=binary
+#*.sqlproj   merge=binary
+#*.wwaproj   merge=binary
+
+###############################################################################
+# behavior for image files
+#
+# image files are treated as binary by default.
+###############################################################################
+#*.jpg   binary
+#*.png   binary
+#*.gif   binary
+
+###############################################################################
+# diff behavior for common document formats
+# 
+# Convert binary document formats to text before diffing them. This feature
+# is only available from the command line. Turn it on by uncommenting the 
+# entries below.
+###############################################################################
+#*.doc   diff=astextplain
+#*.DOC   diff=astextplain
+#*.docx  diff=astextplain
+#*.DOCX  diff=astextplain
+#*.dot   diff=astextplain
+#*.DOT   diff=astextplain
+#*.pdf   diff=astextplain
+#*.PDF   diff=astextplain
+#*.rtf   diff=astextplain
+#*.RTF   diff=astextplain
+
+###############################################################################
+# 许可原文与署名按原样保存
+#
+# LICENSE.txt 是许可条款的原文，一个字都不能被改写：GitHub 认协议靠的正是文件内容，
+# 行尾被换成 CRLF 也会让它比对不上。NOTICE 里的版权行同理 —— 署名写错了，等于没署名。
+# 所以这两份关掉行尾转换（-text），仓库里存什么字节，取出来就是什么字节。
+###############################################################################
+LICENSE.txt -text
+NOTICE -text
+
+###############################################################################
+# 别人的东西按原样保存
+#
+# third_party/libVIIPER 里那三份是从上游发行包里原样取出来的：dll 是编译好的二进制，改一个字节就装不起来；
+# 头文件和许可说明是给人核对的，来源说明里写着它们各自的 SHA256，行尾被换成 CRLF 就对不上了。
+###############################################################################
+third_party/libVIIPER/libVIIPER.dll -text
+third_party/libVIIPER/libVIIPER.h -text
+third_party/libVIIPER/licenses.txt -text

@@ -12,13 +12,20 @@ WhaleGenie（鲸灵）是 Windows 上的通用宏与自动化工具，游戏与�
 ## 架构红线
 
 - `WhaleGenie.Core` 不依赖 Avalonia、FluentAvalonia、MCP、界面模型或 `WhaleGenie.Platform.Windows`。
+- `WhaleGenie.Core` 只依赖 BCL 与 `CsvHelper`，目标是 `net10.0`：画面数据形状（`CaptureWay`、
+  `ScreenLayout`）与键词汇表（`KeyNames`）属于它，适配器与画面工程反过来引用它；
+  `InternalsVisibleTo` 只留给引擎自己的用例。
+- `core/` 是库的独立仓库（[ilpoint/WhaleGenie.Core](https://github.com/ilpoint/WhaleGenie.Core)）以
+  `git subtree` 引入的一份，**不在这里改**：引擎、画面获取、Windows 适配器和它们的三套用例在那边
+  提交，再用 `git subtree pull --prefix=core core main --squash` 取回来。
 - `WhaleGenie.Domain` 不依赖 Avalonia、窗口、ViewModel 或 MCP；`WhaleGenie.Mcp` 不依赖 Avalonia、
   Views 或 Runtime，机器控制、运行宏与运行日志工具由 `WhaleGenie.App` 作为 tool owner 注入。
 - `WhaleGenie.App` 不依赖 Avalonia 或任何窗口类型：触发器、运行编排、MCP 宿主与工具、两种启动形态
   共用的组合根都在这里，界面工程只在它上面补窗口与主 ViewModel。
 - 除 `App.axaml.cs`、`Program.cs` 与 `SharedDevices.cs` 承担的组合、入口分派和生命周期职责外，
   界面与应用两层不直接引用第三方设备库或 `WhaleGenie.Platform.Windows`；设备能力通过 Core 契约取得。
-- `WhaleGenie.GraphicsCapture` 只取得屏幕像素，不识别宏、动作或界面概念。
+- `WhaleGenie.GraphicsCapture` 只取得屏幕像素：读哪里、用哪种抓法由 Core 的设备契约说明，它实现
+  这些契约而不定义它们；不识别宏、动作或界面概念，Core 也不引用它。
 - 编辑态与运行态分离；MCP 写入先进入草稿，权限、审计和界面桥接留在应用层。
 - 具体依赖方向、组合根和例外由架构文档说明，`LayeringTests` 负责检查。
 

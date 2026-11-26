@@ -479,8 +479,8 @@ public class RunLookTests
 
         public IBrowserDevice Browser => NullDeviceLayer.Instance.Browser;
 
-        public ScreenLayout Desktop => new(new ScreenArea(0, 0, 60, 40),
-            [new ScreenDisplay(new ScreenArea(0, 0, 60, 40), true)]);
+        public ScreenLayout Desktop => new(new ScreenRect(0, 0, 60, 40),
+            [new ScreenDisplay(new ScreenRect(0, 0, 60, 40), true)]);
 
         public PixelColor PixelAt(int x, int y) => default;
 

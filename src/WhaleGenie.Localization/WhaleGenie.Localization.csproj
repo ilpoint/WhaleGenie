@@ -7,7 +7,7 @@
     the WinExe. Desktop settings and the Avalonia language refresh stay in the interface project.
   -->
   <ItemGroup>
-    <ProjectReference Include="..\WhaleGenie.Core\WhaleGenie.Core.csproj" />
+    <ProjectReference Include="..\..\core\src\WhaleGenie.Core\WhaleGenie.Core.csproj" />
   </ItemGroup>
 
   <ItemGroup>

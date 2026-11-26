@@ -7,7 +7,7 @@
 | 层 | 位置 | 验证范围 |
 | --- | --- | --- |
 | 引擎逻辑 | `WhaleGenie.Core.Tests` | 动作行为、变量、表达式、设备请求、返回形状和输入路由 |
-| 动作矩阵 | `tests/WhaleGenie.Core.Tests/Bench` | 按目录合成动作并核对结局、返回值、副作用声明和设备记录 |
+| 动作矩阵 | `core/tests/WhaleGenie.Core.Tests/Bench` | 按目录合成动作并核对结局、返回值、副作用声明和设备记录 |
 | 画面获取 | `WhaleGenie.GraphicsCapture.Tests` | 选路、缓存、复用、矩形越界与图片落位 |
 | 文档与运行期服务 | `WhaleGenie.Domain.Tests` | 包往返、设计期检查、变量、触发器、运行日志与单实例；不开窗口 |
 | 协议与工具 | `WhaleGenie.Mcp.Tests` | 工具清单、拒绝码、审计、命令行与容器生命周期；不经窗口 |
@@ -16,11 +16,13 @@
 | 运行与其余界面 | `WhaleGenie.Tests` | 运行与调试、MCP、设置、界面文案与文档对账 |
 | 外部程序 | `BrowserTabTests`、`ScriptBridgeTests`、`ScriptHostRunTests` | 无头 Edge、真实脚本宿主和命名管道桥 |
 | 真实桌面 | 手动验收 | 系统输入、真实窗口、抓屏取色、UIA、录制和驱动级输入 |
+| 公共面与依赖方向 | `WhaleGenie.Tests`（`LayeringTests`）与 PublicAPI 分析器 | 引擎的引用闭包、目标框架、IVT 名单、画面工程的方向；公共成员与基线一致 |
+| 界面观感 | agent 自省通道（Debug） | 连运行中的程序读树、点、截图，核对对齐、裁字与遮挡 |
 
 跑全部：`dotnet test WhaleGenie.slnx`（八个套件并行，约两分钟）。只跑一个工程时加
 `-p:Platform=x64`：解决方案把测试产物放在 `bin/x64/`，裸跑工程会另建一份 `bin/Debug/`，
 两份都叫同一个名字——不加平台参数容易跑到上一次的旧产物，看到的是当时的绿。
-| 界面观感 | agent 自省通道（Debug）连运行中的程序读树、点、截图
+
 契约测试应遍历目录或扫描源码，避免手写第二份动作清单。新增目录事实时先增加可失败的断言，
 再修改实现。主要对账关系如下：
 
@@ -35,6 +37,7 @@
 | 失败键、函数表和中英文文案 | `FailureKeyTests`、`FunctionTableTests`、`LocalizationTests` |
 | 字段命名与步骤落点 | `FieldNameTests`、`StepPlacementTests`、`MacroEditorWorkspaceTests` |
 | 依赖方向与主题资源 | `LayeringTests`、`ControlsRegistryTests`、`StyleVocabularyTests`、`TemplatePartTests` |
+| 引擎的公共面与自足 | `core/src/WhaleGenie.Core/PublicAPI.Shipped.txt`（RS0016/RS0017）、`LayeringTests` 的五条守卫 |
 | 中键菜单宏回归、按住/移动/松开手势、方向命中、第三圈几何、场景覆盖来源、图标绘制、选项往返、设置页与轮盘预览 | `WheelMenuTests` |
 
 ### 界面与无头测试注意事项

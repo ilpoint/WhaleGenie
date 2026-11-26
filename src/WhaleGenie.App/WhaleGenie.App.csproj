@@ -19,11 +19,11 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\WhaleGenie.Core\WhaleGenie.Core.csproj" />
+    <ProjectReference Include="..\..\core\src\WhaleGenie.Core\WhaleGenie.Core.csproj" />
     <ProjectReference Include="..\WhaleGenie.Domain\WhaleGenie.Domain.csproj" />
     <ProjectReference Include="..\WhaleGenie.Localization\WhaleGenie.Localization.csproj" />
     <ProjectReference Include="..\WhaleGenie.Mcp\WhaleGenie.Mcp.csproj" />
-    <ProjectReference Include="..\WhaleGenie.Platform.Windows\WhaleGenie.Platform.Windows.csproj" />
+    <ProjectReference Include="..\..\core\src\WhaleGenie.Platform.Windows\WhaleGenie.Platform.Windows.csproj" />
   </ItemGroup>
 
   <ItemGroup>

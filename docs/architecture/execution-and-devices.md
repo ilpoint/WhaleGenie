@@ -204,7 +204,7 @@ Core 负责原始事件到录制动作的翻译；由于 `MacroStep` 属于界�
 `IDeviceLayer` 把它们聚合为引擎取得的唯一契约。消费者可以只依赖所需接口；`MacroRunner` 和
 综合编辑器使用聚合层。
 
-`src/WhaleGenie.Platform.Windows/` 是 Windows 实现所在位置，第三方库的类型和异常不得泄漏到界面；引擎只通过 `src/WhaleGenie.Core/Devices/` 的契约看到它们。
+`core/src/WhaleGenie.Platform.Windows/` 是 Windows 实现所在位置，第三方库的类型和异常不得泄漏到界面；引擎只通过 `core/src/WhaleGenie.Core/Devices/` 的契约看到它们。
 `NullDeviceLayer` 提供无设备默认实现，测试替身按设备分别组装，并共享一份有序调用记录以验证
 跨设备顺序。
 
@@ -219,6 +219,11 @@ CSV 统一由 `CsvHelper` 解析。文本读取优先采用 BOM；无 BOM 时先
 `ScreenGrabber` 负责选路、回退和会话缓存，`OneThread` 串行执行需要专用线程的图形调用。
 输出 `ScreenGrab` 使用紧密排列的 BGRA 像素，并记录实际采用的 `CaptureWay`；源矩形裁剪、
 越界处理和多显示器拼接由 `Placement`、`ScreenPlacement` 等类型负责，坐标不保存在 `ScreenGrab` 中。
+
+要读什么、有哪几种抓法、桌面由哪些显示器拼成，这些形状属于引擎：`CaptureWay`、`ScreenLayout`、
+`ScreenDisplay`、`ScreenRect` 与 `ScreenCaptureRequest` 都在 `WhaleGenie.Core.Devices`。本工程只实现
+它们——显示器枚举在 `Displays`，四种抓法各自的像素来源在自己的文件里——因此引擎与界面读同一套矩形
+与选路词汇，而 DXGI、Direct3D 与 GDI 的调用不外泄。
 
 自动选路顺序为：
 

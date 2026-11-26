@@ -6,9 +6,9 @@
 
 1. **检索现有契约。** 在动作目录、`MacroRunner`、`MacroCheck`、手册和测试中检查动作键、字段名、
    记录字段及同义概念，优先复用现有名称。
-2. **修改语义目录。** 在 `src/WhaleGenie.Core/Execution/ActionSemantics.json` 声明动作分类、参数、
+2. **修改语义目录。** 在 `core/src/WhaleGenie.Core/Execution/ActionSemantics.json` 声明动作分类、参数、
    值形态、控件形状、单位、空值、范围、默认值、必填与选项失败键、拾取器、副作用、等待、子列表和返回值。
-3. **实现引擎分派。** 动作族各自成类：`src/WhaleGenie.Core/Execution/<Family>Actions.cs` 里的静态 `Map`
+3. **实现引擎分派。** 动作族各自成类：`core/src/WhaleGenie.Core/Execution/<Family>Actions.cs` 里的静态 `Map`
    把动作键交给只收 `IRunContext` 的处理器；族不持有运行器，也不读它的私有字段，共享能力经
    `IRunContext`、`StepArguments`、`StepResults`、`WindowFacts` 等取得。控制流（分支、循环、调用、
    尝试、变量写入）仍由解释器实现，这类动作加在 `MacroRunner.Dispatch.cs` 的表里。读值与范围检查

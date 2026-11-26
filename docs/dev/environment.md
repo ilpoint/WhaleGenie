@@ -8,9 +8,16 @@
 dotnet build WhaleGenie.slnx -c Release
 dotnet test WhaleGenie.slnx -c Release
 dotnet format WhaleGenie.slnx --verify-no-changes --no-restore
+dotnet build core/WhaleGenie.Core.slnx -c Release
 dotnet run --project src/WhaleGenie
 pwsh build/site.ps1
 ```
+
+`core/` 是库（引擎、画面获取、Windows 适配器与它们的三套用例）的独立仓库，以 `git subtree`
+引入到这里：**它不在这里改**，改动去 [ilpoint/WhaleGenie.Core](https://github.com/ilpoint/WhaleGenie.Core)，
+再 `git subtree pull --prefix=core core main --squash`。库的构建设置与包版本跟着它自己走
+（`core/Directory.Build.props`、`core/Directory.Packages.props`），打包与发布也在那边的 CI。
+分发关系见 [core-api.md 的分发一节](../architecture/core-api.md)。
 
 解决方案只提供 `x64` 平台。根目录 `Directory.Build.props` 统一设置目标平台并将警告视为错误，
 因此构建通过也意味着没有编译警告。分析器只对产品工程启用 Recommended 集，测试工程除外；
@@ -24,7 +31,7 @@ pwsh build/site.ps1
 
 ```powershell
 $env:ACTION_MATRIX_REPORT = "TestResults/action-matrix.md"
-dotnet test tests/WhaleGenie.Core.Tests -c Release --filter "FullyQualifiedName~ActionBench"
+dotnet test core/tests/WhaleGenie.Core.Tests -c Release --filter "FullyQualifiedName~ActionBench"
 Remove-Item Env:ACTION_MATRIX_REPORT
 
 dotnet run --project src/WhaleGenie -c Release -- --mcp-doctor --report TestResults/mcp-after.md
@@ -66,13 +73,13 @@ GitHub Copilot 的 Agent 工具列表里应出现它。`.vscode/` 按 `.gitignor
 | 项目 | 职责 |
 | --- | --- |
 | `WhaleGenie` | Avalonia 与 FluentAvalonia 界面、窗口与 ViewModel、窗口化组合根、界面与设备适配 |
-| `WhaleGenie.Core` | 执行引擎、动作语义目录、表达式、变量与设备契约；不引用任何 Windows 适配器 |
+| `WhaleGenie.Core` | 执行引擎、动作语义目录、表达式、变量、设备契约与键词汇表；`net10.0`，只依赖 BCL 与 `CsvHelper`，是唯一可打包的工程 |
 | `WhaleGenie.Platform.Windows` | SharpHook、FlaUI、OpenCV、PaddleOCR、Playwright、Roslyn/NuGet、VIIPER 等 Windows 适配器与脚本宿主 |
 | `WhaleGenie.App` | 触发器、运行编排、录制翻译、项目服务、MCP 宿主与工具、应用层组合根；不引用 Avalonia |
 | `WhaleGenie.Localization` | 界面字、动作名、表达式与日志措辞的文案表；Avalonia 刷新仍在界面工程 |
 | `WhaleGenie.Domain` | 宏文件模型、工程文档、设计期检查、包读写与图片文件；不引用 Avalonia |
 | `WhaleGenie.Mcp` | 协议宿主、草稿、补丁、资源与项目编辑工具；不引用 Avalonia、Views 或 Runtime |
-| `WhaleGenie.GraphicsCapture` | 四种画面获取方式、选路、会话缓存、矩形落位和 BGRA 输出 |
+| `WhaleGenie.GraphicsCapture` | 四种画面获取方式、选路、会话缓存、矩形落位和 BGRA 输出；引用 Core，实现它的画面契约 |
 | `WhaleGenie.Editor.Tests` | 宏编辑窗、步骤树、变量墙、窗口规则与菜单的无头测试 |
 | `WhaleGenie.Actions.Tests` | 动作对话框、页面归属、返回值与拾取器的无头测试 |
 | `WhaleGenie.Tests` | 运行与调试、MCP、设置、界面文案与文档对账，运行于 Avalonia 无头平台 |
@@ -124,7 +131,7 @@ act 的宿主工作区里运行，因此 `%TEMP%` 与进程创建不受本机命
 
 | 依赖 | 使用位置与用途 |
 | --- | --- |
-| `SharpHook` | Platform.Windows：全局键鼠钩子与事件翻译；引擎用自己的 `HookCode` 与 `KeyTable` 命名按键，不依赖它，`KeyCodeParityTests` 保证这份列表与 `SharpHook.Data.KeyCode` 同名同值 |
+| `SharpHook` | Platform.Windows：全局键鼠钩子与事件翻译；引擎用自己的 `HookCode` 与 `KeyNames` 命名按键，不依赖它，`KeyCodeParityTests` 保证这份列表与 `SharpHook.Data.KeyCode` 同名同值 |
 | `libVIIPER` | Platform.Windows：驱动级虚拟键鼠和 Xbox 360 手柄；原生库位于 `third_party/libVIIPER/` |
 | `OpenCvSharp5.Windows` | Platform.Windows：找图、找色和 YOLO 检测 |
 | `Sdcb.SimdPaddleOCR`、`Sdcb.SimdPaddleOCR.Models.ChineseV6Tiny` | Platform.Windows：离线 OCR 与中文模型 |

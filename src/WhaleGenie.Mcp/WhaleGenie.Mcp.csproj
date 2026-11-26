@@ -12,7 +12,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\WhaleGenie.Core\WhaleGenie.Core.csproj" />
+    <ProjectReference Include="..\..\core\src\WhaleGenie.Core\WhaleGenie.Core.csproj" />
     <ProjectReference Include="..\WhaleGenie.Domain\WhaleGenie.Domain.csproj" />
     <ProjectReference Include="..\WhaleGenie.Localization\WhaleGenie.Localization.csproj" />
   </ItemGroup>

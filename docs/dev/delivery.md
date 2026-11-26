@@ -46,10 +46,14 @@ node build/render-overview.mjs .
 ## 性能测量
 
 修改 `WhaleGenie.GraphicsCapture`、`OpenCvVisionDevice`、`PixelSearch`、`PaddleOcrDevice`、
-`OpenCvDetectDevice` 或触发器等待间隔后，重新测量受影响路径。用临时工程引用 `WhaleGenie.Core`，
-通过 `WindowsDeviceLayer` 取得运行时才使用的真实设备；需要指定抓法或验证可用性时可直接使用
-`ScreenGrabber`。记录 Windows 版本、CPU、显卡、分辨率、模型与参考图尺寸，先预热，再取多次测量的
-中位数，不能用单次结果判断回归。
+`OpenCvDetectDevice` 或触发器等待间隔后，重新测量受影响路径。用临时工程同时引用 `WhaleGenie.Core`
+与 `WhaleGenie.Platform.Windows`，通过 `WindowsDeviceLayer` 取得运行时才使用的真实设备；需要指定
+抓法或验证可用性时可直接使用 `ScreenGrabber`。记录 Windows 版本、CPU、显卡、分辨率、模型与参考图
+尺寸，先预热，再取多次测量的中位数，不能用单次结果判断回归。
+
+找色与找图的扫描循环已经是引擎内部实现（`PixelSearch`、`ColourReach` 为 `internal`），临时工程
+读不到它们，改从动作路径测量：造一条只含该动作的宏，用 `MacroRunner` 跑真实设备和真实参考图，
+读 `RunResult` 的耗时与设备记录。这样测到的正是用户会遇到的路径，也不必为了测量把实现重新公开。
 
 找图分别测量足够大的搜索区域与缩小后的区域，找色覆盖提前命中与完整遍历，OCR 与检测把首次模型加载
 和后续调用分开。触发器使用真实窗口或短生命周期进程，并区分事件通知与轮询退路。测量前停止其他重负载，
