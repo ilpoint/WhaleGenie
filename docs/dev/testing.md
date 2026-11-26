@@ -86,7 +86,9 @@ pwsh tools/stryker.ps1 -Target domain   # 或 editing / all
 | 库仓的 `devices-names`（`KeyNames.cs`） | 172 | 80.81% |
 | 库仓的 `devices-colour`（颜色、找色、PNG、OCR 预处理、鼠标路径） | 672 | 73.96% |
 | 库仓的 `expressions-value`（`Value`、`ValueRules`、`JsonValues`、`FormulaJson`） | 208 | 58.17% |
-| 库仓的 `expressions-writer`（`Expression`、`Formula`、`ExpressionWriter`、`ExpressionCompiler`） | 196 | 33.67% |
+| 库仓的 `expressions-writer`（`Expression`、`Formula`、`ExpressionWriter`、`ExpressionCompiler`） | 196 | 54.59% |
+| 库仓的 `devices-window`（`WindowRule`、`WindowHow`） | 39 | 61.54% |
+| 库仓的 `devices-files`（`DelimitedFile`） | 50 | 32.00% |
 | 库仓的 `rules`（`StepMeta`、`HitSort`、`StepChecks`、`CallBinder` 等） | 466 | 57.73% |
 | Editing 的 `RowShapes.cs`、`EditorValueParts.cs` | 67 | 100% |
 
@@ -97,8 +99,8 @@ Editing 只变异纯行变换与 parts 转换（67 个计分变异，100%）；�
 `expressions-writer`、`rules`、`devices-names`、`devices-colour`、`devices-window`、
 `devices-files`），在这里只记最近一次基线；`FormulaJson` 剩的三项是 JSON 标量默认分支与数字解析失败的
 消息（只在不可达输入上出现）和 `Number` 的 decimal 快路径（对合法 JSON 数字等价），录制区域补过一轮边界
-用例后也到了 90%。表达式写入与规则两处低于 60%：前者是渲染根本没有断言，后者多是“调用到了”的断言，补用例
-是下一步。
+用例后也到了 90%。表达式写入补过一轮渲染断言后到了 55%，规则两处的存活多是“调用到了”的断言，CSV 解析还没有边界用例；
+补用例是下一步。
 
 ### 界面与无头测试注意事项
 
