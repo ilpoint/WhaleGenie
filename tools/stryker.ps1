@@ -76,8 +76,10 @@ try {
                 '**/Execution/RetryPolicy.cs'
                 '**/Execution/WheelPlan.cs'
                 '**/Execution/CountPlan.cs'
+                '**/Execution/LoopControl.cs'
+                '**/Execution/FileOrder.cs'
             )
-            Filter = 'FullyQualifiedName~StepMetaTests|FullyQualifiedName~HitSortTests|FullyQualifiedName~HitOrderTests|FullyQualifiedName~StepOutcomeTests|FullyQualifiedName~MacroRunnerTests|FullyQualifiedName~RunLookTests|FullyQualifiedName~WhereColumnTests|FullyQualifiedName~ActionRoutingTests|FullyQualifiedName~ActionPreviewTests|FullyQualifiedName~IrreversibleStepTests|FullyQualifiedName~RetryPolicyTests|FullyQualifiedName~StepChecksTests|FullyQualifiedName~CallBinderTests|FullyQualifiedName~RunDiceTests|FullyQualifiedName~WheelPlanTests|FullyQualifiedName~StepTimeoutTests|FullyQualifiedName~CountPlanTests'
+            Filter = 'FullyQualifiedName~StepMetaTests|FullyQualifiedName~HitSortTests|FullyQualifiedName~HitOrderTests|FullyQualifiedName~StepOutcomeTests|FullyQualifiedName~MacroRunnerTests|FullyQualifiedName~RunLookTests|FullyQualifiedName~WhereColumnTests|FullyQualifiedName~ActionRoutingTests|FullyQualifiedName~ActionPreviewTests|FullyQualifiedName~IrreversibleStepTests|FullyQualifiedName~RetryPolicyTests|FullyQualifiedName~StepChecksTests|FullyQualifiedName~CallBinderTests|FullyQualifiedName~RunDiceTests|FullyQualifiedName~LoopControlTests|FullyQualifiedName~FileOrderTests|FullyQualifiedName~WheelPlanTests|FullyQualifiedName~StepTimeoutTests|FullyQualifiedName~CountPlanTests'
         },
         @{
             Name = 'devices-names'

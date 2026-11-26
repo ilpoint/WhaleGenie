@@ -459,20 +459,7 @@ internal static class FileActions
     /// </summary>
     private static IEnumerable<FileEntry> InOrder(IEnumerable<FileEntry> files, string key,
         bool descending)
-    {
-        var ordered = key.ToLowerInvariant() switch
-        {
-            "size" => files.OrderBy(entry => entry.Size),
-            "modified" => files.OrderBy(entry => entry.Modified),
-            "created" => files.OrderBy(entry => entry.Created),
-            "extension" => files.OrderBy(entry => Path.GetExtension(entry.Name),
-                StringComparer.OrdinalIgnoreCase),
-            _ => files.OrderBy(entry => entry.Name, StringComparer.OrdinalIgnoreCase),
-        };
-
-        var byName = ordered.ThenBy(entry => entry.Name, StringComparer.OrdinalIgnoreCase);
-        return descending ? byName.Reverse() : byName;
-    }
+        => FileOrder.Of(files, key, descending);
 
     // ------------------------------------------------------------------ variables
 
