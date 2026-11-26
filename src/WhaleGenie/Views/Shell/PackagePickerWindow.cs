@@ -48,17 +48,9 @@ internal sealed class PackagePickerWindow : AppWindow
         {
             ItemsSource = _entries,
             Margin = new Thickness(8, 0, 8, 8),
-            ItemTemplate = new FuncDataTemplate<PackageEntry>((entry, _) => new TextBlock
-            {
-                Text = entry is { IsFolder: true }
-                    ? entry.Name + Path.DirectorySeparatorChar
-                    : entry.Name,
-                TextTrimming = TextTrimming.CharacterEllipsis,
-            }),
+            ItemTemplate = new FuncDataTemplate<PackageEntry>((entry, _) => Line(entry)),
         };
         _list.DoubleTapped += (_, _) => ActivateSelected();
-        _list.SelectionChanged += (_, _) =>
-            _open!.IsEnabled = _list.SelectedItem is PackageEntry { IsFolder: false };
         _list.KeyDown += (_, args) =>
         {
             if (args.Key == Key.Enter)
@@ -70,6 +62,8 @@ internal sealed class PackagePickerWindow : AppWindow
 
         _open = new Button { Content = Strings.Get("Common.Open") };
         _open.Click += (_, _) => OpenSelected();
+        _list.SelectionChanged += (_, _) =>
+            _open.IsEnabled = _list.SelectedItem is PackageEntry { IsFolder: false };
         var up = new Button { Content = Strings.Get("Common.Up") };
         up.Click += (_, _) => Navigate(Path.GetDirectoryName(_folder));
         var cancel = new Button { Content = Strings.Get("Common.Cancel") };
@@ -110,6 +104,20 @@ internal sealed class PackagePickerWindow : AppWindow
         var dialog = new PackagePickerWindow(title, folder);
         return await dialog.ShowDialogOver<string?>(owner);
     }
+
+    /// <summary>
+    /// One line of the list. A recycled container can ask for the template with no item while the
+    /// list is being emptied; that is a line with nothing in it, not a null to dereference.
+    /// </summary>
+    internal static TextBlock Line(PackageEntry? entry) => new()
+    {
+        Text = entry is null
+            ? string.Empty
+            : entry.IsFolder
+                ? entry.Name + Path.DirectorySeparatorChar
+                : entry.Name,
+        TextTrimming = TextTrimming.CharacterEllipsis,
+    };
 
     private void Navigate(string? folder)
     {
@@ -174,5 +182,5 @@ internal sealed class PackagePickerWindow : AppWindow
         }
     }
 
-    private sealed record PackageEntry(string Path, string Name, bool IsFolder);
+    internal sealed record PackageEntry(string Path, string Name, bool IsFolder);
 }
