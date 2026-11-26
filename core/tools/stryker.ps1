@@ -55,7 +55,7 @@ try {
                 '**/Expressions/Formula.cs'
                 '**/Expressions/ExpressionCompiler.cs'
             )
-            Filter = 'FullyQualifiedName~ExpressionCoverageTests|FullyQualifiedName~FormulaShapeTests|FullyQualifiedName~ExpressionTests|FullyQualifiedName~ExpressionDateLiteralTests|FullyQualifiedName~ExpressionContextTests|FullyQualifiedName~ExpressionArgumentTests'
+            Filter = 'FullyQualifiedName~ExpressionCoverageTests|FullyQualifiedName~FormulaShapeTests|FullyQualifiedName~ExpressionTests|FullyQualifiedName~ExpressionDateLiteralTests|FullyQualifiedName~ExpressionContextTests|FullyQualifiedName~ExpressionArgumentTests|FullyQualifiedName~ExpressionWriterTests'
         },
         @{
             Name = 'rules'
@@ -101,7 +101,7 @@ try {
                 '**/Devices/WindowRule.cs'
                 '**/Devices/WindowHow.cs'
             )
-            Filter = 'FullyQualifiedName~DeviceActionTests|FullyQualifiedName~WindowActionTests|FullyQualifiedName~UiAnchorTests'
+            Filter = 'FullyQualifiedName~Window|FullyQualifiedName~UiAnchorTests'
         },
         @{
             Name = 'devices-files'
