@@ -82,6 +82,64 @@ public class MousePathTests
     }
 
     [Fact]
+    public void A_bent_path_bulges_to_the_one_side_the_dice_picked()
+    {
+        // The side is the first thing the path asks its dice, so a path started on seed 1 must bow
+        // to that side of the line and never cross back over it.
+        var from = new ScreenPoint(0, 0);
+        var to = new ScreenPoint(300, 300);
+        var side = new Random(1).Next(2) == 0 ? 1 : -1;
+        var path = MousePath.Plan(MouseRoute.Smooth, from, to, 20, new Random(1));
+
+        Assert.Equal(0, Cross(from, to, path[0]));
+        Assert.Equal(0, Cross(from, to, path[^1]));
+        Assert.All(path.Where(point => Cross(from, to, point) != 0),
+            point => Assert.Equal(side, Math.Sign(Cross(from, to, point))));
+    }
+
+    [Fact]
+    public void A_bent_path_is_as_far_from_the_line_on_one_half_as_on_the_other()
+    {
+        var path = MousePath.Plan(MouseRoute.Smooth, new ScreenPoint(0, 0), new ScreenPoint(400, 0),
+            20, new Random(3));
+
+        // Rounding may take a pixel off either half, but the two halves are the same arc: a path
+        // that eased with the wrong shape would not be symmetric this way.
+        for (var index = 1; index < 10; index++)
+        {
+            Assert.InRange(Math.Abs(Math.Abs(path[index].Y) - Math.Abs(path[20 - index].Y)), 0, 1);
+            Assert.True(Math.Abs(path[index].Y) >= Math.Abs(path[index - 1].Y),
+                $"the arc should widen up to its middle: {index}");
+            Assert.Equal(20 * index, path[index].X);
+        }
+    }
+
+    [Fact]
+    public void A_hand_like_path_stays_on_its_arc_within_a_few_pixels()
+    {
+        // Eight per cent of 400 is the widest a bent path bows; a hand adds at most three pixels of
+        // drift either way, so nothing on the path may sit further from the line than that.
+        var path = MousePath.Plan(MouseRoute.Human, new ScreenPoint(0, 0), new ScreenPoint(400, 0),
+            20, new Random(7));
+
+        Assert.All(path, point => Assert.InRange(Math.Abs(point.Y), 0, 36));
+    }
+
+    [Fact]
+    public void A_move_that_goes_nowhere_is_the_point_itself()
+    {
+        var at = new ScreenPoint(42, 42);
+        var path = MousePath.Plan(MouseRoute.Smooth, at, at, 10, new Random(1));
+
+        Assert.Equal(11, path.Count);
+        Assert.All(path, point => Assert.Equal(at, point));
+    }
+
+    /// <summary>Twice the area of the triangle the point makes with the line, whose sign is its side.</summary>
+    private static long Cross(ScreenPoint from, ScreenPoint to, ScreenPoint at)
+        => ((long)(to.X - from.X) * (at.Y - from.Y)) - ((long)(to.Y - from.Y) * (at.X - from.X));
+
+    [Fact]
     public void A_bent_path_is_broken_into_finer_stops_than_a_straight_one()
     {
         Assert.Equal(20, MousePath.StepsFor(MouseRoute.Direct, 320));
