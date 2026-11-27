@@ -100,7 +100,7 @@
 330	tests/WhaleGenie.Tests/ProjectTriggerTests.cs	keep: 一组同主题用例，共用同一套夹具与同一个行为
 355	tests/WhaleGenie.Actions.Tests/ReturnsPageTests.cs	keep: 一组同主题用例，共用同一套夹具与同一个行为
 354	tests/WhaleGenie.Tests/ScriptHostRunTests.cs	keep: 一组同主题用例，共用同一套夹具与同一个行为
-480	tests/WhaleGenie.Tests/TrayTests.cs	keep: 托盘行为的一组用例，共用一套假通知区
+484	tests/WhaleGenie.Tests/TrayTests.cs	keep: 托盘行为的一组用例，共用一套假通知区
 334	tests/WhaleGenie.Tests/TriggerKindTests.cs	keep: 一组同主题用例，共用同一套夹具与同一个行为
 453	tests/WhaleGenie.Actions.Tests/ValueDraftTests.cs	keep: 形状编辑契约的一组用例，共用 ValueDraft 与 SlotReader.Shape 两套夹具
 4379	src/WhaleGenie.Localization/ActionStrings.cs	exempt: 文案查表，键与文案一一对应
@@ -108,7 +108,7 @@
 484	src/WhaleGenie.App/Settings/AppSettings.cs	keep: 设置文件的一个实例——读取、写入、默认值与迁移规则同属一份文件
 331	src/WhaleGenie/Web/WebShellWindow.axaml.cs	keep: 主窗口与工作台共用的一张网页外框——装载、窗口命令、焦点与关闭生命周期，拆开仍要共享同一份页面入口
 392	src/WhaleGenie/Runtime/ProjectSession.cs	keep: 工程恢复、未保存询问与关闭/退出流程共用一份窗口生命周期，拆开会让“谁先问”出现两处
-6029	src/WhaleGenie.Localization/Strings.cs	exempt: 文案查表，键与文案一一对应
+6027	src/WhaleGenie.Localization/Strings.cs	exempt: 文案查表，键与文案一一对应
 331	src/WhaleGenie.Mcp/ActionKnowledge.cs	keep: 动作目录的查询与描述投影，单一职责
 301	src/WhaleGenie.Mcp/McpDraftStore.cs	keep: 草稿表与其上限、校验入口，单一职责
 317	src/WhaleGenie.App/Mcp/McpRunTools.cs	keep: 一组同域工具与它们的输入输出
@@ -117,7 +117,7 @@
 519	src/WhaleGenie.Domain/Models/VariableChoices.cs	keep: 变量候选模型与其来源、用途、字段，单一职责
 302	src/WhaleGenie.Domain/Models/MacroStep.Detail.cs	keep: 步骤行摘要的唯一投影——动作、参数、条件与流程各自的读法按动作键集中在一处
 436	src/WhaleGenie.Domain/Models/ProjectWorkspace.cs	keep: 工程文档状态（宏、触发、变量、路径、修订号）在一处更新
-303	src/WhaleGenie/Runtime/AppTray.cs	keep: 一段运行期职责
+314	src/WhaleGenie/Runtime/AppTray.cs	keep: 一段运行期职责
 376	src/WhaleGenie.Domain/Storage/RecoveryStore.cs	keep: 一种存储的读写与恢复
 43584	DESIGN.md	keep: 界面视觉契约的唯一一份：章节之间靠同一组令牌与验收清单互相对照，拆开就没有一处说了算；网页壳章节（14）随阶段迁移收敛，原生部分在阶段 E 删除
 627	src/WhaleGenie/Themes/FluentKeys.axaml	keep: 资源键映射
@@ -125,6 +125,7 @@
 371	src/WhaleGenie.Editing/Actions/AddActionViewModel.Parameters.cs	keep: 动作表单的一族，按表单关注点拆分后单一职责
 348	src/WhaleGenie.Editing/Actions/AddActionViewModel.Preview.cs	keep: 动作表单的一族，按表单关注点拆分后单一职责
 316	src/WhaleGenie.Editing/Actions/AddActionViewModel.Settings.cs	keep: 动作表单的一族，按表单关注点拆分后单一职责
+306	src/WhaleGenie.Editing/Actions/EditorActionSnapshot.cs	keep: 动作草稿到桥接快照的单一投影；字段、行表与预览共用同一次转换
 314	src/WhaleGenie.Editing/Editor/ConditionEditorViewModel.cs	keep: 条件树的编辑与读写，增删与拾取同属一个编辑任务；节点类型已另起一文件
 576	src/WhaleGenie.Editing/Editor/MacroEditorViewModel.Editing.cs	keep: 编辑器视图模型的一族，按关注点拆分后单一职责
 362	src/WhaleGenie.Editing/Editor/MacroEditorViewModel.Rows.cs	keep: 编辑器视图模型的一族，按关注点拆分后单一职责
@@ -157,19 +158,19 @@
 480	src/WhaleGenie/Runtime/TriggerHost.cs	keep: 触发宿主一个域——钩子、热键计划、切换与声音是同一个实体的反应；原生面由 surface 接口接管
 423	src/WhaleGenie.App/Bridge/SettingsBridge.Wheel.cs	keep: 轮盘设置、场景与动作管理共用同一份快照、几何与写入路径，拆开会让一次编辑跨文件
 28299	webui/e2e/shell.spec.ts	split: 编辑器用例已拆到 editor.spec.ts，其余壳/设置/运行/宏库用例仍待按功能拆文件
-42005	webui/e2e/editor.spec.ts	keep: 一套编辑器端到端场景按主题分组，共享 helper 与顺序契约不宜拆散
-572	src/WhaleGenie.Editing/Actions/HeadlessActionSession.cs	split: 动作草稿的字段、行表、条件、窗口与值命令同在一个会话类；下一步按字段/行表/拾取拆分
+42495	webui/e2e/editor.spec.ts	keep: 一套编辑器端到端场景按主题分组，共享 helper 与顺序契约不宜拆散
+590	src/WhaleGenie.Editing/Actions/HeadlessActionSession.cs	split: 动作草稿的字段、行表、条件、窗口与值命令同在一个会话类；下一步按字段/行表/拾取拆分
 726	tests/WhaleGenie.Tests/EditorGateTests.cs	split: 编辑器会话与快照用例已超过 700 行；下一步按快照/步骤/声明/触发分族拆测试文件
-38010	webui/src/shared/bridge/generated/types.ts	exempt: 由 C# 契约生成的唯一 TypeScript 模块，体量随契约增长
+38732	webui/src/shared/bridge/generated/types.ts	exempt: 由 C# 契约生成的唯一 TypeScript 模块，体量随契约增长
 460	src/WhaleGenie.App/Bridge/BridgeServer.cs	keep: 桥的路由、ready 缓冲与推送队列是同一个进程内协议边界的职责
 371	src/WhaleGenie.App/Bridge/EditorSessionBridge.Steps.cs	keep: 步骤、条件与录制命令同属编辑正文的一次读取
 311	src/WhaleGenie.App/Projects/ProjectSaver.cs	keep: 包文件唯一写者——防抖、显式保存、替换闸门与状态是同一个并发边界
 401	src/WhaleGenie.Editing/Editor/EditorDocumentSet.cs	keep: 打开文档的标识、页签顺序与父子关系只在文档集一处维护
 468	src/WhaleGenie.Editing/Editor/HeadlessEditorSession.Steps.cs	keep: 步骤、参数与条件同属编辑正文的一次读取
 359	src/WhaleGenie.Editing/Editor/HeadlessEditorSession.TriggerSettings.cs	keep: 按类型分组的触发字段写入（14 个 SetTrigger*），一次触发编辑只读这一份
-79048	webui/src/shared/bridge/generated/strings.json	exempt: 由文案表生成的查表 JSON，页面用到的键与中英文值一一对应
+78815	webui/src/shared/bridge/generated/strings.json	exempt: 由文案表生成的查表 JSON，页面用到的键与中英文值一一对应
 33889	docs/architecture/surfaces-migration.md	keep: 三块浮层的迁移记录与真机验收清单，按阶段顺序读
-24663	docs/dev/validation.md	keep: 手动验收清单与“自动化能验到哪一步”的边界，按受影响范围分条读
+24729	docs/dev/validation.md	keep: 手动验收清单与“自动化能验到哪一步”的边界，按受影响范围分条读
 301	src/WhaleGenie.App/Runtime/MenuSurface.cs	keep: 菜单投影与格子编辑命令同属一处；页面只收快照
 343	src/WhaleGenie/Web/MenuOverlayHost.cs	keep: 一个菜单浮层的窗口职责：定位、置顶记忆、键盘交接、外边点击与前台刷新
 339	src/WhaleGenie/Web/WheelOverlayHost.cs	keep: 轮盘窗口的单一职责：屏幕定位、隐藏准备帧、居中、瞄准事件与超时；页面 ready 握手与重试在此闭环
