@@ -112,8 +112,12 @@ public partial class ActionContractTests
                         problems.Add($"{field}: the editor and the engine disagree about writing a name");
                     }
 
-                    if (parameter.AcceptsFormula
-                        != (facts.ValueForm == ActionValueForm.Value))
+                    // A picture is read as one value but is chosen with its own picker: the
+                    // expression builder belongs beside values that may be written as a formula.
+                    var expectsFormula = facts.ValueForm == ActionValueForm.Value
+                        && parameter.Kind is not (ActionParameterKind.Image
+                            or ActionParameterKind.Images);
+                    if (parameter.AcceptsFormula != expectsFormula)
                     {
                         problems.Add($"{field}: the editor's formula fact differs from the engine value form");
                     }

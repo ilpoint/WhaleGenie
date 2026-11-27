@@ -426,7 +426,12 @@ public class ActionParameter
     /// them. Such a field is offered the expression editor, because what it builds there is
     /// exactly what the engine reads. A reading of <see cref="ValueForm"/>, not a second fact.
     /// </summary>
-    public bool AcceptsFormula => Semantics.ValueForm == ActionValueForm.Value;
+    /// <summary>
+    /// True when this field may be written as a formula. A picture is read as one whole value but
+    /// chosen with its own picker, so the expression builder stays with the values it can edit.
+    /// </summary>
+    public bool AcceptsFormula => Semantics.ValueForm == ActionValueForm.Value
+        && Kind is not (ActionParameterKind.Image or ActionParameterKind.Images);
 
     /// <summary>
     /// True when the box this parameter is edited in offers the names of variables. It is what a
