@@ -77,6 +77,12 @@ public static class RunKeys
     public const string BrowserNotFound = "Run.BrowserNotFound";
     public const string BrowserNotOpen = "Run.BrowserNotOpen";
     public const string BrowserTabNeedsText = "Run.BrowserTabNeedsText";
+
+    /// <summary>
+    /// A cancellation that did not come from the run's own token: a device or a library stopped
+    /// what it was doing. It is a failure of the step, not a stop the person asked for.
+    /// </summary>
+    public const string Cancelled = "Run.Cancelled";
     public const string BrowserTooFew = "Run.BrowserTooFew";
     public const string CaptureFailed = "Run.CaptureFailed";
     public const string ClipboardBusy = "Run.ClipboardBusy";

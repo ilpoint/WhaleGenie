@@ -16,3 +16,6 @@ WhaleGenie.Core.Expressions.EvaluationContext.Notes.get -> WhaleGenie.Core.Expre
 WhaleGenie.Core.Expressions.EvaluationContext.WithNotes(WhaleGenie.Core.Expressions.IExpressionNotes? notes) -> WhaleGenie.Core.Expressions.EvaluationContext!
 
 WhaleGenie.Core.Expressions.IExpressionNotes
+const WhaleGenie.Core.Execution.RunKeys.Cancelled = "Run.Cancelled" -> string!
+static WhaleGenie.Core.Devices.KeyNames.ResolveChord(string? chord, out string? unknown) -> System.Collections.Generic.IReadOnlyList<WhaleGenie.Core.Devices.HookKey>!
+static WhaleGenie.Core.Devices.KeyNames.ResolveChordCodes(string? chord, out string? unknown) -> System.Collections.Generic.IReadOnlyList<WhaleGenie.Core.Devices.HookCode>!

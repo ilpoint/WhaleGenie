@@ -768,8 +768,6 @@ static WhaleGenie.Core.Devices.KeyNames.Name(WhaleGenie.Core.Devices.HookKey key
 static WhaleGenie.Core.Devices.KeyNames.Name(WhaleGenie.Core.Devices.HookKey key, bool sided) -> string!
 static WhaleGenie.Core.Devices.KeyNames.Names.get -> System.Collections.Generic.IReadOnlyList<string!>!
 static WhaleGenie.Core.Devices.KeyNames.Resolve(string? name) -> WhaleGenie.Core.Devices.HookKey?
-static WhaleGenie.Core.Devices.KeyNames.ResolveChord(string? chord, out string? unknown) -> System.Collections.Generic.List<WhaleGenie.Core.Devices.HookKey>!
-static WhaleGenie.Core.Devices.KeyNames.ResolveChordCodes(string? chord, out string? unknown) -> System.Collections.Generic.List<WhaleGenie.Core.Devices.HookCode>!
 static WhaleGenie.Core.Devices.KeyNames.ResolveCode(string? name) -> WhaleGenie.Core.Devices.HookCode?
 static WhaleGenie.Core.Devices.KeyNames.WheelName(WhaleGenie.Core.Devices.HookWheelAxis axis, int rotation) -> string!
 static WhaleGenie.Core.Devices.MousePath.Plan(WhaleGenie.Core.Devices.MouseRoute route, WhaleGenie.Core.Devices.ScreenPoint from, WhaleGenie.Core.Devices.ScreenPoint to, int steps, System.Random? random = null) -> System.Collections.Generic.IReadOnlyList<WhaleGenie.Core.Devices.ScreenPoint>!
