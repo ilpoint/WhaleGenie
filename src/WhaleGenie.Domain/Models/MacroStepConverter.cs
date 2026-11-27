@@ -47,8 +47,14 @@ public static class MacroStepConverter
     /// One row of a list parameter. Every column says a piece of what the row is, so a name written
     /// in one is read where it stands.
     /// </summary>
+    /// <summary>
+    /// A row copied out of the editor's own: the cells are a shape the editor writes in place as
+    /// the person types, so handing the run the editor's dictionary would let an edit reach a macro
+    /// that is already running. The copy is shallow on purpose — an expression node is immutable,
+    /// so the shapes inside can be shared safely.
+    /// </summary>
     private static IReadOnlyDictionary<string, ExpressionNode> Row(StepParameterRow row)
-        => row.Cells;
+        => row.Copy().Cells;
 
     /// <summary>Hands out the running number a step's identity is built from.</summary>
     private sealed class Counter
