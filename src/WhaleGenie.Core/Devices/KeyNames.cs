@@ -107,7 +107,7 @@ public static class KeyNames
     }
 
     /// <summary>Splits a chord such as <c>Ctrl+Shift+S</c> into codes.</summary>
-    public static List<HookCode> ResolveChordCodes(string? chord, out string? unknown)
+    public static IReadOnlyList<HookCode> ResolveChordCodes(string? chord, out string? unknown)
     {
         var keys = new List<HookCode>();
         foreach (var part in (chord ?? string.Empty)
@@ -231,8 +231,17 @@ public static class KeyNames
         => ResolveCode(name) is { } code ? Key(code) : null;
 
     /// <summary>Splits a chord such as <c>Ctrl+Shift+S</c> into keys.</summary>
-    public static List<HookKey> ResolveChord(string? chord, out string? unknown)
-        => ResolveChordCodes(chord, out unknown).ConvertAll(Key);
+    public static IReadOnlyList<HookKey> ResolveChord(string? chord, out string? unknown)
+    {
+        var codes = ResolveChordCodes(chord, out unknown);
+        var keys = new List<HookKey>(codes.Count);
+        foreach (var code in codes)
+        {
+            keys.Add(Key(code));
+        }
+
+        return keys;
+    }
 
     /// <summary>
     /// The name a macro writes for a key, the opposite of <see cref="Resolve"/>. Modifiers are
