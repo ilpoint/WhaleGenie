@@ -47,16 +47,20 @@ public class WindowListBridgeTests
     [Fact]
     public async Task The_list_keeps_the_desktop_order_and_leaves_this_program_out()
     {
-        var own = System.IO.Path.GetFileNameWithoutExtension(Environment.ProcessPath ?? string.Empty);
+        // Our own window is carried by whatever host started the program — `dotnet` under a debug
+        // launch — and another program started the same way is not ours to hide.
         var windows = new WindowsForChecks()
             .Add(2, "First", "notepad", "Notepad")
-            .Add(3, "WhaleGenie", own, "WhaleGenieWindow")
-            .Add(4, "Last", "calc", "CalcFrame");
+            .Add(3, "WhaleGenie", "dotnet", "WhaleGenieWindow")
+            .OwnedByProcess(3, Environment.ProcessId)
+            .Add(4, "Last", "calc", "CalcFrame")
+            .Add(5, "Another tool", "dotnet", "HwndWrapper")
+            .OwnedByProcess(5, 4242);
         var (server, channel) = Server(windows, new NoPick());
 
         var state = await Call(server, channel, "window.list");
 
-        Assert.Equal(new long[] { 2, 4 }, state.GetProperty("windows").EnumerateArray()
+        Assert.Equal(new long[] { 2, 4, 5 }, state.GetProperty("windows").EnumerateArray()
             .Select(row => row.GetProperty("handle").GetInt64()).ToArray());
     }
 

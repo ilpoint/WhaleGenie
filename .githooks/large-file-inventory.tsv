@@ -38,7 +38,7 @@
 355	core/tests/WhaleGenie.Platform.Tests/MessageInputDeviceTests.cs	keep: 一组同主题用例，共用同一套夹具与同一个行为
 718	core/tests/WhaleGenie.Core.Tests/RecordingTests.cs	keep: 一组同主题用例，共用同一套夹具与同一个行为
 309	core/tests/WhaleGenie.TestSupport/SampleFiles.cs	keep: 一组同主题用例，共用同一套夹具与同一个行为
-310	tests/WhaleGenie.App.TestSupport/ChecksDevices.cs	keep: 界面检查用的一整套设备契约替身，成员由 IDeviceLayer 决定，无独立关注点
+323	tests/WhaleGenie.App.TestSupport/ChecksDevices.cs	keep: 界面检查用的一整套设备契约替身，成员由 IDeviceLayer 决定，无独立关注点
 428	core/tests/WhaleGenie.Platform.Tests/ScriptBridgeTests.cs	keep: 一组同主题用例，共用同一套夹具与同一个行为
 457	core/tests/WhaleGenie.Core.Tests/StepOutcomeTests.cs	keep: 一组同主题用例，共用同一套夹具与同一个行为
 485	core/tests/WhaleGenie.Platform.Tests/ViiperInputTests.cs	keep: 一组同主题用例，共用同一套夹具与同一个行为
@@ -137,7 +137,7 @@
 461	src/WhaleGenie/Runtime/NativeSurfaceHost.Wheel.cs	keep: 轮盘一个域——手势、命中、窗口与代际号是同一次任务的读取集
 499	src/WhaleGenie/Views/Pickers/PickEntryWindow.axaml.cs	keep: 一个窗口或视图的交互与布局，拆开要跨文件追同一组状态
 660	src/WhaleGenie/Views/Pickers/PointPickerWindow.cs	keep: 取点窗口的单一交互
-562	src/WhaleGenie/Views/Pickers/WindowPickWindow.cs	keep: 窗口挑选的一次交互：跟随指针、框选与读数同属一个手势
+566	src/WhaleGenie/Views/Pickers/WindowPickWindow.cs	keep: 窗口挑选的一次交互：跟随指针、框选与读数同属一个手势
 516	core/src/WhaleGenie.Core/Variables/VariableBag.cs	keep: 一张值表的读写、标记与容量，单一职责
 390	src/WhaleGenie.Domain/Models/PersistedVariables.cs	keep: 持久化全局值的声明、文件与补写，单一职责
 371	tests/WhaleGenie.Domain.Tests/PersistentVariableTests.cs	keep: 持久变量的一张表与它的文件、补写和冲突，单一主题
@@ -153,23 +153,22 @@
 480	src/WhaleGenie/Runtime/TriggerHost.cs	keep: 触发宿主一个域——钩子、热键计划、切换与声音是同一个实体的反应；原生面由 surface 接口接管
 423	src/WhaleGenie.App/Bridge/SettingsBridge.Wheel.cs	keep: 轮盘设置、场景与动作管理共用同一份快照、几何与写入路径，拆开会让一次编辑跨文件
 29074	webui/e2e/shell.spec.ts	split: 编辑器用例已拆到 editor.spec.ts，其余壳/设置/运行/宏库用例仍待按功能拆文件
-40883	webui/e2e/editor.spec.ts	keep: 一套编辑器端到端场景按主题分组，共享 helper 与顺序契约不宜拆散
+42539	webui/e2e/editor.spec.ts	keep: 一套编辑器端到端场景按主题分组，共享 helper 与顺序契约不宜拆散
 572	src/WhaleGenie.Editing/Actions/HeadlessActionSession.cs	split: 动作草稿的字段、行表、条件、窗口与值命令同在一个会话类；下一步按字段/行表/拾取拆分
-724	tests/WhaleGenie.Tests/EditorGateTests.cs	split: 编辑器会话与快照用例已超过 700 行；下一步按快照/步骤/声明/触发分族拆测试文件
+726	tests/WhaleGenie.Tests/EditorGateTests.cs	split: 编辑器会话与快照用例已超过 700 行；下一步按快照/步骤/声明/触发分族拆测试文件
 38010	webui/src/shared/bridge/generated/types.ts	exempt: 由 C# 契约生成的唯一 TypeScript 模块，体量随契约增长
 430	src/WhaleGenie.App/Bridge/BridgeServer.cs	keep: 桥的路由、ready 缓冲与推送队列是同一个进程内协议边界的职责
 371	src/WhaleGenie.App/Bridge/EditorSessionBridge.Steps.cs	keep: 步骤、条件与录制命令同属编辑正文的一次读取
 311	src/WhaleGenie.App/Projects/ProjectSaver.cs	keep: 包文件唯一写者——防抖、显式保存、替换闸门与状态是同一个并发边界
 401	src/WhaleGenie.Editing/Editor/EditorDocumentSet.cs	keep: 打开文档的标识、页签顺序与父子关系只在文档集一处维护
 468	src/WhaleGenie.Editing/Editor/HeadlessEditorSession.Steps.cs	keep: 步骤、参数与条件同属编辑正文的一次读取
-330	src/WhaleGenie.Editing/Editor/HeadlessEditorSession.TriggerSettings.cs	keep: 按类型分组的触发字段写入（14 个 SetTrigger*），一次触发编辑只读这一份
-79276	webui/src/shared/bridge/generated/strings.json	exempt: 由文案表生成的查表 JSON，页面用到的键与中英文值一一对应
-438	src/WhaleGenie/Web/WebOverlayWindow.cs	keep: 一个透明置顶浮层的全部窗口职责：尺寸、定位、区域裁切与 Win32 样式
-25108	docs/architecture/surfaces-migration.md	keep: 三块浮层的迁移记录与真机验收清单，按阶段顺序读
-21025	docs/dev/validation.md	keep: 手动验收清单与“自动化能验到哪一步”的边界，按受影响范围分条读
+359	src/WhaleGenie.Editing/Editor/HeadlessEditorSession.TriggerSettings.cs	keep: 按类型分组的触发字段写入（14 个 SetTrigger*），一次触发编辑只读这一份
+79028	webui/src/shared/bridge/generated/strings.json	exempt: 由文案表生成的查表 JSON，页面用到的键与中英文值一一对应
+33479	docs/architecture/surfaces-migration.md	keep: 三块浮层的迁移记录与真机验收清单，按阶段顺序读
+23448	docs/dev/validation.md	keep: 手动验收清单与“自动化能验到哪一步”的边界，按受影响范围分条读
 301	src/WhaleGenie.App/Runtime/MenuSurface.cs	keep: 菜单投影与格子编辑命令同属一处；页面只收快照
-322	src/WhaleGenie/Web/MenuOverlayHost.cs	keep: 一个菜单浮层的窗口职责：定位、置顶记忆、键盘交接、外边点击与前台刷新
-330	src/WhaleGenie/Web/WheelOverlayHost.cs	keep: 轮盘窗口的单一职责：屏幕定位、隐藏准备帧、居中、瞄准事件与超时；页面 ready 握手与重试在此闭环
+343	src/WhaleGenie/Web/MenuOverlayHost.cs	keep: 一个菜单浮层的窗口职责：定位、置顶记忆、键盘交接、外边点击与前台刷新
+339	src/WhaleGenie/Web/WheelOverlayHost.cs	keep: 轮盘窗口的单一职责：屏幕定位、隐藏准备帧、居中、瞄准事件与超时；页面 ready 握手与重试在此闭环
 22657	docs/architecture/interface.md	keep: 应用/桥/编辑/运行各层的接口与事实来源在一份文档里互相对照，拆开会让同一契约出现两处说法
 318	tests/WhaleGenie.Tests/HeadlessEditorSession.SubMacrosTests.cs	keep: 子宏会话命令的一族用例（新建/导入/子文档归属），共用同一套宿主和断言
 342	tests/WhaleGenie.Domain.Tests/StepShapeRoundTripTests.cs	keep: 形状法则的单一测试，按动作与形状生成用例

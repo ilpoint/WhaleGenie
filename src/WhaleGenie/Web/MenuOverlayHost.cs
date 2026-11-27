@@ -14,6 +14,12 @@ namespace WhaleGenie.Web;
 /// </summary>
 internal sealed class MenuOverlayHost(BridgeServer bridge, IDeviceLayer devices, AppSettings settings) : IMenuOverlay
 {
+    private const int MenuWidth = 350;
+    private const int MenuHeight = 667;
+
+    /// <summary>The menu card's radius; the window region is rounded to the same corners.</summary>
+    private const int MenuCornerRadius = 7;
+
     private WebOverlayWindow? _window;
     private long _foregroundBeforeSearch;
     private bool _searchFocused;
@@ -26,7 +32,17 @@ internal sealed class MenuOverlayHost(BridgeServer bridge, IDeviceLayer devices,
     /// from the device layer rather than from window activation: an overlay is shown without
     /// taking the focus, so activation is not what "the person moved on" looks like.
     /// </summary>
-    private void OnForegroundChanged()
+    /// <remarks>
+    /// The device raises this on its own window-event thread. This handler reads the window and
+    /// closes it, which belong to the interface thread — doing either from the hook thread throws,
+    /// and because the event calls its subscribers in order, that exception stops the rest of the
+    /// chain: the interface panels sit behind this handler and never hear the foreground change.
+    /// So the check is moved to the loop that owns the window before anything is read.
+    /// </remarks>
+    private void OnForegroundChanged() => Dispatcher.UIThread.Post(CheckForeground);
+
+    /// <summary>Whether the menu should go away or rebuild its context pages, on the UI thread.</summary>
+    private void CheckForeground()
     {
         if (AutoCloseSuspended || _window is not { IsVisible: true } window)
         {
@@ -125,7 +141,7 @@ internal sealed class MenuOverlayHost(BridgeServer bridge, IDeviceLayer devices,
 
     public void Warm()
     {
-        _window ??= new WebOverlayWindow(bridge, BridgeSurface.Menu, "overlay/menu", 350, 667);
+        _window ??= new WebOverlayWindow(bridge, BridgeSurface.Menu, "overlay/menu", MenuWidth, MenuHeight);
         _window.SetNoActivate(true);
         _window.Topmost = !AutoCloseSuspended;
         _window.Warm();
@@ -133,21 +149,26 @@ internal sealed class MenuOverlayHost(BridgeServer bridge, IDeviceLayer devices,
 
     public void Show()
     {
-        _window ??= new WebOverlayWindow(bridge, BridgeSurface.Menu, "overlay/menu", 350, 667);
+        _window ??= new WebOverlayWindow(bridge, BridgeSurface.Menu, "overlay/menu", MenuWidth, MenuHeight);
         _pinned = settings.LoadRememberMenuPin() && settings.LoadMenuPinned();
         _window.Pinned = _pinned;
         _window.EndWarm();
-        _window.AllowNavigate();
         _window.SetNoActivate(true);
         _window.Topmost = !AutoCloseSuspended;
-        _window.PlaceNearCursor(350, 667);
-        _window.Show();
+        _window.PlaceNearCursor(MenuWidth, MenuHeight);
+        // Positioned first, shown second, page last: the control refuses a page while the window is
+        // not on screen, and a menu that never loads is a menu that never appears.
+        _window.ShowOnScreen();
         if (!AutoCloseSuspended)
         {
             // A shown window keeps its old place in the topmost band; ask for the top of it, the way
             // the wheel does.
             _window.EnsureTopmost();
         }
+
+        // The page draws a card with rounded corners inside this rectangle; the window is clipped
+        // to the same shape so the WebView's own background cannot square them off.
+        _window.ClipToBody(MenuWidth, MenuHeight, MenuCornerRadius);
         PushPinned();
         PushRefreshed();
         StartOutsideWatch();

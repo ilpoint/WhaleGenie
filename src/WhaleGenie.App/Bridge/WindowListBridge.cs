@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using WhaleGenie.Contracts;
@@ -48,11 +47,12 @@ internal sealed class WindowListBridge : IBridgeHandler
             open = [];
         }
 
-        var own = Path.GetFileNameWithoutExtension(Environment.ProcessPath ?? string.Empty);
+        // Owned by the process itself, not by a program name taken from the host that started it:
+        // under `dotnet` (a debug launch, `dotnet run`) every dotnet-hosted program would otherwise
+        // be hidden from the list, and this program's own window would be the one that stayed.
         return new WindowRulePickerState(
             [.. open
-                .Where(window => !string.Equals(Read(() => _windows.ProcessOf(window.Handle)), own,
-                    StringComparison.OrdinalIgnoreCase))
+                .Where(window => !IsOurs(window))
                 .Select(Entry)],
             [.. WindowHow.Values.Select((value, index) => new SettingsChoice(
                 value, Strings.Get($"WindowRule.How.{value}", WindowHow.Labels[index])))]);
@@ -89,6 +89,22 @@ internal sealed class WindowListBridge : IBridgeHandler
     /// A window that stopped existing between the list and the read still has its title and
     /// handle; an empty program or class just means the rule would have to use the title.
     /// </summary>
+    /// <summary>
+    /// Whether a window belongs to this program itself, by the process that owns it. A desktop that
+    /// will not answer is not evidence that the window is ours, so it stays in the list.
+    /// </summary>
+    private bool IsOurs(WindowInfo window)
+    {
+        try
+        {
+            return _windows.ProcessIdOf(window.Handle) == Environment.ProcessId;
+        }
+        catch (Exception)
+        {
+            return false;
+        }
+    }
+
     private static string Read(Func<string> read)
     {
         try

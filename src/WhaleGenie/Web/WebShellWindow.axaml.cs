@@ -124,28 +124,12 @@ public partial class WebShellWindow : Window, ITriggerFocusProbe
         _ = SendMessage(hwnd, WM_NCLBUTTONDOWN, (IntPtr)HTCAPTION, IntPtr.Zero);
     }
 
+    /// <summary>
+    /// The shell creates the process's browser environment, so the folder and options it asks for are
+    /// the ones every overlay reuses: <see cref="WebViewEnvironment.Configure"/> is the one answer.
+    /// </summary>
     private void OnEnvironmentRequested(object? sender, WebViewEnvironmentRequestedEventArgs args)
-    {
-#if DEBUG
-        args.EnableDevTools = true;
-#endif
-        if (args is WindowsWebView2EnvironmentRequestedEventArgs windows)
-        {
-            // The browser keeps its profiles and caches in its own folder under the user's
-            // application data; the program folder is often not writable, and the browser must
-            // not learn to try.
-            windows.UserDataFolder = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                "WhaleGenie", "webview");
-            windows.Language = Strings.Current.Language == Language.Chinese ? "zh-CN" : "en-US";
-#if DEBUG
-            // The CDP port is what makes the real page automatable: Playwright connects over it
-            // the same way it drives a normal browser, which is how the shell checks itself
-            // without a person watching. Debug only — a release build exposes no such door.
-            windows.AdditionalBrowserArguments = "--remote-debugging-port=9223";
-#endif
-        }
-    }
+        => WebViewEnvironment.Configure(args);
 
     /// <summary>
     /// Only the packed page and the debug dev server may load here. A page that could navigate

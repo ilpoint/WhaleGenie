@@ -7,17 +7,17 @@ import type {
   EditorCharacterPad,
   EditorTrigger,
   ProjectState,
-  WindowEntryState,
+  WindowRuleState,
 } from '../../shared/bridge/protocol.js';
 import { keyboardChord } from '../../shared/input/capture.js';
 import { project } from '../../shared/project/store.js';
 import { editor } from './editor-store.js';
-import { renderTriggerFields } from './triggers/trigger-fields.js';
+import { renderTriggerFields, ruleHow } from './triggers/trigger-fields.js';
 import { renderSpecific } from './specific-render.js';
 import { StoreController } from '../../shared/lit/store-controller.js';
 import { editorBase } from './editor-css.js';
 import './character-pad.js';
-import '../../shared/window/window-list.js';
+import '../../shared/window-rule/window-rule-dialog.js';
 
 /**
  * Macro settings: the general half (name, description, group and the trigger entries) and the
@@ -41,8 +41,9 @@ export class WgMacroSettings extends LitElement {
   @state()
   private characterPad: EditorCharacterPad | null = null;
 
+  /** The entry whose rule the shared window-rule form is open for. */
   @state()
-  private windowListTrigger = '';
+  private ruleTrigger = '';
 
   @state()
   private projectState: ProjectState | null = null;
@@ -226,12 +227,7 @@ export class WgMacroSettings extends LitElement {
             : nothing}
         </div>
         ${selected ? renderTriggerFields(this, selected) : nothing}
-        ${this.windowListTrigger
-          ? html`<wg-window-list
-              @wg-window-list-choose=${(event: CustomEvent<WindowEntryState>) =>
-                void this.chooseTriggerWindow(event)}
-              @wg-window-list-cancel=${() => { this.windowListTrigger = ''; }}></wg-window-list>`
-          : nothing}
+        ${this.renderTriggerRule()}
         ${editor.get().snapshot?.triggerProblemSummary
           ? html`<p class="problem">${editor.get().snapshot?.triggerProblemSummary}</p>`
           : nothing}
@@ -258,15 +254,70 @@ export class WgMacroSettings extends LitElement {
     return trigger?.hotstringText ?? '';
   }
 
-  openWindowList(trigger: EditorTrigger): void {
-    this.windowListTrigger = trigger.id;
+  openWindowRule(trigger: EditorTrigger): void {
+    this.ruleTrigger = trigger.id;
   }
 
-  private async chooseTriggerWindow(event: CustomEvent<WindowEntryState>): Promise<void> {
-    const trigger = this.windowListTrigger;
-    this.windowListTrigger = '';
-    if (trigger.length > 0) {
-      await editor.triggers.setTriggerWindow(trigger, 'title', event.detail.title);
+  /** The window-rule form an entry's rule is set with, once an entry asked for it. */
+  private renderTriggerRule(): TemplateResult | typeof nothing {
+    const trigger = editor.get().snapshot?.triggers.find((entry) =>
+      entry.id === this.ruleTrigger);
+    if (!trigger) {
+      return nothing;
+    }
+
+    return html`<wg-window-rule
+      .rule=${this.triggerRule(trigger)}
+      .title=${t('WindowRule.Choose')}
+      .allowHandle=${trigger.kind === 'Window'}
+      @wg-rule-submit=${(event: CustomEvent<WindowRuleState>) => void this.submitTriggerRule(event)}
+      @wg-rule-close=${() => { this.ruleTrigger = ''; }}></wg-window-rule>`;
+  }
+
+  /** The entry's rule as the shared form reads it. */
+  private triggerRule(trigger: EditorTrigger): WindowRuleState {
+    const isWindow = trigger.kind === 'Window';
+    return {
+      title: isWindow ? trigger.windowTitle : trigger.interfaceTitle,
+      process: isWindow ? trigger.windowProcess : trigger.interfaceProcess,
+      className: trigger.windowClass,
+      handle: 0,
+      how: ruleHow(isWindow ? trigger.windowHow : trigger.interfaceHow) || 'titleContains',
+      caseSensitive: trigger.windowCaseSensitive,
+      trim: trigger.windowTrim,
+      multiline: trigger.windowMultiline,
+    };
+  }
+
+  /**
+   * Writes the rule the form handed over into the entry. Every part goes in — the text, the part of
+   * the window it is held up against, and the three switches — so what the form shows is what the
+   * group will be recognised by. An interface entry keeps the ten comparisons that name a window by
+   * something that outlives it, so a handle rule is not offered for one.
+   */
+  private async submitTriggerRule(event: CustomEvent<WindowRuleState>): Promise<void> {
+    const triggerId = this.ruleTrigger;
+    this.ruleTrigger = '';
+    const trigger = editor.get().snapshot?.triggers.find((entry) => entry.id === triggerId);
+    if (!trigger) {
+      return;
+    }
+
+    const rule = event.detail;
+    const isWindow = trigger.kind === 'Window';
+    const write = (field: string, value: string): Promise<boolean> => (isWindow
+      ? editor.triggers.setTriggerWindow(triggerId, field, value)
+      : editor.triggers.setTriggerInterface(triggerId, field, value));
+
+    await write('how', isWindow ? rule.how : rule.how === 'handle' ? 'titleContains' : rule.how);
+    await write('title', rule.title);
+    await write('process', rule.process);
+    await write('class', rule.className);
+    await write('caseSensitive', String(rule.caseSensitive));
+    await write('trim', String(rule.trim));
+    await write('multiline', String(rule.multiline));
+    if (isWindow) {
+      await write('handle', String(rule.handle));
     }
   }
 

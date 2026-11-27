@@ -39,6 +39,27 @@ public class PanelSurfaceTests
         Assert.Equal("界面宏", snapshot.Title);
     }
 
+    /// <summary>The host owns the window's size, so folding a group has to tell it the shape moved.</summary>
+    [Fact]
+    public void Folding_a_group_announces_the_new_shape()
+    {
+        var project = new ProjectWorkspace();
+        project.AddMacro(new MacroItem { Name = "one" });
+        project.Triggers.Entries.Add(new TriggerEntry
+        {
+            MacroName = "one",
+            Spec = new InterfaceSpec(WindowRule.Empty),
+        });
+        var surface = Surface(project);
+        var key = project.Triggers.InterfaceGroups().First().Key;
+        var announced = 0;
+        surface.ViewChanged += () => announced++;
+
+        surface.View(key, collapsed: true, horizontal: null);
+
+        Assert.Equal(1, announced);
+    }
+
     [Fact]
     public void A_group_remembers_how_it_was_folded_and_turned()
     {

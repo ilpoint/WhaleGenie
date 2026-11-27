@@ -121,6 +121,20 @@ async function closeStepEditor(page: Page): Promise<void> {
  * 页面按命令域发方法名，具体命令在 params 的 kind 里（声明与变量再加 family）；断言一条调用，
  * 而不是去看方法名——同一方法下的 open/new/save 只有参数能分开。
  */
+/**
+ * Picks a window through the shared rule form: the trigger row's button opens it, the list names
+ * the window, and "use this window" hands the whole rule back.
+ */
+async function chooseTriggerWindow(page: Page): Promise<void> {
+  await page.locator('wg-macro-settings .trigger-fields button', { hasText: '选择窗口' }).click();
+  const rule = page.locator('wg-window-rule .dialog');
+  await expect(rule).toBeVisible();
+  await expect(rule.locator('.window')).toHaveCount(2);
+  await rule.locator('.window', { hasText: 'Calculator' }).click();
+  await rule.locator('fluent-button', { hasText: '使用这个窗口' }).click();
+  await expect(page.locator('wg-window-rule')).toHaveCount(0);
+}
+
 function called(page: Page, method: string, params: Record<string, string>): Promise<boolean> {
   return page.evaluate(({ method: wanted, params: wantedParams }) => window.__mock!.calls.some(
     (call) => call.method === wanted
@@ -577,23 +591,44 @@ test('触发入口可添加并捕获按键', async ({ page }) => {
     .toBe(true);
 });
 
-test('窗口标题字段从网页窗口列表选择并写回', async ({ page }) => {
+test('窗口标题字段用窗口规则组件选择并写回', async ({ page }) => {
   await openEditor(page);
   await page.locator('wg-macro-settings select[aria-label="添加入口"]').selectOption({ label: '窗口' });
   await page.locator('wg-macro-settings button.link-button', { hasText: '添加入口' }).click();
   const fields = page.locator('wg-macro-settings .trigger-fields');
   await expect(fields).toBeVisible();
-  await fields.locator('button', { hasText: '拾取窗口…' }).click();
-  const list = page.locator('wg-window-list');
-  await expect(list).toBeVisible();
-  await expect(list.locator('.window')).toHaveCount(2);
-  await list.locator('.window', { hasText: 'Calculator' }).click();
-  await list.locator('fluent-button', { hasText: '确定' }).click();
-  await expect(list).toHaveCount(0);
-  await expect(fields.locator('input').first()).toHaveValue('Calculator');
+
+  await chooseTriggerWindow(page);
+  await expect(fields.locator('[data-rule-summary]')).toContainText('Calculator');
   await expect.poll(() => called(page, 'window.list', {})).toBe(true);
   await expect
     .poll(() => called(page, 'editor.trigger', { kind: 'field', family: 'window', field: 'title' }))
+    .toBe(true);
+  await expect
+    .poll(() => called(page, 'editor.trigger', { kind: 'field', family: 'window', field: 'how' }))
+    .toBe(true);
+});
+
+test('界面入口的窗口规则用同一个窗口规则组件设置', async ({ page }) => {
+  await openEditor(page);
+  await page.locator('wg-macro-settings select[aria-label="添加入口"]')
+    .selectOption({ label: '窗口内接口' });
+  await page.locator('wg-macro-settings button.link-button', { hasText: '添加入口' }).click();
+  const fields = page.locator('wg-macro-settings .trigger-fields');
+  await expect(fields).toBeVisible();
+
+  // An interface rule typed by hand is how a group ends up naming a window that never appears:
+  // the entry sets its rule with the same form a step uses, handle comparison left out.
+  await chooseTriggerWindow(page);
+  await expect(fields.locator('[data-rule-summary]')).toContainText('Calculator');
+  await expect
+    .poll(() => called(page, 'editor.trigger', { kind: 'field', family: 'interface', field: 'title' }))
+    .toBe(true);
+  await expect
+    .poll(() => called(page, 'editor.trigger', { kind: 'field', family: 'interface', field: 'process' }))
+    .toBe(true);
+  await expect
+    .poll(() => called(page, 'editor.trigger', { kind: 'field', family: 'interface', field: 'class' }))
     .toBe(true);
 });
 

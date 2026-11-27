@@ -13,8 +13,10 @@ public class PanelGeometryTests
         var many = PanelGeometry.Size(20, horizontal: false, collapsed: false);
 
         Assert.Equal(86, one.Width);
-        Assert.Equal(20 + 2 + 24, one.Height);
-        Assert.Equal(20 + 2 + 6 * 24 + 5 * 2, many.Height);
+        // The card's border and member padding are part of the window, or its rounded right and
+        // bottom corners would be cut off.
+        Assert.Equal(20 + 6 + 24, one.Height);
+        Assert.Equal(20 + 6 + 6 * 24 + 5 * 2, many.Height);
     }
 
     [Fact]
@@ -22,8 +24,8 @@ public class PanelGeometryTests
     {
         var size = PanelGeometry.Size(3, horizontal: true, collapsed: false);
 
-        Assert.Equal(3 * 80 + 2 * 2 + 2, size.Width);
-        Assert.Equal(20 + 24 + 2, size.Height);
+        Assert.Equal(3 * 80 + 2 * 2 + 6, size.Width);
+        Assert.Equal(20 + 24 + 6, size.Height);
     }
 
     [Fact]
@@ -34,5 +36,19 @@ public class PanelGeometryTests
 
         Assert.Equal(100 + (400 - 86), x);
         Assert.Equal(50, y);
+    }
+
+    /// <summary>
+    /// The offset a drag stores is the same clamp, without the target's origin added back. A panel
+    /// released past the edge comes to rest at the edge, and the next frame is drawn there too.
+    /// </summary>
+    [Fact]
+    public void A_dragged_offset_is_held_inside_the_client_area()
+    {
+        var (x, y) = PanelGeometry.ClampOffset((400, 300), offsetX: 999, offsetY: -20,
+            panel: (86, 100));
+
+        Assert.Equal(400 - 86, x);
+        Assert.Equal(0, y);
     }
 }

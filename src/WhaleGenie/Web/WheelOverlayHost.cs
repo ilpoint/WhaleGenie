@@ -83,6 +83,16 @@ internal sealed class WheelOverlayHost(BridgeServer bridge, WheelSurfaceBridge w
         // says the frame is painted. The WebView is a native child and does not honour top-level
         // opacity, so showing first would flash the previous wheel. Closing already cleared the
         // previous frame; this frame overwrites it before anything can become visible.
+        //
+        // The page of this window is loaded on its first open, and a hidden window cannot be
+        // navigated at all: on the very first open there is no earlier frame to flash, so the frame
+        // is shown at once and the wheel fades in when the page has painted it. Every later open
+        // keeps the window hidden until the new frame is ready.
+        if (!window.PageLoaded)
+        {
+            window.ShowOnScreen();
+        }
+
         BeginReveal();
         Push(null, opening: true);
 
@@ -257,7 +267,6 @@ internal sealed class WheelOverlayHost(BridgeServer bridge, WheelSurfaceBridge w
             // back where it sat in the topmost band, which is below anything that became topmost
             // in the meantime — the game the wheel is opened over, a pinned shell, a panel. Ask for
             // the top of the band before and after the show; both are idempotent.
-            window.AllowNavigate();
             window.EnsureTopmost();
             window.Show();
             window.EnsureTopmost();

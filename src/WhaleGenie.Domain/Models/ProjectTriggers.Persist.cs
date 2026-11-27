@@ -37,10 +37,37 @@ public sealed partial class ProjectTriggers
                && HotkeyBinding.IsSupported(text);
     }
 
+    /// <summary>
+    /// The one identity of a window rule: two entries that answer the same window the same way are
+    /// one group even when the comparison reached the file under a different spelling. The ten
+    /// comparisons are only meaningful through <see cref="WindowHow.Read"/>, so the key takes the
+    /// canonical one it reads to; otherwise a rule re-saved by the shared window form (which writes
+    /// lower case) would split from the layout and hotkey stored under the older field's spelling.
+    /// </summary>
     public static string GroupKey(WindowRule rule)
         => string.Join('\u001f',
-            rule.Title, rule.Process, rule.ClassName, rule.How,
+            rule.Title, rule.Process, rule.ClassName, CanonicalHow(rule.How),
             rule.CaseSensitive, rule.Trim, rule.Multiline);
+
+    /// <summary>
+    /// The comparison under the one spelling the project keeps. The ten values are written in
+    /// lower case; the older trigger field wrote the class name (such as <c>TitleEquals</c>), which
+    /// <see cref="WindowHow.Read"/> falls back from. Reading those rows without regard to case is
+    /// what lets one rule stay one group after the shared window form saves it again.
+    /// </summary>
+    public static string CanonicalHow(string? written)
+    {
+        var text = (written ?? string.Empty).Trim();
+        foreach (var value in WindowHow.Values)
+        {
+            if (string.Equals(value, text, StringComparison.OrdinalIgnoreCase))
+            {
+                return value;
+            }
+        }
+
+        return WindowHow.TitleContains;
+    }
 
     public ProjectTriggers Copy()
     {

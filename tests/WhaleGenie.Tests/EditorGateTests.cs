@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using WhaleGenie.Contracts;
+using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
 using WhaleGenie.Editing;
 using WhaleGenie.Models;
@@ -386,7 +387,8 @@ public class EditorGateTests
         session.SetTriggerWindow(window.Id, "change", "Disappeared");
         var watchedWindow = session.Snapshot().Triggers.Single(item => item.Kind == "Window");
         Assert.Equal("Notepad", watchedWindow.WindowTitle);
-        Assert.Equal("TitleEquals", watchedWindow.WindowHow);
+        // The one canonical spelling: a rule written under either form is the same group.
+        Assert.Equal(WindowHow.TitleEquals, watchedWindow.WindowHow);
         Assert.Equal("Disappeared", watchedWindow.WindowChange);
 
         session.AddTrigger("Interface");
@@ -395,7 +397,7 @@ public class EditorGateTests
         session.SetTriggerInterface(face.Id, "how", "TitleContains");
         var watchedFace = session.Snapshot().Triggers.Single(item => item.Kind == "Interface");
         Assert.Equal("Game", watchedFace.InterfaceTitle);
-        Assert.Equal("TitleContains", watchedFace.InterfaceHow);
+        Assert.Equal(WindowHow.TitleContains, watchedFace.InterfaceHow);
     }
 
     [Fact]

@@ -28,7 +28,11 @@ npm run build        # 类型检查 + 单文件构建，产物 dist/index.html
 npm run e2e          # 端到端冒烟（系统 Edge，走构建产物的 preview；CI 在构建之后跑同一条）
 ```
 
-网页壳是默认窗口；装不上 WebView2 Runtime 的机器回退原生窗口。DEBUG 下
+网页壳是默认窗口；装不上 WebView2 Runtime 的机器回退原生窗口。VS Code 的 `launch.json` 起的是
+程序自己的 apphost（`WhaleGenie.exe`），不是 `dotnet WhaleGenie.dll`：托盘图标、自身进程与
+“以管理员身份重启”都取自进程的可执行文件，交给 `dotnet` 起出来的是 .NET 图标；调试托管代码两种
+写法都能下断点。浮层窗口的 WebView2 环境由 `Web/WebViewEnvironment.Configure` 与壳共用，窗口列表
+按进程号认“自己人”，所以即使换宿主也不影响浮层加载或列表内容。DEBUG 下
 `--webui-dev[=http://localhost:5173]` 让壳加载 Vite 开发服务器而不是打包页面。只想跑引擎测试
 而本机没有 Node 时，用 `-p:WhaleGenieSkipWebUi=true` 跳过网页构建目标。
 

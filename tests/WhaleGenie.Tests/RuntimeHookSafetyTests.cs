@@ -59,6 +59,30 @@ public class RuntimeHookSafetyTests
     }
 
     /// <summary>
+    /// A file can hold the same group twice: an older row with the toggle key and a newer one
+    /// written by the shared window form with none. The key was never cleared, so it still toggles
+    /// the group; the plan reads the same effective layout the editor and the panel read.
+    /// </summary>
+    [Fact]
+    public void An_older_duplicate_layout_keeps_its_toggle_key_in_the_plan()
+    {
+        var viewModel = new MainViewModel { IsRunning = true };
+        var rule = new WindowRule(Title: "target", How: WindowHow.TitleContains);
+        viewModel.Triggers.Entries.Add(new TriggerEntry
+        {
+            MacroName = "macro",
+            Spec = new InterfaceSpec(rule),
+        });
+        viewModel.Triggers.InterfaceLayouts.Add(new InterfaceLayout(
+            new WindowRule(Title: "target", How: "TitleContains"), 16, 64, "Ctrl+Alt+H"));
+        viewModel.Triggers.InterfaceLayouts.Add(new InterfaceLayout(rule, 200, 90));
+
+        var match = Plan(viewModel).Match("H", ["左Ctrl", "左Alt"]);
+
+        Assert.Equal(GlobalHotkeyAction.ToggleInterfaceGroup, match.Action);
+    }
+
+    /// <summary>
     /// 宏自己带的启用/停用键走同一份计划；宏停着的时候也要认，否则这个键只能停不能开。
     /// </summary>
     [Fact]

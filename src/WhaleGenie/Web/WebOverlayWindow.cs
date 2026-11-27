@@ -16,7 +16,7 @@ namespace WhaleGenie.Web;
 /// 窗口必须在程序启动时就建好并隐藏：S0 实测冷启首帧约 0.6 秒，而一个已建窗口的 <c>Show()</c>
 /// 只要 19–25 毫秒。页面里的键盘由页面自己回传（同样来自 S0），宿主窗口不抢焦点。
 /// </remarks>
-internal sealed class WebOverlayWindow : Window
+internal sealed partial class WebOverlayWindow : Window
 {
     private readonly NativeWebView _web = new();
     private readonly BridgeServer _bridge;
@@ -24,78 +24,45 @@ internal sealed class WebOverlayWindow : Window
     private readonly string _route;
     private readonly string? _extraQuery;
     private WebBridge? _channel;
-    private bool _noActivate;
-    private bool _clickThrough;
 
-    /// <summary>The native control exists, but navigating before the window is shown aborts.</summary>
+    /// <summary>The native control exists; a page handed over before that has nowhere to go.</summary>
     private bool _adapterReady;
 
-    /// <summary>False while the window is only being warmed: a hidden WebView must not be navigated.</summary>
+    /// <summary>
+    /// False until the host shows the window for a person. The control refuses a page while the
+    /// window is not on screen (<c>E_ABORT</c>), so navigating is only ever asked for from
+    /// <see cref="ShowOnScreen"/>.
+    /// </summary>
     private bool _navigateAllowed;
 
-    /// <summary>True once the first navigation was handed to the control.</summary>
+    /// <summary>True once the page was handed to the control.</summary>
     private bool _navigated;
 
     /// <summary>True while a navigation is being handed over, so a retry cannot overlap it.</summary>
     private bool _navigating;
 
-    /// <summary>True once the page has been loaded in the background.</summary>
+    /// <summary>True once the page finished a navigation.</summary>
+    private bool _pageLoaded;
+
+    /// <summary>Times the control refused the page, so a retry can stop rather than spin.</summary>
+    private int _navigateAttempts;
+
+    /// <summary>True while a refused navigation waits for its retry.</summary>
+    private bool _retryPending;
+
+    /// <summary>True once the window and its control were built off screen.</summary>
     private bool _warmed;
 
-    /// <summary>True while the window is shown only to get the page loaded.</summary>
+    /// <summary>True while the window is shown only to get it built.</summary>
     private bool _warming;
-
-    /// <summary>
-    /// Starts a system caption drag. A page cannot move a window itself: pointer events stop at the
-    /// window edge, so dragging a small panel across the screen needs the OS move loop.
-    /// </summary>
-    /// <summary>
-    /// Puts the window directly above the target in the ordinary z-order: ask for the target's
-    /// predecessor and go behind it, which lands just above the target.
-    /// </summary>
-    internal void PlaceAbove(long targetHandle)
-    {
-        if (!OperatingSystem.IsWindows())
-        {
-            return;
-        }
-
-        var handle = TryGetPlatformHandle()?.Handle ?? IntPtr.Zero;
-        if (handle == IntPtr.Zero || targetHandle == 0)
-        {
-            return;
-        }
-
-        var target = new IntPtr(targetHandle);
-        var above = GetWindow(target, GwHwndPrev);
-        SetWindowPos(handle, above, 0, 0, 0, 0,
-            SwpNoMove | SwpNoSize | SwpNoActivate | SwpNoOwnerZOrder);
-    }
-
-    internal void BeginWindowDrag()
-    {
-        if (!OperatingSystem.IsWindows())
-        {
-            return;
-        }
-
-        var handle = TryGetPlatformHandle()?.Handle ?? IntPtr.Zero;
-        if (handle == IntPtr.Zero)
-        {
-            return;
-        }
-
-        ReleaseCapture();
-        SendMessage(handle, WmNcLeftButtonDown, HtCaption, IntPtr.Zero);
-    }
 
     /// <summary>The warm-up window no longer owns the page; a real open decides when it loads.</summary>
     internal void EndWarm() => _warming = false;
 
     /// <summary>
     /// Builds the adapter and window while nobody is looking, so opening the overlay does not pay
-    /// for creating them. The page itself is loaded only when the window is shown for a person:
-    /// navigating a hidden or off-screen controller aborts with E_ABORT.
+    /// for creating them. The page itself is loaded only once the window is on screen for a person,
+    /// which is <see cref="ShowOnScreen"/>'s job.
     /// </summary>
     internal void Warm()
     {
@@ -110,13 +77,19 @@ internal sealed class WebOverlayWindow : Window
         _warmed = true;
     }
 
+    /// <summary>True once the page has finished a navigation, so a later open only has to show it.</summary>
+    internal bool PageLoaded => _pageLoaded;
+
     /// <summary>
-    /// The window is about to be shown for a person. A hidden or off-screen WebView2 controller
-    /// aborts <c>put_Source</c> with E_ABORT, so the page is loaded only from here on.
+    /// Shows the window where its host has just placed it and hands it the page. The order is the
+    /// whole point: the control refuses a page while the window is not on screen (<c>E_ABORT</c>), so
+    /// showing first and navigating afterwards is what makes the overlay appear at all.
     /// </summary>
-    internal void AllowNavigate()
+    internal void ShowOnScreen()
     {
         _navigateAllowed = true;
+        _navigateAttempts = 0;
+        Show();
         TryNavigate();
     }
 
@@ -145,7 +118,12 @@ internal sealed class WebOverlayWindow : Window
         // The page paints nothing behind its own cards; a transparent control background is what
         // reaches the WebView2 controller as its default background.
         _web.Background = Brushes.Transparent;
+        // The same browser environment as the shell: without it this control asks for a default
+        // folder, the engine falls back to legacy WebView1 when that folder cannot be made, and
+        // every navigation on that engine ends in E_ABORT — a blank overlay that never recovers.
+        _web.EnvironmentRequested += (_, args) => WebViewEnvironment.Configure(args);
         _web.AdapterCreated += OnAdapterCreated;
+        _web.NavigationCompleted += OnNavigationCompleted;
         Opened += (_, _) =>
         {
             ApplyStyles();
@@ -193,19 +171,49 @@ internal sealed class WebOverlayWindow : Window
         }
         catch (COMException error) when (error.HResult == unchecked((int)0x80004004))
         {
-            WhaleGenie.Runtime.AppDiagnostics.Note("overlay.navigate",
-                "aborted; waiting for a shown window");
+            // The control was not ready for a page yet. A window that is still coming up settles
+            // within a frame or two, so the attempt is repeated a couple of times and then dropped
+            // rather than left spinning; the next real open asks again.
+            WhaleGenie.Runtime.AppDiagnostics.Record("overlay.navigate", error);
             if (_warming)
             {
                 _warming = false;
                 Hide();
             }
+
+            ScheduleRetry();
         }
         finally
         {
             _navigating = false;
         }
     }
+
+    private void OnNavigationCompleted(object? sender, WebViewNavigationCompletedEventArgs args)
+    {
+        _pageLoaded = args.IsSuccess;
+        WhaleGenie.Runtime.AppDiagnostics.Note("overlay.completed",
+            args.IsSuccess ? "success" : "failed");
+    }
+
+    private void ScheduleRetry()
+    {
+        if (_retryPending || _navigateAttempts >= MaximumNavigateAttempts)
+        {
+            return;
+        }
+
+        _navigateAttempts++;
+        _retryPending = true;
+        Avalonia.Threading.DispatcherTimer.RunOnce(() =>
+        {
+            _retryPending = false;
+            TryNavigate();
+        }, TimeSpan.FromMilliseconds(NavigateRetryDelayMs));
+    }
+
+    private const int MaximumNavigateAttempts = 3;
+    private const int NavigateRetryDelayMs = 150;
 
     private Uri StartUrl()
     {
@@ -237,69 +245,24 @@ internal sealed class WebOverlayWindow : Window
     /// </summary>
     internal void PlaceNearCursor(double width, double height)
     {
-        var screen = Screens.ScreenFromPoint(Position) ?? Screens.Primary;
+        // The screen the pointer is on decides where "near the pointer" may end: a window that is
+        // still at its warm-up spot off every monitor would otherwise always land on the primary.
+        var cursor = TryCursor();
+        var screen = (cursor is { } at ? Screens.ScreenFromPoint(at) : null)
+            ?? Screens.ScreenFromPoint(Position)
+            ?? Screens.Primary;
         if (screen is not { } area)
         {
             return;
         }
 
         var work = area.WorkingArea;
-        var cursor = TryCursor() ?? new PixelPoint(work.X + work.Width / 2, work.Y + work.Height / 2);
+        var pointer = cursor ?? new PixelPoint(work.X + work.Width / 2, work.Y + work.Height / 2);
         var scale = RenderScaling;
-        var x = Math.Min(cursor.X, work.X + work.Width - (int)Math.Round(width * scale));
-        var y = Math.Min(cursor.Y, work.Y + work.Height - (int)Math.Round(height * scale));
+        var x = Math.Min(pointer.X, work.X + work.Width - (int)Math.Round(width * scale));
+        var y = Math.Min(pointer.Y, work.Y + work.Height - (int)Math.Round(height * scale));
         Position = new PixelPoint(Math.Max(work.X, x), Math.Max(work.Y, y));
     }
-
-    private static PixelPoint? TryCursor()
-    {
-        if (!OperatingSystem.IsWindows())
-        {
-            return null;
-        }
-
-        try
-        {
-            return GetCursorPos(out var point) ? new PixelPoint(point.X, point.Y) : null;
-        }
-        catch
-        {
-            return null;
-        }
-    }
-
-    [System.Runtime.InteropServices.DllImport("user32.dll")]
-    private static extern bool GetCursorPos(out NativePoint point);
-
-    private const int WmNcLeftButtonDown = 0x00A1;
-    private const int HtCaption = 2;
-    private const int GwHwndPrev = 3;
-    private static readonly IntPtr HwndTopmost = new(-1);
-    private const int SwpNoSize = 0x0001;
-    private const int SwpNoMove = 0x0002;
-    private const int SwpNoActivate = 0x0010;
-    private const int SwpNoOwnerZOrder = 0x0200;
-
-    [DllImport("user32.dll")]
-    private static extern IntPtr GetWindow(IntPtr window, int command);
-
-    [DllImport("user32.dll")]
-    private static extern bool SetWindowPos(IntPtr window, IntPtr insertAfter, int x, int y, int cx,
-        int cy, int flags);
-
-    [DllImport("user32.dll")]
-    private static extern bool ReleaseCapture();
-
-    [DllImport("user32.dll")]
-    private static extern IntPtr SendMessage(IntPtr window, int message, IntPtr wParam, IntPtr lParam);
-
-    [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
-    private struct NativePoint
-    {
-        public int X;
-        public int Y;
-    }
-
 
     /// <summary>Centres a square of <paramref name="contentSize"/> on a screen point.</summary>
     internal void PlaceCenteredAt(PixelPoint centre, double contentSize)
@@ -313,126 +276,10 @@ internal sealed class WebOverlayWindow : Window
     /// <summary>Puts the keyboard on the page: the native WebView is its own window and swallows keys.</summary>
     internal void FocusPage() => _web.Focus();
 
-    /// <summary>A menu or panel must not take the keyboard until its search is opened.</summary>
-    internal void SetNoActivate(bool value)
-    {
-        _noActivate = value;
-        ApplyStyles();
-    }
-
-    /// <summary>The wheel is driven by the global hook; the pointer belongs to whatever is behind it.</summary>
-    internal void SetClickThrough(bool value)
-    {
-        _clickThrough = value;
-        ApplyStyles();
-    }
-
-    /// <summary>
-    /// Puts the window at the top of the topmost band. A window that is hidden and shown again
-    /// keeps the place it had in the band, so anything that became topmost while it was away —
-    /// the game the wheel is opened over, a pinned window, a panel — stays above it. A no-activate
-    /// window is never raised by a click either, which leaves a re-shown overlay looking like it
-    /// opened underneath everything. Every host that shows its window again asks for the band.
-    /// </summary>
-    internal void EnsureTopmost()
-    {
-        if (!OperatingSystem.IsWindows())
-        {
-            return;
-        }
-
-        var handle = TryGetPlatformHandle()?.Handle ?? IntPtr.Zero;
-        if (handle == IntPtr.Zero)
-        {
-            return;
-        }
-
-        SetWindowPos(handle, HwndTopmost, 0, 0, 0, 0,
-            SwpNoMove | SwpNoSize | SwpNoActivate | SwpNoOwnerZOrder);
-    }
-
-    /// <summary>Whether a screen point (physical pixels) lies inside this window.</summary>
-    internal bool ContainsScreen(int x, int y)
-    {
-        var scale = RenderScaling;
-        var position = Position;
-        var width = (int)Math.Round(Width * scale);
-        var height = (int)Math.Round(Height * scale);
-        return x >= position.X && y >= position.Y
-            && x < position.X + width && y < position.Y + height;
-    }
-
-    /// <summary>Clips the window after Windows refused a very short height, as the native panel did.</summary>
-    internal void ClipToBody(int width, int height)
-    {
-        if (!OperatingSystem.IsWindows())
-        {
-            return;
-        }
-
-        var handle = TryGetPlatformHandle()?.Handle ?? IntPtr.Zero;
-        if (handle == IntPtr.Zero || width <= 0 || height <= 0)
-        {
-            return;
-        }
-
-        var scale = RenderScaling;
-        var region = CreateRectRgn(0, 0, (int)Math.Round(width * scale), (int)Math.Round(height * scale));
-        if (region == IntPtr.Zero)
-        {
-            return;
-        }
-
-        if (SetWindowRgn(handle, region, true) == 0)
-        {
-            DeleteObject(region);
-        }
-    }
-
-    private void ApplyStyles()
-    {
-        if (!OperatingSystem.IsWindows())
-        {
-            return;
-        }
-
-        var handle = TryGetPlatformHandle()?.Handle ?? IntPtr.Zero;
-        if (handle == IntPtr.Zero)
-        {
-            return;
-        }
-
-        var style = GetWindowLongPtr(handle, GwlExStyle).ToInt64();
-        style = _noActivate
-            ? style | WsExNoActivate | WsExToolWindow
-            : style & ~(long)WsExNoActivate;
-        style = _clickThrough ? style | WsExTransparent : style & ~(long)WsExTransparent;
-        SetWindowLongPtr(handle, GwlExStyle, new IntPtr(style));
-    }
-
-    private const int GwlExStyle = -20;
-    private const long WsExTransparent = 0x00000020L;
-    private const long WsExToolWindow = 0x00000080L;
-    private const long WsExNoActivate = 0x08000000L;
-
-    [DllImport("user32.dll", EntryPoint = "GetWindowLongPtrW")]
-    private static extern IntPtr GetWindowLongPtr(IntPtr window, int index);
-
-    [DllImport("user32.dll", EntryPoint = "SetWindowLongPtrW")]
-    private static extern IntPtr SetWindowLongPtr(IntPtr window, int index, IntPtr value);
-
-    [DllImport("user32.dll")]
-    private static extern IntPtr CreateRectRgn(int left, int top, int right, int bottom);
-
-    [DllImport("user32.dll")]
-    private static extern int SetWindowRgn(IntPtr window, IntPtr region, bool redraw);
-
-    [DllImport("user32.dll")]
-    private static extern bool DeleteObject(IntPtr handle);
-
     protected override void OnClosed(EventArgs e)
     {
         _web.AdapterCreated -= OnAdapterCreated;
+        _web.NavigationCompleted -= OnNavigationCompleted;
         base.OnClosed(e);
     }
 }

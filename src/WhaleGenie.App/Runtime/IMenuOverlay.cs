@@ -40,7 +40,10 @@ public interface IMenuOverlay
 
     void Show();
 
-    /// <summary>Builds the window and loads its page ahead of the first open.</summary>
+    /// <summary>
+    /// Builds the window and its web control ahead of the first open; the page itself is loaded when
+    /// the window first goes on screen, because a hidden one is refused by the control.
+    /// </summary>
     void Warm();
 
     void Hide();

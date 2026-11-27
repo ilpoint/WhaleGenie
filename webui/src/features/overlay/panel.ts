@@ -48,6 +48,13 @@ export class WgOverlayPanel extends LitElement {
       max-width: 500px;
     }
 
+    /* The folded panel is one header, whichever way the members were arranged: the host keeps it
+       86 wide, so the header must not grow to its content and push the two buttons out of the
+       window where they cannot be clicked. */
+    .panel.collapsed {
+      width: 86px;
+    }
+
     .header {
       box-sizing: border-box;
       height: 20px;
@@ -214,7 +221,7 @@ export class WgOverlayPanel extends LitElement {
 
     const snapshot = this.snapshot;
     return html`
-      <div class="panel ${snapshot.horizontal ? 'horizontal' : ''}">
+      <div class="panel ${snapshot.horizontal ? 'horizontal' : ''} ${snapshot.collapsed ? 'collapsed' : ''}">
         ${this.renderHeader(snapshot)}
         ${snapshot.collapsed ? '' : html`
           <div class="members ${snapshot.horizontal ? 'horizontal' : ''}">

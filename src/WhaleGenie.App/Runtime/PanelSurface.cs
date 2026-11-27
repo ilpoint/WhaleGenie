@@ -19,6 +19,13 @@ internal sealed class PanelSurface(ProjectWorkspace workspace, TriggerRuntime ru
     /// <summary>The windows that carry each group, so the page can ask one of them to move.</summary>
     private readonly Dictionary<string, IPanelOverlay> _overlays = new(StringComparer.Ordinal);
 
+    /// <summary>
+    /// Raised when a group is folded or turned. The host owns the window's size and region, so it
+    /// has to hear about the new shape; the page alone can only draw a folded body inside a window
+    /// that is still the old size.
+    /// </summary>
+    public event Action? ViewChanged;
+
     public void Attach(string groupKey, IPanelOverlay overlay) => _overlays[groupKey] = overlay;
 
     public void Detach(string groupKey) => _overlays.Remove(groupKey);
@@ -38,7 +45,9 @@ internal sealed class PanelSurface(ProjectWorkspace workspace, TriggerRuntime ru
         var current = _views.TryGetValue(groupKey, out var remembered) ? remembered : default;
         current = (collapsed ?? current.Collapsed, horizontal ?? current.Horizontal);
         _views[groupKey] = current;
-        return Snapshot(groupKey, current.Horizontal, current.Collapsed);
+        var snapshot = Snapshot(groupKey, current.Horizontal, current.Collapsed);
+        ViewChanged?.Invoke();
+        return snapshot;
     }
 
     /// <summary>Runs one member from the panel, by name, if it is still there and switched on.</summary>

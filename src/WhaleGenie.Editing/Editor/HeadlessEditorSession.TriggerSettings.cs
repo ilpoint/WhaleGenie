@@ -34,7 +34,10 @@ internal sealed partial class HeadlessEditorSession
             "title" => _model.WindowTarget with { Title = value },
             "process" => _model.WindowTarget with { Process = value },
             "class" => _model.WindowTarget with { ClassName = value },
-            "how" => _model.WindowTarget with { How = value },
+            "how" => _model.WindowTarget with { How = HowOf(value) },
+            "caseSensitive" => _model.WindowTarget with { CaseSensitive = Flag(value) },
+            "trim" => _model.WindowTarget with { Trim = Flag(value) },
+            "multiline" => _model.WindowTarget with { Multiline = Flag(value) },
             _ => throw new InvalidOperationException("unknown interface field " + field),
         };
         _model.IsDirty = true;
@@ -63,7 +66,19 @@ internal sealed partial class HeadlessEditorSession
                 _model.WindowTarget = _model.WindowTarget with { ClassName = value };
                 break;
             case "how":
-                _model.WindowTarget = _model.WindowTarget with { How = value };
+                _model.WindowTarget = _model.WindowTarget with { How = HowOf(value) };
+                break;
+            case "handle":
+                _model.WindowTarget = _model.WindowTarget with { Handle = HandleOf(value) };
+                break;
+            case "caseSensitive":
+                _model.WindowTarget = _model.WindowTarget with { CaseSensitive = Flag(value) };
+                break;
+            case "trim":
+                _model.WindowTarget = _model.WindowTarget with { Trim = Flag(value) };
+                break;
+            case "multiline":
+                _model.WindowTarget = _model.WindowTarget with { Multiline = Flag(value) };
                 break;
             case "change":
                 _model.WindowChange = Enum.Parse<WindowChangeKind>(value, ignoreCase: true);
@@ -257,6 +272,20 @@ internal sealed partial class HeadlessEditorSession
 
         _model.IsDirty = true;
     }
+
+    /// <summary>
+    /// The comparison as the project keeps it: one canonical spelling, whichever form wrote the
+    /// field. The shared window form writes lower case, while a trigger row saved by the older
+    /// field carries the capitalised name; storing both would split one rule into two groups and
+    /// leave the panel's place behind.
+    /// </summary>
+    private static string HowOf(string? written) => ProjectTriggers.CanonicalHow(written);
+
+    /// <summary>The handle a step names one live window by, or none when the text is not a number.</summary>
+    private static long HandleOf(string value)
+        => long.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var handle)
+            ? handle
+            : 0;
 
     public void SetTriggerTimer(string triggerId, string field, string value)
     {

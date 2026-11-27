@@ -52,6 +52,9 @@ internal sealed class OverlayProbeWindow : Window
         // WebView2 controller as its default background, and a transparent one is what lets the
         // window behind show through.
         _web.Background = Brushes.Transparent;
+        // The probe measures the same shape as a real overlay, so it shares the same browser
+        // environment; without it a probe run started from `dotnet` measures the legacy engine.
+        _web.EnvironmentRequested += (_, args) => WebViewEnvironment.Configure(args);
 
         _web.NavigationCompleted += (_, e) =>
         {

@@ -136,50 +136,21 @@ export function renderTriggerFields(host: TriggerFieldHost, trigger: EditorTrigg
       `);
     } else if (trigger.kind === 'Window' || trigger.kind === 'Interface') {
       const isWindow = trigger.kind === 'Window';
+      const how = ruleHow(isWindow ? trigger.windowHow : trigger.interfaceHow);
+      // The rule is set with the same window-rule form an action uses: it is the one place that
+      // knows the ten comparisons, can take a window off the desktop, and keeps whichever part of
+      // the window the comparison names. Four fields typed by hand is how an interface group ends
+      // up naming a window that never appears.
       fields.push(html`
         <div class="field">
-          <span>${t('WindowPart.Title')}</span>
+          <span>${t('WindowRule.Rule')}</span>
           <div class="inline">
-            <input .value=${isWindow ? trigger.windowTitle : trigger.interfaceTitle}
-              @change=${(event: Event) => void (isWindow
-                ? editor.triggers.setTriggerWindow(trigger.id, 'title',
-                  (event.target as HTMLInputElement).value)
-                : editor.triggers.setTriggerInterface(trigger.id, 'title',
-                  (event.target as HTMLInputElement).value))} />
-            ${isWindow
-              ? html`<button class="link-button" type="button"
-                  @click=${() => host.openWindowList(trigger)}>${t('Add.PickWindow')}</button>`
-              : nothing}
+            <span class="summary" data-rule-summary=${trigger.id}>${trigger.summary}${
+              how ? ' · ' + howLabel(how) : ''}</span>
+            <button class="link-button" type="button"
+              @click=${() => host.openWindowRule(trigger)}>${t('WindowRule.Choose')}</button>
           </div>
         </div>
-        <label class="field">
-          <span>${t('WindowRule.Process')}</span>
-          <input .value=${isWindow ? trigger.windowProcess : trigger.interfaceProcess}
-            @change=${(event: Event) => void (isWindow
-              ? editor.triggers.setTriggerWindow(trigger.id, 'process',
-                (event.target as HTMLInputElement).value)
-              : editor.triggers.setTriggerInterface(trigger.id, 'process',
-                (event.target as HTMLInputElement).value))} />
-        </label>
-        <label class="field">
-          <span>${t('WindowRule.How')}</span>
-          <select .value=${isWindow ? trigger.windowHow : trigger.interfaceHow}
-            @change=${(event: Event) => void (isWindow
-              ? editor.triggers.setTriggerWindow(trigger.id, 'how', (event.target as HTMLSelectElement).value)
-              : editor.triggers.setTriggerInterface(trigger.id, 'how',
-                (event.target as HTMLSelectElement).value))}>
-            <option value="TitleContains">${t('WindowRule.How.titleContains')}</option>
-            <option value="TitleStartsWith">${t('WindowRule.How.titleStartsWith')}</option>
-            <option value="TitleEndsWith">${t('WindowRule.How.titleEndsWith')}</option>
-            <option value="TitleEquals">${t('WindowRule.How.titleEquals')}</option>
-            <option value="TitleRegex">${t('WindowRule.How.titleRegex')}</option>
-            <option value="Process">${t('WindowRule.How.process')}</option>
-            <option value="ProcessEquals">${t('WindowRule.How.processEquals')}</option>
-            <option value="Class">${t('WindowRule.How.class')}</option>
-            <option value="ClassEquals">${t('WindowRule.How.classEquals')}</option>
-            ${isWindow ? html`<option value="Handle">${t('WindowRule.How.handle')}</option>` : nothing}
-          </select>
-        </label>
         ${isWindow
           ? html`
             <label class="field">
@@ -364,19 +335,6 @@ export function renderTriggerFields(host: TriggerFieldHost, trigger: EditorTrigg
       `);
     }
 
-    if (trigger.kind === 'Window' || trigger.kind === 'Interface') {
-      fields.push(html`
-        <label class="field">
-          <span>${t('WindowRule.Class')}</span>
-          <input .value=${trigger.windowClass}
-            @change=${(event: Event) => void (trigger.kind === 'Window'
-              ? editor.triggers.setTriggerWindow(trigger.id, 'class', (event.target as HTMLInputElement).value)
-              : editor.triggers.setTriggerInterface(trigger.id, 'class',
-                (event.target as HTMLInputElement).value))} />
-        </label>
-      `);
-    }
-
     if (trigger.kind === 'Interface') {
       fields.push(html`
         <label class="field">
@@ -403,3 +361,34 @@ export function renderTriggerFields(host: TriggerFieldHost, trigger: EditorTrigg
 
     return html`<div class="trigger-fields">${fields}</div>`;
   }
+
+/**
+ * The short name of a comparison. Written out one by one rather than glued together from the value:
+ * the page's word list is collected from the names it mentions, so a name built at run time would
+ * not be in it and would show as the key itself.
+ */
+function howLabel(how: string): string {
+  switch (how) {
+    case 'titleContains': return t('WindowRule.Short.titleContains');
+    case 'titleStartsWith': return t('WindowRule.Short.titleStartsWith');
+    case 'titleEndsWith': return t('WindowRule.Short.titleEndsWith');
+    case 'titleEquals': return t('WindowRule.Short.titleEquals');
+    case 'titleRegex': return t('WindowRule.Short.titleRegex');
+    case 'process': return t('WindowRule.Short.process');
+    case 'processEquals': return t('WindowRule.Short.processEquals');
+    case 'class': return t('WindowRule.Short.class');
+    case 'classEquals': return t('WindowRule.Short.classEquals');
+    case 'handle': return t('WindowRule.Short.handle');
+    default: return how;
+  }
+}
+
+/**
+ * The stored comparison as the ten values are written. Rows written by the older form carry the
+ * capitalised spelling, which the C# side reads as the oldest fallback — the title holding the
+ * text — so a rule that said "process" compared a title instead.
+ */
+export function ruleHow(value: string): string {
+  const written = value.trim();
+  return written.length === 0 ? '' : written.charAt(0).toLowerCase() + written.slice(1);
+}

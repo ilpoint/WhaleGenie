@@ -34,6 +34,13 @@ export class WgWindowRule extends LitElement {
   @property({ attribute: false })
   public preview: EditorWindowPreview | null = null;
 
+  /**
+   * Whether the handle comparison is offered. A step may name the very window instance, but a rule
+   * that has to keep naming it — an interface group's — cannot: the handle dies with that window.
+   */
+  @property({ attribute: false })
+  public allowHandle = true;
+
   @state()
   private windows: WindowEntryState[] = [];
 
@@ -107,7 +114,7 @@ export class WgWindowRule extends LitElement {
                 <select
                   @change=${(event: Event) => { this.rule = {
                     ...this.rule, how: (event.target as HTMLSelectElement).value }; }}>
-                  ${this.hows.map((how) => html`
+                  ${this.offeredHows().map((how) => html`
                     <option value=${how.value} ?selected=${how.value === this.rule.how}>
                       ${how.label}
                     </option>
@@ -269,6 +276,11 @@ export class WgWindowRule extends LitElement {
       composed: true,
     }));
   };
+
+  /** The comparisons this form offers: every one, unless the caller may not name an instance. */
+  private offeredHows(): SettingsChoice[] {
+    return this.hows.filter((how) => this.allowHandle || how.value !== 'handle');
+  }
 
   private cancel = (): void => {
     this.dispatchEvent(new CustomEvent('wg-rule-close', { bubbles: true, composed: true }));

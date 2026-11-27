@@ -124,6 +124,9 @@ internal sealed partial class NativeSurfaceHost : ITriggerSurfaceHost, IDisposab
         MacroTriggerGate.Exit();
         Volatile.Write(ref _menuOpen, 0);
         Volatile.Write(ref _menuSearchFocused, 0);
+        // The panels are taken away while the menu is up, so closing it has to put them back rather
+        // than wait for the next window event.
+        RefreshPanelsSoon();
     }
 
     private void OnMenuFocusChanged(bool focused)

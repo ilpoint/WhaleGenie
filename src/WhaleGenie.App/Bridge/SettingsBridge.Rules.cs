@@ -1,9 +1,9 @@
 using System;
-using System.Linq;
 using System.Text.Json;
 using WhaleGenie.Contracts;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Localization;
+using WhaleGenie.Models;
 using WhaleGenie.Runtime;
 
 namespace WhaleGenie.Bridge;
@@ -17,7 +17,7 @@ internal sealed partial class SettingsBridge
         rule.Process,
         rule.ClassName,
         rule.Handle,
-        rule.How,
+        ProjectTriggers.CanonicalHow(rule.How),
         rule.CaseSensitive,
         rule.Trim,
         rule.Multiline);
@@ -34,13 +34,8 @@ internal sealed partial class SettingsBridge
                 Strings.Get("Settings.WindowRuleRequired"));
         }
 
-        var how = Text(node, "how")?.Trim() ?? WindowHow.TitleContains;
-        if (!WindowHow.Values.Contains(how, StringComparer.Ordinal))
-        {
-            throw new BridgeFailureException(BridgeErrors.BadArgument,
-                Strings.Get("Settings.WindowRuleRequired"));
-        }
-
+        var written = Text(node, "how")?.Trim();
+        var how = written is { Length: > 0 } ? ReadHow(written) : WindowHow.TitleContains;
         var rule = new WindowRule(
             Text(node, "title") ?? string.Empty,
             Text(node, "process") ?? string.Empty,
@@ -57,6 +52,25 @@ internal sealed partial class SettingsBridge
         }
 
         return rule;
+    }
+
+    /// <summary>
+    /// The comparison a page sent back, as one of the ten. The spelling is matched without case so a
+    /// rule opened from an older file can be saved again; the value written to the project is the
+    /// canonical one the settings form and the group key agree on.
+    /// </summary>
+    private static string ReadHow(string written)
+    {
+        foreach (var value in WindowHow.Values)
+        {
+            if (string.Equals(value, written, StringComparison.OrdinalIgnoreCase))
+            {
+                return value;
+            }
+        }
+
+        throw new BridgeFailureException(BridgeErrors.BadArgument,
+            Strings.Get("Settings.WindowRuleRequired"));
     }
 
     private static long Number(JsonElement element, string name)

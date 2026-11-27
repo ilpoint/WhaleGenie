@@ -1,5 +1,6 @@
 using System.Linq;
 using WhaleGenie.Contracts;
+using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Expressions;
 using WhaleGenie.Editing;
 using WhaleGenie.Models;
@@ -120,6 +121,56 @@ public class HeadlessActionSessionTests
         session.ResetTriggerHotstringEndKeys(trigger.Id);
         after = session.Snapshot().Triggers.Single();
         Assert.DoesNotContain(after.HotstringEndKeys, key => key.IsCustom);
+    }
+
+    /// <summary>
+    /// A window taken from the picker fills the whole rule, not just the title: the page sends
+    /// title, program and class, and every one of them has to reach the entry.
+    /// </summary>
+    [Fact]
+    public void A_picked_window_fills_the_interface_rule()
+    {
+        var session = Open(out _);
+        session.AddTrigger("Interface");
+        var trigger = session.Snapshot().Triggers.Single();
+        session.SetTriggerInterface(trigger.Id, "title", "Calculator");
+        session.SetTriggerInterface(trigger.Id, "process", "calc");
+        session.SetTriggerInterface(trigger.Id, "class", "CalcFrame");
+
+        var after = session.Snapshot().Triggers.Single();
+        Assert.Equal("Calculator", after.InterfaceTitle);
+        Assert.Equal("calc", after.InterfaceProcess);
+        Assert.Equal("CalcFrame", after.WindowClass);
+        Assert.Equal("Calculator", after.Summary);
+    }
+
+    /// <summary>
+    /// Both window-shaped entries keep the comparison in the one spelling the group key and the
+    /// shared form use. The older field wrote the capitalised name; an entry saved from it must not
+    /// become a second group with its own panel place.
+    /// </summary>
+    [Theory]
+    [InlineData("Window")]
+    [InlineData("Interface")]
+    public void An_older_comparison_spelling_is_written_canonically(string kind)
+    {
+        var session = Open(out _);
+        session.AddTrigger(kind);
+        var trigger = session.Snapshot().Triggers.Single();
+        if (kind == "Window")
+        {
+            session.SetTriggerWindow(trigger.Id, "title", "Notepad");
+            session.SetTriggerWindow(trigger.Id, "how", "TitleContains");
+            Assert.Equal(WindowHow.TitleContains,
+                session.Snapshot().Triggers.Single().WindowHow);
+        }
+        else
+        {
+            session.SetTriggerInterface(trigger.Id, "title", "Notepad");
+            session.SetTriggerInterface(trigger.Id, "how", "TitleContains");
+            Assert.Equal(WindowHow.TitleContains,
+                session.Snapshot().Triggers.Single().InterfaceHow);
+        }
     }
 
     [Fact]

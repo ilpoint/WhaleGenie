@@ -144,19 +144,45 @@ export function colorTrigger(
   };
 }
 
+/** What a rule comes to, the way the entry's one-line summary reads it. */
+function ruleSummary(rule: { title: string; process: string; className: string; how: string }): string {
+  switch (rule.how) {
+    case 'process':
+    case 'processEquals':
+      return rule.process;
+    case 'class':
+    case 'classEquals':
+      return rule.className;
+    case 'handle':
+      return '';
+    default:
+      return rule.title;
+  }
+}
+
 export function windowTrigger(
   trigger: EditorTrigger,
   params: Record<string, unknown>,
 ): EditorTrigger {
   const field = text(params, 'field');
   const value = text(params, 'value');
-  return {
+  const patched: EditorTrigger = {
     ...trigger,
     windowTitle: field === 'title' ? value : trigger.windowTitle,
     windowProcess: field === 'process' ? value : trigger.windowProcess,
     windowClass: field === 'class' ? value : trigger.windowClass,
     windowHow: field === 'how' ? value : trigger.windowHow,
     windowChange: field === 'change' ? value : trigger.windowChange,
+    windowCaseSensitive: field === 'caseSensitive' ? value === 'true' : trigger.windowCaseSensitive,
+    windowTrim: field === 'trim' ? value === 'true' : trigger.windowTrim,
+    windowMultiline: field === 'multiline' ? value === 'true' : trigger.windowMultiline,
+  };
+  return {
+    ...patched,
+    summary: ruleSummary({
+      title: patched.windowTitle, process: patched.windowProcess,
+      className: patched.windowClass, how: patched.windowHow,
+    }),
   };
 }
 
@@ -166,11 +192,24 @@ export function interfaceTrigger(
 ): EditorTrigger {
   const field = text(params, 'field');
   const value = text(params, 'value');
-  return {
+  const patched: EditorTrigger = {
     ...trigger,
     interfaceTitle: field === 'title' ? value : trigger.interfaceTitle,
     interfaceProcess: field === 'process' ? value : trigger.interfaceProcess,
     interfaceHow: field === 'how' ? value : trigger.interfaceHow,
+    // The class of an interface rule shares the window entry's slot: one field in the form shows
+    // whichever kind the selected entry is. The three switches are shared the same way.
+    windowClass: field === 'class' ? value : trigger.windowClass,
+    windowCaseSensitive: field === 'caseSensitive' ? value === 'true' : trigger.windowCaseSensitive,
+    windowTrim: field === 'trim' ? value === 'true' : trigger.windowTrim,
+    windowMultiline: field === 'multiline' ? value === 'true' : trigger.windowMultiline,
+  };
+  return {
+    ...patched,
+    summary: ruleSummary({
+      title: patched.interfaceTitle, process: patched.interfaceProcess,
+      className: patched.windowClass, how: patched.interfaceHow,
+    }),
   };
 }
 

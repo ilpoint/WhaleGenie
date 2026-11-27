@@ -77,8 +77,12 @@ public sealed class WindowPickWindow : Window
     /// </summary>
     private readonly Dictionary<long, bool> _ownByHandle = [];
 
-    private static string OwnProgram
-        => System.IO.Path.GetFileNameWithoutExtension(Environment.ProcessPath ?? string.Empty);
+    /// <summary>
+    /// This program's own process. By id rather than by name: started through `dotnet` — a debug
+    /// launch or `dotnet run` — the name of the process the windows belong to is the host's, and a
+    /// name would either miss this program's windows or take in every other dotnet program's.
+    /// </summary>
+    private static int OwnProcess => Environment.ProcessId;
 
     public WindowPickWindow()
         : this(SharedDevices.Current.Windows, SharedDevices.Current.Screen, SharedDevices.Current.Hook)
@@ -447,11 +451,11 @@ public sealed class WindowPickWindow : Window
         var mine = false;
         try
         {
-            mine = string.Equals(_windows.ProcessOf(handle), OwnProgram, StringComparison.OrdinalIgnoreCase);
+            mine = _windows.ProcessIdOf(handle) == OwnProcess;
         }
         catch (Exception)
         {
-            // 问不到程序名时按"不是自己的"处理：取错了还能再取一次，取不到就没法继续。
+            // 问不到进程时按"不是自己的"处理：取错了还能再取一次，取不到就没法继续。
         }
 
         _ownByHandle[handle] = mine;

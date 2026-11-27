@@ -69,14 +69,16 @@ public sealed record GlobalHotkeyPlan(
             {
                 claimed.Add(menuLauncher);
             }
-            var liveGroups = workspace.Triggers.InterfaceGroups()
-                .Select(group => group.Key)
-                .ToHashSet(StringComparer.Ordinal);
-            foreach (var layout in workspace.Triggers.InterfaceLayouts
-                         .Where(layout => layout.ToggleHotkey.Trim().Length > 0
-                             && liveGroups.Contains(layout.GroupKey)))
+            // One key per live group, read the same way the editor and the panels read it: a file
+            // may still hold the same rule under the older comparison spelling, and only one of
+            // those rows decides the place and the toggle key.
+            foreach (var group in workspace.Triggers.InterfaceGroups())
             {
-                groups.Add(new InterfaceHotkeyGroup(layout.GroupKey, layout.ToggleHotkey.Trim()));
+                var hotkey = workspace.Triggers.LayoutFor(group.Rule).ToggleHotkey.Trim();
+                if (hotkey.Length > 0)
+                {
+                    groups.Add(new InterfaceHotkeyGroup(group.Key, hotkey));
+                }
             }
 
             // A disarmed macro keeps its key in the plan on purpose: the key is how somebody arms it

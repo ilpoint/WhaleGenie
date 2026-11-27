@@ -17,6 +17,7 @@ internal sealed class WindowsForChecks : IWindowDevice
 {
     private readonly Dictionary<long, (string Process, string Class)> _facts = [];
     private readonly Dictionary<long, ScreenPoint> _clientOrigins = [];
+    private readonly Dictionary<long, int> _processIds = [];
 
     /// <summary>The windows on this desktop, frontmost first.</summary>
     public List<WindowInfo> Open { get; } = [];
@@ -61,6 +62,7 @@ internal sealed class WindowsForChecks : IWindowDevice
         Open.RemoveAll(window => window.Handle == handle);
         _facts.Remove(handle);
         _clientOrigins.Remove(handle);
+        _processIds.Remove(handle);
         return this;
     }
 
@@ -75,6 +77,16 @@ internal sealed class WindowsForChecks : IWindowDevice
     public WindowsForChecks ClientAt(long handle, int x, int y)
     {
         _clientOrigins[handle] = new ScreenPoint(x, y);
+        return this;
+    }
+
+    /// <summary>
+    /// Makes one of the windows belong to a process, so "this program's own windows" can be checked
+    /// the way the real device answers it — by process id, not by a program name.
+    /// </summary>
+    public WindowsForChecks OwnedByProcess(long handle, int processId)
+    {
+        _processIds[handle] = processId;
         return this;
     }
 
@@ -99,8 +111,9 @@ internal sealed class WindowsForChecks : IWindowDevice
     public string ProcessOf(long handle)
         => _facts.TryGetValue(handle, out var facts) ? facts.Process : string.Empty;
 
-    /// <summary>No check here reads a program through a window, so no window owns a process.</summary>
-    public int ProcessIdOf(long handle) => 0;
+    /// <summary>The process a check gave the window, or none.</summary>
+    public int ProcessIdOf(long handle)
+        => _processIds.TryGetValue(handle, out var processId) ? processId : 0;
 
     public string ClassOf(long handle)
         => _facts.TryGetValue(handle, out var facts) ? facts.Class : string.Empty;

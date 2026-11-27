@@ -169,6 +169,47 @@ public class SettingsBridgeTests
         Assert.Equal("override", written.GetProperty("tone").GetString());
     }
 
+    /// <summary>
+    /// A menu rule saved by the older trigger field carries the capitalised comparison. The shared
+    /// form offers the canonical lower-case values, so the row it is given has to use one of them;
+    /// handing the old spelling back would leave the select with no chosen option and the save
+    /// would be refused. Saving the row again writes the one spelling the group key is built from.
+    /// </summary>
+    [Fact]
+    public async Task An_older_comparison_spelling_is_shown_and_saved_canonically()
+    {
+        using var files = new TempSettings();
+        var project = new MainViewModel();
+        var page = project.Triggers.AddContextMenuPage(
+            new WindowRule(Title: "Notepad", How: "TitleContains"));
+        var server = Server(project);
+        var channel = Channel(server);
+
+        var state = await Call(server, channel, "settings.state");
+        var row = state.GetProperty("menu").GetProperty("rules").EnumerateArray()
+            .Single(rule => rule.GetProperty("summary").GetString()!.Contains("Notepad"));
+        Assert.Equal(WindowHow.TitleContains, row.GetProperty("rule").GetProperty("how").GetString());
+
+        await Call(server, channel, "settings.menu.rule.edit", new
+        {
+            key = ProjectTriggers.GroupKey(page.Window),
+            rule = new
+            {
+                title = "Notepad",
+                process = string.Empty,
+                className = string.Empty,
+                handle = 0,
+                how = "TitleContains",
+                caseSensitive = false,
+                trim = true,
+                multiline = false,
+            },
+        });
+
+        Assert.Equal(WindowHow.TitleContains,
+            project.Triggers.ContextMenuPages().Single().Window.How);
+    }
+
     [Fact]
     public async Task A_wheel_size_is_clamped_and_saved_by_the_model()
     {

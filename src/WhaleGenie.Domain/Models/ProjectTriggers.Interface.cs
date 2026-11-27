@@ -39,18 +39,38 @@ public sealed partial class ProjectTriggers
     public InterfaceLayout LayoutFor(WindowRule rule)
     {
         var key = GroupKey(rule);
-        return InterfaceLayouts.FirstOrDefault(layout => layout.GroupKey == key)
-            ?? new InterfaceLayout(rule, 16, 64);
+        // The newest row wins for the place. Files written before the comparison spelling was
+        // normalized can hold more than one row for the same rule; the last one is the place the
+        // panel was moved to after the rule was last saved. A row written by the shared form may
+        // carry no toggle key while the older row still does, and the person never asked for the
+        // key to be dropped, so the newest non-empty one is kept.
+        var matches = InterfaceLayouts.Where(layout => layout.GroupKey == key).ToList();
+        if (matches.Count == 0)
+        {
+            return new InterfaceLayout(rule, 16, 64);
+        }
+
+        var newest = matches[^1];
+        var hotkey = matches.LastOrDefault(layout => layout.ToggleHotkey.Trim().Length > 0)
+            ?.ToggleHotkey ?? string.Empty;
+        return new InterfaceLayout(rule, newest.OffsetX, newest.OffsetY, hotkey);
     }
 
     public void StoreLayout(WindowRule rule, int x, int y)
     {
         var key = GroupKey(rule);
-        var current = InterfaceLayouts.FirstOrDefault(layout => layout.GroupKey == key);
-        var hotkey = current?.ToggleHotkey ?? string.Empty;
-        if (current is not null)
+        var hotkey = InterfaceLayouts
+            .Where(layout => layout.GroupKey == key)
+            .Select(layout => layout.ToggleHotkey)
+            .LastOrDefault(written => written.Trim().Length > 0) ?? string.Empty;
+        // Remove every row that is now the same rule, not only the first: older files can carry a
+        // row under the pre-normalization spelling next to one written by the shared form.
+        for (var index = InterfaceLayouts.Count - 1; index >= 0; index--)
         {
-            InterfaceLayouts.Remove(current);
+            if (InterfaceLayouts[index].GroupKey == key)
+            {
+                InterfaceLayouts.RemoveAt(index);
+            }
         }
 
         InterfaceLayouts.Add(new InterfaceLayout(rule, x, y, hotkey));
@@ -59,17 +79,18 @@ public sealed partial class ProjectTriggers
     public void StoreInterfaceHotkey(WindowRule rule, string hotkey)
     {
         var key = GroupKey(rule);
-        var current = InterfaceLayouts.FirstOrDefault(layout => layout.GroupKey == key);
+        var current = InterfaceLayouts.LastOrDefault(layout => layout.GroupKey == key);
         var next = new InterfaceLayout(rule, current?.OffsetX ?? 16, current?.OffsetY ?? 64,
             hotkey.Trim());
-        if (current is null)
+        for (var index = InterfaceLayouts.Count - 1; index >= 0; index--)
         {
-            InterfaceLayouts.Add(next);
+            if (InterfaceLayouts[index].GroupKey == key)
+            {
+                InterfaceLayouts.RemoveAt(index);
+            }
         }
-        else
-        {
-            InterfaceLayouts[InterfaceLayouts.IndexOf(current)] = next;
-        }
+
+        InterfaceLayouts.Add(next);
     }
 
     public void AssignFirstEmptyMenuCell(TriggerEntry entry, string pageId)

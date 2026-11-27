@@ -67,9 +67,9 @@ internal sealed partial class HeadlessEditorSession
             entry.Spec is InterfaceSpec face ? face.Window.Title : string.Empty,
             entry.Spec is InterfaceSpec faceProcess ? faceProcess.Window.Process : string.Empty,
             entry.Spec is InterfaceSpec faceHow ? faceHow.Window.How.ToString() : string.Empty,
-            entry.Spec is WindowSpec caseWindow && caseWindow.Target.CaseSensitive,
-            entry.Spec is WindowSpec trimWindow && trimWindow.Target.Trim,
-            entry.Spec is WindowSpec multiWindow && multiWindow.Target.Multiline,
+            RuleOf(entry.Spec)?.CaseSensitive == true,
+            RuleOf(entry.Spec)?.Trim == true,
+            RuleOf(entry.Spec)?.Multiline == true,
             entry.Spec is HotstringSpec ends ? ends.EndChars : string.Empty,
             entry.Spec is HotstringSpec casing && casing.CaseSensitive,
             entry.Spec is HotstringSpec inside && inside.InsideWord,
@@ -87,6 +87,18 @@ internal sealed partial class HeadlessEditorSession
                 : string.Empty,
             _model.SelectedTrigger?.Id == entry.Id ? _model.InterfaceHotkeyProblem : string.Empty,
             _model.SelectedTrigger?.Id == entry.Id ? [.. _model.InterfaceGroupMembers] : []))];
+
+    /// <summary>
+    /// The rule a window-shaped entry recognises its window by: the trigger that watches a window
+    /// and the group that floats buttons beside one keep the same shape, so the fields and the
+    /// shared rule form read one place.
+    /// </summary>
+    private static WindowRule? RuleOf(TriggerSpec spec) => spec switch
+    {
+        WindowSpec window => window.Target,
+        InterfaceSpec face => face.Window,
+        _ => null,
+    };
 
     public void AddTrigger(string kind)
     {
