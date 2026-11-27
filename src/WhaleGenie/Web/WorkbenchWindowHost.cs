@@ -155,6 +155,11 @@ public sealed class WorkbenchWindowHost(
             return;
         }
 
+        // The way out asks the newest window first. If this one is hidden or minimized, the page's
+        // unsaved-work question is drawn into a window nobody can see, and the main window and the
+        // tray both look as if the close did nothing. Bring the workbench forward before asking.
+        Show();
+
         _prompting = true;
         try
         {

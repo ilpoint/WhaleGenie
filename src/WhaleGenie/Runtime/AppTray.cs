@@ -113,6 +113,17 @@ public sealed class AppTray : IDisposable, WhaleGenie.Contracts.IAppExit
         {
             if (Refused(window))
             {
+                // The window only refused because it has a question to ask. A question drawn into
+                // a window that is hidden away or minimized is not a question the person can see,
+                // and the close would look as if it did nothing at all.
+                if (!window.IsVisible)
+                {
+                    window.Show();
+                }
+
+                window.WindowState = WindowState.Normal;
+                window.Activate();
+
                 _waiting = windows;
                 _whenGone = finish;
                 window.Closed += OnAnswered;

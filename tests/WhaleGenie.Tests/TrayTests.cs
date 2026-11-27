@@ -297,8 +297,12 @@ public class TrayTests
             var left = 0;
             tray.Walk([hidden], () => left++);
 
+            // It refused, so the question it is asking has to be on screen: the hidden window
+            // comes back before the program waits for the answer.
+            Assert.True(hidden.IsVisible);
             Assert.Equal(0, left);
 
+            hidden.Hide();
             tray.Dispose();
             host.Close();
         });
