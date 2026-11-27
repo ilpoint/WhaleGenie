@@ -4,6 +4,8 @@ export type BridgeMethod =
   | 'bridge.ready' // client handshake, not a registered method
   | 'app.about'
   | 'app.info'
+  | 'app.newEditor'
+  | 'app.openEditor'
   | 'app.openExternal'
   | 'app.openManual'
   | 'app.openRun'
@@ -135,4 +137,11 @@ export type BridgeMethod =
   | 'window.maximize'
   | 'window.minimize'
   | 'window.pick'
-  | 'window.pin';
+  | 'window.pin'
+  | 'workbench.focusMain'
+  | 'workbench.window.close'
+  | 'workbench.window.drag'
+  | 'workbench.window.focus'
+  | 'workbench.window.maximize'
+  | 'workbench.window.minimize'
+  | 'workbench.window.pin';

@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using WhaleGenie.Contracts;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
+using WhaleGenie.Runtime;
 
 namespace WhaleGenie.Bridge;
 
@@ -12,8 +13,8 @@ namespace WhaleGenie.Bridge;
 /// The temporary doors from the page to the native windows that have not moved yet. Each one
 /// disappears when its page arrives; the manual opens through a port because it is a native window.
 /// </summary>
-internal sealed class ShellBridge(ProjectWorkspace workspace, IShellCommands shell)
-    : IBridgeHandler
+internal sealed class ShellBridge(ProjectWorkspace workspace, IShellCommands shell,
+    Func<IWorkbenchHost?>? workbench = null) : IBridgeHandler
 {
     private BridgeServer? _server;
 
@@ -21,7 +22,29 @@ internal sealed class ShellBridge(ProjectWorkspace workspace, IShellCommands she
     {
         _server = server;
         server.Register("app.openRun", OpenRun);
+        server.Register("app.openEditor", OpenEditor);
+        server.Register("app.newEditor", NewEditor);
+        server.Register("workbench.focusMain", _ => FocusMain());
         server.Register("app.openManual", _ => OpenManual());
+    }
+
+    private Task<object?> OpenEditor(JsonElement parameters)
+    {
+        var name = parameters.TryGetProperty("name", out var given) ? given.GetString() : null;
+        workbench?.Invoke()?.OpenEditor(name);
+        return Task.FromResult<object?>(null);
+    }
+
+    private Task<object?> NewEditor(JsonElement parameters)
+    {
+        workbench?.Invoke()?.OpenEditor(string.Empty);
+        return Task.FromResult<object?>(null);
+    }
+
+    private Task<object?> FocusMain()
+    {
+        workbench?.Invoke()?.FocusMain();
+        return Task.FromResult<object?>(null);
     }
 
     private async Task<object?> OpenRun(JsonElement parameters)
@@ -45,7 +68,16 @@ internal sealed class ShellBridge(ProjectWorkspace workspace, IShellCommands she
                 Strings.Get("Bridge.NoSuchMacro"));
         }
 
-        await _server.PushAsync("run.openRequested", new { name = macro.Name });
+        if (workbench?.Invoke() is { } host)
+        {
+            host.OpenRun(macro.Name);
+        }
+        else
+        {
+            await _server.PushAsync("run.openRequested", new { name = macro.Name },
+                BridgePushMode.Latest, BridgeSurface.Workbench);
+        }
+
         return null;
     }
 

@@ -23,6 +23,8 @@ public static class BridgeMethods
     [
         "app.about",
         "app.info",
+        "app.openEditor",
+        "app.newEditor",
         "app.openExternal",
         "app.openManual",
         "app.openRun",
@@ -155,5 +157,12 @@ public static class BridgeMethods
         "window.minimize",
         "window.pick",
         "window.pin",
+        "workbench.focusMain",
+        "workbench.window.close",
+        "workbench.window.drag",
+        "workbench.window.focus",
+        "workbench.window.maximize",
+        "workbench.window.minimize",
+        "workbench.window.pin",
     ];
 }

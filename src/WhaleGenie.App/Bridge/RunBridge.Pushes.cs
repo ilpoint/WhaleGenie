@@ -50,7 +50,7 @@ internal sealed partial class RunBridge
         var stepsSignature = RunStateProjection.StepsSignature(full.Steps ?? []);
         if (!string.Equals(stepsSignature, _sentSteps, StringComparison.Ordinal))
         {
-            await _server.PushAsync("run.steps", full.Steps);
+            await _server.PushAsync("run.steps", full.Steps, BridgePushMode.Latest, BridgeSurface.Workbench);
             _sentSteps = stepsSignature;
         }
 
@@ -59,13 +59,13 @@ internal sealed partial class RunBridge
         RunLine[] log = [.. full.Log.Skip(from)];
         if (log.Length > 0 || resetLog)
         {
-            await _server.PushAsync("run.log", new RunLogBatch(from, log), BridgePushMode.All);
+            await _server.PushAsync("run.log", new RunLogBatch(from, log), BridgePushMode.All, BridgeSurface.Workbench);
             _sentLog = from + log.Length;
         }
 
         if (!Equals(full.Look, _sentLook))
         {
-            await _server.PushAsync("run.look", full.Look);
+            await _server.PushAsync("run.look", full.Look, BridgePushMode.Latest, BridgeSurface.Workbench);
             _sentLook = full.Look;
         }
 
@@ -90,7 +90,7 @@ internal sealed partial class RunBridge
         }
 
         var full = _session.Snapshot();
-        await _server.PushAsync("run.look", full.Look);
+        await _server.PushAsync("run.look", full.Look, BridgePushMode.Latest, BridgeSurface.Workbench);
         _sentLook = full.Look;
         await PushChangedAsync(full);
     }
@@ -108,5 +108,5 @@ internal sealed partial class RunBridge
         LogFrom = _sentLog,
         Look = null,
         Looks = null,
-    });
+    }, BridgePushMode.Latest, BridgeSurface.Workbench);
 }

@@ -25,16 +25,11 @@ test('启动直接落在宏列表', async ({ page }) => {
   await expect(page.locator('wg-home')).toHaveCount(0);
 });
 
-test('标题栏显示项目自动保存，状态条显示编辑器保存状态', async ({ page }) => {
+test('标题栏显示项目自动保存，主壳不再显示编辑器状态条', async ({ page }) => {
   const title = page.locator('wg-titlebar .title');
   await expect(title).toContainText('未命名项目');
   await expect(title).toContainText('项目自动保存已开启');
-  const status = page.locator('wg-shell .status [data-status="editor"]');
-  await expect(status).toHaveText('编辑器：没有打开的文档');
-
-  await page.locator('wg-nav .activity button[aria-label="宏"]').click();
-  await page.locator('wg-macros .card', { hasText: '自动保存' }).dblclick();
-  await expect(status).toHaveText('编辑器：已保存');
+  await expect(page.locator('wg-shell .status [data-status="editor"]')).toHaveCount(0);
 });
 
 test('帮助菜单的关于页显示第三方组件', async ({ page }) => {
@@ -47,7 +42,10 @@ test('帮助菜单的关于页显示第三方组件', async ({ page }) => {
 });
 
 test('activity bar 图标切换页面', async ({ page }) => {
-  await expect(page.locator('wg-nav .activity svg')).toHaveCount(6);
+  await expect(page.locator('wg-nav .activity button[aria-label="宏"]')).toHaveCount(1);
+  await expect(page.locator('wg-nav .activity button[aria-label="公共宏库"]')).toHaveCount(1);
+  await expect(page.locator('wg-nav .activity button[aria-label="编辑器"]')).toHaveCount(0);
+  await expect(page.locator('wg-nav .activity button[aria-label="运行调试"]')).toHaveCount(0);
   await expect(page.locator('wg-nav .activity button[aria-label="首页"]')).toHaveCount(0);
   const macros = page.locator('wg-nav .activity button[aria-label="宏"]');
   await macros.click();
@@ -93,13 +91,8 @@ test('导航切换到宏列表与占位页', async ({ page }) => {
   await expect(page.locator('wg-macros .card .name').first()).toContainText('自动保存');
   await expect(page.locator('wg-macros')).toContainText('每 1 分钟');
 
-  await page.locator('wg-nav .activity button[aria-label="编辑器"]').click();
-  await expect(page.locator('wg-editor h1')).toHaveText('编辑器');
-  await expect(page.locator('wg-editor .empty')).toContainText('没有打开的文档');
-
-  await page.locator('wg-nav .activity button[aria-label="运行调试"]').click();
-  await expect(page.locator('wg-run h1')).toHaveText('运行与调试');
-  await expect(page.locator('wg-run .panel')).toBeVisible();
+  await page.locator('wg-nav .activity button[aria-label="公共宏库"]').click();
+  await expect(page.locator('wg-library')).toBeVisible();
 
   await page.locator('wg-nav .activity button[aria-label="宏"]').click();
   await expect(page.locator('wg-macros')).toBeVisible();
@@ -137,7 +130,7 @@ test('侧栏系统开关在任何页面都能按，并显示开关键', async ({
   await expect(page.locator('wg-nav .system .hotkey')).toContainText('Ctrl');
   await page.locator('wg-nav .system .power').click();
   await expect(page.locator('wg-nav .system')).toHaveAttribute('data-enabled', 'true');
-  await page.locator('wg-nav .activity button[aria-label="运行调试"]').click();
+  await page.locator('wg-nav .activity button[aria-label="公共宏库"]').click();
   await expect(page.locator('wg-nav .system .power')).toHaveAttribute('aria-pressed', 'true');
 });
 
@@ -246,12 +239,7 @@ test('MCP 浮层切换授权', async ({ page }) => {
     .toBe('true|false');
 });
 
-test('编辑器不再发布，公共宏库可新建和导入', async ({ page }) => {
-  await page.locator('wg-nav .activity button[aria-label="宏"]').click();
-  await page.locator('wg-macros .card', { hasText: '自动保存' }).dblclick();
-  await expect(page.locator('wg-macro-settings .footer fluent-button',
-    { hasText: '发布到宏库' })).toHaveCount(0);
-
+test('公共宏库可新建和导入', async ({ page }) => {
   await page.locator('wg-nav .activity button[aria-label="公共宏库"]').click();
   await page.locator('wg-library .tools fluent-button', { hasText: '新建' }).click();
   await expect(page.locator('wg-library .card', { hasText: '公共宏 2' })).toBeVisible();
@@ -391,7 +379,8 @@ test('设置页可改常规与画面选项', async ({ page }) => {
 });
 
 test('运行页载入宏并驱动运行面板', async ({ page }) => {
-  await page.locator('wg-nav .activity button[aria-label="运行调试"]').click();
+  await page.goto('/?bridge=mock&window=workbench#run');
+  await expect(page.locator('wg-workbench')).toBeVisible();
   await expect(page.locator('wg-run .side .macros fluent-button')).toHaveCount(2);
   await page.locator('wg-run .side .macros fluent-button').first().click();
   await expect(page.locator('wg-run .step')).toHaveCount(2);
@@ -415,17 +404,15 @@ test('运行页载入宏并驱动运行面板', async ({ page }) => {
     .toBe(true);
 });
 
-test('公共宏库可把条目插入编辑器并变成子宏', async ({ page }) => {
+test('公共宏库把条目交给工作台，而不是切主壳路由', async ({ page }) => {
   await page.locator('wg-nav .activity button[aria-label="公共宏库"]').click();
   const card = page.locator('wg-library .card', { hasText: '打开记事本' });
   await card.locator('fluent-button', { hasText: '在编辑器中插入' }).click();
 
-  await expect(page).toHaveURL(/#editor$/);
-  await expect(page.locator('wg-editor-tabs .tab')).toHaveCount(1);
   await expect
-    .poll(() => called(page, 'editor.session', { kind: 'publicMacroAdd' }))
+    .poll(() => page.evaluate(() => window.__mock!.seen.includes('app.openEditor')))
     .toBe(true);
-  await expect(page.locator('wg-step-tree .row').first()).toContainText('调用宏');
+  await expect(page).not.toHaveURL(/#editor$/);
 });
 
 test('公共宏库页列出并删除公共宏', async ({ page }) => {
@@ -439,6 +426,8 @@ test('公共宏库页列出并删除公共宏', async ({ page }) => {
 });
 
 test('宿主询问未保存宏时使用网页对话框并回传答案', async ({ page }) => {
+  await page.goto('/?bridge=mock&window=workbench#editor');
+  await expect(page.locator('wg-workbench')).toBeVisible();
   await page.evaluate(() => window.__mock!.push('editor.leaveAsked', {
     requestId: 41,
     documents: ['Macro 1'],
@@ -468,8 +457,9 @@ test('宿主询问未保存宏时使用网页对话框并回传答案', async ({
     .toBe(true);
 });
 
-test('原生菜单请求编辑会进入网页编辑器', async ({ page }) => {
-  await expect(page.locator('wg-nav')).toBeVisible();
+test('原生菜单请求编辑会进入工作台编辑器', async ({ page }) => {
+  await page.goto('/?bridge=mock&window=workbench#editor');
+  await expect(page.locator('wg-workbench')).toBeVisible();
   await page.evaluate(() => window.__mock!.push('editor.openRequested', { name: '游戏连招' }));
   await expect
     .poll(() => called(page, 'editor.session', { kind: 'open', name: '游戏连招' }))
@@ -478,33 +468,30 @@ test('原生菜单请求编辑会进入网页编辑器', async ({ page }) => {
   await expect(page.locator('wg-editor-tabs .tab[aria-selected="true"]')).toContainText('游戏连招');
 });
 
-test('从宏列表新建与编辑进入网页编辑器', async ({ page }) => {
+test('从主壳新建与编辑把请求交给工作台', async ({ page }) => {
   await page.locator('wg-nav .activity button[aria-label="宏"]').click();
 
   await page.locator('wg-macros .filebar fluent-button', { hasText: '新建宏' }).click();
-  await expect(page).toHaveURL(/#editor$/);
   await expect
-    .poll(() => called(page, 'editor.session', { kind: 'new' }))
+    .poll(() => page.evaluate(() => window.__mock!.seen.includes('app.newEditor')))
     .toBe(true);
-  await expect(page.locator('wg-editor-tabs .tab', { hasText: '未命名宏' })).toBeVisible();
+  await expect(page).not.toHaveURL(/#editor$/);
 
-  await page.locator('wg-nav .activity button[aria-label="宏"]').click();
   await page.locator('wg-macros .card', { hasText: '自动保存' }).dblclick();
-  await expect(page.locator('wg-editor-tabs .tab[aria-selected="true"]')).toContainText('自动保存');
   await expect
-    .poll(() => called(page, 'editor.session', { kind: 'open', name: '自动保存' }))
+    .poll(() => page.evaluate(() => window.__mock!.seen.includes('app.openEditor')))
     .toBe(true);
+  await expect(page).not.toHaveURL(/#editor$/);
 });
 
-test('宏卡片的运行按钮进入网页运行面板', async ({ page }) => {
+test('宏卡片的运行按钮把请求交给工作台', async ({ page }) => {
   await page.locator('wg-nav .activity button[aria-label="宏"]').click();
   await page.locator('wg-macros .card', { hasText: '自动保存' })
     .locator('.iconbuttons button[title="运行调试"]').click();
-  await expect(page.locator('wg-run')).toBeVisible();
-  await expect(page.locator('wg-run')).toContainText('Step one');
   await expect
     .poll(async () => page.evaluate(() => window.__mock!.seen.includes('app.openRun')))
     .toBe(true);
+  await expect(page).not.toHaveURL(/#run$/);
 });
 
 test('导入导出向导走完一个往返', async ({ page }) => {

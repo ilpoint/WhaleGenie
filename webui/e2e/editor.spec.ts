@@ -1,9 +1,9 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
 
 async function openEditor(page: Page): Promise<void> {
-  await page.goto('/?bridge=mock#macros');
-  await expect(page.locator('wg-titlebar .title')).toContainText('鲸灵');
-  await page.locator('wg-macros .card', { hasText: '自动保存' }).dblclick();
+  await page.goto('/?bridge=mock&window=workbench#editor');
+  await expect(page.locator('wg-workbench')).toBeVisible();
+  await page.evaluate(() => window.__mock!.push('editor.openRequested', { name: '自动保存' }));
   await expect(page.locator('wg-editor-tabs .tab').first()).toBeVisible();
 }
 
@@ -166,13 +166,10 @@ test('从其他页面请求打开宏会进入对应页签', async ({ page }) => 
     .toBe(true);
 });
 
-test('标签行不再有导出按钮，导出从文件菜单进入', async ({ page }) => {
+test('工作台标签行不再有导出按钮，也没有主壳文件菜单', async ({ page }) => {
   await openEditor(page);
   await expect(page.locator('wg-editor-tabs .export')).toHaveCount(0);
-  await page.locator('wg-titlebar .menu', { hasText: '文件' }).getByRole('button', { name: '文件' }).click();
-  await page.getByRole('menuitem', { name: '导出宏…' }).click();
-  await expect(page.locator('wg-transfer .dialog')).toBeVisible();
-  await page.locator('wg-transfer fluent-button', { hasText: '取消' }).click().catch(() => {});
+  await expect(page.locator('wg-titlebar')).toHaveCount(0);
 });
 
 test('新建与关闭干净页签', async ({ page }) => {
@@ -216,56 +213,51 @@ test('脏页签可以选不保存并关闭，最后一个文档关掉后回到�
   await expect(page.locator('wg-editor-unsaved .dialog')).toBeVisible();
   await page.locator('wg-editor-unsaved .dialog fluent-button', { hasText: '放弃修改' }).click();
 
-  // 最后一个文档关掉之后编辑器退回列表，页面上不再有编辑区，也不留下问话或提示。
-  await expect(page.locator('wg-editor')).toHaveCount(0);
-  await expect(page.locator('wg-macros')).toBeVisible();
+  // 最后一个文档关掉之后工作台留在空状态，不把主壳的宏列表拉进来，也不留下问话或提示。
+  await expect(page.locator('wg-editor .empty')).toBeVisible();
+  await expect(page.locator('wg-workbench')).toBeVisible();
+  await expect(page.locator('wg-macros')).toHaveCount(0);
   await expect(page.locator('wg-editor-unsaved .dialog')).toHaveCount(0);
 });
 
-test('离开编辑器先问未保存的宏，取消留下、不保存离开', async ({ page }) => {
+test('工作台询问未保存的宏，取消留下', async ({ page }) => {
   await openEditor(page);
   await addStep(page, '流程控制', '延迟');
 
-  await page.locator('wg-nav .activity button[aria-label="宏"]').click();
+  await page.evaluate(() => window.__mock!.push('editor.leaveAsked', {
+    requestId: 11,
+    documents: ['自动保存'],
+  }));
   const dialog = page.locator('wg-editor-unsaved .dialog');
   await expect(dialog).toBeVisible();
   await expect(dialog).toContainText('自动保存');
 
   await dialog.locator('fluent-button', { hasText: '取消' }).click();
-  await expect(page).toHaveURL(/#editor$/);
+  await expect(dialog).toHaveCount(0);
   await expect(page.locator('wg-editor-tabs .tab')).toHaveCount(1);
-
-  await page.locator('wg-nav .activity button[aria-label="宏"]').click();
-  await page.locator('wg-editor-unsaved .dialog fluent-button', { hasText: '放弃修改' }).click();
-  await expect(page).toHaveURL(/#macros$/);
-
-  await page.locator('wg-nav .activity button[aria-label="编辑器"]').click();
-  await expect(page.locator('wg-editor .empty')).toBeVisible();
 });
 
-test('离开编辑器可以保存未保存的宏', async ({ page }) => {
+test('工作台询问未保存的宏，保存后回传答案', async ({ page }) => {
   await openEditor(page);
   await addStep(page, '流程控制', '延迟');
 
-  await page.locator('wg-nav .activity button[aria-label="宏"]').click();
+  await page.evaluate(() => window.__mock!.push('editor.leaveAsked', {
+    requestId: 12,
+    documents: ['自动保存'],
+  }));
   await page.locator('wg-editor-unsaved .dialog fluent-button', { hasText: '保存' }).click();
 
-  await expect.poll(() => called(page, 'editor.saveAll', {})).toBe(true);
-  await expect(page).toHaveURL(/#macros$/);
-
-  await page.locator('wg-nav .activity button[aria-label="编辑器"]').click();
-  await expect(page.locator('wg-editor-tabs .tab[aria-selected="true"]')).toContainText('自动保存');
+  await expect.poll(() => page.evaluate(() => window.__mock!.calls.some(
+    (call) => call.method === 'editor.leaveAnswered'
+      && call.params['requestId'] === 12
+      && call.params['leave'] === true))).toBe(true);
 });
 
-test('关闭主窗口前先问未保存的宏', async ({ page }) => {
+test('工作台标题栏关闭发送工作台窗口命令', async ({ page }) => {
   await openEditor(page);
-  await addStep(page, '流程控制', '延迟');
-
-  await page.locator('wg-titlebar button.close').click();
-  const dialog = page.locator('wg-editor-unsaved .dialog');
-  await expect(dialog).toBeVisible();
-  await dialog.locator('fluent-button', { hasText: '取消' }).click();
-  await expect(page).toHaveURL(/#editor$/);
+  await page.locator('wg-workbench header .buttons button.close').click();
+  await expect.poll(() => page.evaluate(() => window.__mock!.seen.includes('workbench.window.close')))
+    .toBe(true);
 });
 
 test('公共宏库可列出并放入调用步骤', async ({ page }) => {
@@ -282,7 +274,8 @@ test('公共宏库可列出并放入调用步骤', async ({ page }) => {
 test('动作库属于工作区而不是侧栏', async ({ page }) => {
   await openEditor(page);
   await expect(page.locator('wg-editor wg-editor-palette')).toBeVisible();
-  await expect(page.locator('wg-nav .activity')).toBeVisible();
+  await expect(page.locator('wg-nav')).toHaveCount(0);
+  await expect(page.locator('wg-workbench')).toBeVisible();
   const box = await page.locator('wg-editor .palette-column').boundingBox();
   expect(box?.width ?? 0).toBeGreaterThanOrEqual(279);
 });
@@ -868,10 +861,11 @@ test('把步骤拖进空分节会落到该分节里', async ({ page }) => {
     .toBe(true);
 });
 
-test('关闭最后一个文档自动返回列表，宏设置没有多余的图标保存', async ({ page }) => {
+test('关闭最后一个文档留在工作台空状态，宏设置没有多余的图标保存', async ({ page }) => {
   await openEditor(page);
   await expect(page.locator('wg-editor .save-all')).toHaveCount(0);
 
   await page.locator('wg-editor-tabs .tab[aria-selected="true"] + .close').click();
-  await expect(page.locator('wg-macros')).toBeVisible();
+  await expect(page.locator('wg-editor .empty')).toBeVisible();
+  await expect(page.locator('wg-workbench')).toBeVisible();
 });

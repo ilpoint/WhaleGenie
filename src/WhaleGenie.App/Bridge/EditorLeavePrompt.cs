@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
@@ -23,19 +24,22 @@ namespace WhaleGenie.Bridge;
 public sealed class EditorLeavePrompt : IBridgeHandler, IEditorLeavePrompt, IDisposable
 {
     private readonly TimeSpan _timeout;
+    private readonly Func<BridgeSurface>? _surface;
     private readonly object _gate = new();
     private readonly Dictionary<int, TaskCompletionSource<bool?>> _waiting = [];
+    private readonly Dictionary<int, BridgeSurface> _waitingSurface = [];
     private BridgeServer? _server;
     private int _nextRequestId;
     private bool _disposed;
 
-    public EditorLeavePrompt() : this(null)
+    public EditorLeavePrompt() : this(null, null)
     {
     }
 
-    internal EditorLeavePrompt(TimeSpan? timeout)
+    public EditorLeavePrompt(TimeSpan? timeout, Func<BridgeSurface>? surface = null)
     {
         _timeout = timeout ?? TimeSpan.FromMinutes(5);
+        _surface = surface;
     }
 
     public void Register(BridgeServer server)
@@ -43,11 +47,13 @@ public sealed class EditorLeavePrompt : IBridgeHandler, IEditorLeavePrompt, IDis
         _server = server;
         server.Register("editor.leaveAnswered", Answer);
         server.PageReset += OnPageReset;
+        server.SurfaceGone += OnSurfaceGone;
     }
 
     public async Task<bool?> AskAsync(IReadOnlyList<string> documents)
     {
-        if (_disposed || _server is not { IsReady: true } server)
+        var target = _surface?.Invoke() ?? BridgeSurface.Main;
+        if (_disposed || _server is not { } server || !server.IsReadyOn(target))
         {
             return null;
         }
@@ -57,18 +63,20 @@ public sealed class EditorLeavePrompt : IBridgeHandler, IEditorLeavePrompt, IDis
         lock (_gate)
         {
             _waiting[id] = answer;
+            _waitingSurface[id] = target;
         }
 
         try
         {
             await server.PushAsync("editor.leaveAsked",
-                new { requestId = id, documents }, BridgePushMode.All);
+                new { requestId = id, documents }, BridgePushMode.All, target);
         }
         catch (Exception)
         {
             lock (_gate)
             {
                 _waiting.Remove(id);
+                _waitingSurface.Remove(id);
             }
 
             return false;
@@ -80,12 +88,13 @@ public sealed class EditorLeavePrompt : IBridgeHandler, IEditorLeavePrompt, IDis
             lock (_gate)
             {
                 _waiting.Remove(id);
+                _waitingSurface.Remove(id);
             }
 
             // The page may still be showing the dialog. Tell it the host stopped waiting for this
             // request so it can close the same question instead of leaving it on screen.
             _ = server.PushAsync("editor.leaveCancelled", new { requestId = id },
-                BridgePushMode.All);
+                BridgePushMode.All, target);
 
             // The page is alive but did not answer. Staying is the safe reading; a native question
             // at the same time would only duplicate the one the page is still showing.
@@ -110,6 +119,7 @@ public sealed class EditorLeavePrompt : IBridgeHandler, IEditorLeavePrompt, IDis
         {
             if (_waiting.Remove(id, out var answer))
             {
+                _waitingSurface.Remove(id);
                 answer.TrySetResult(leave.GetBoolean());
             }
         }
@@ -117,16 +127,32 @@ public sealed class EditorLeavePrompt : IBridgeHandler, IEditorLeavePrompt, IDis
         return Task.FromResult<object?>(null);
     }
 
-    private void OnPageReset()
+    private void OnPageReset() => ResetSurface(BridgeSurface.Main);
+
+    private void OnSurfaceGone(BridgeSurface surface)
+    {
+        if (surface is not BridgeSurface.Main)
+        {
+            ResetSurface(surface);
+        }
+    }
+
+    /// <summary>A page that went away answers the questions it was showing "no".</summary>
+    private void ResetSurface(BridgeSurface surface)
     {
         lock (_gate)
         {
-            foreach (var answer in _waiting.Values)
+            foreach (var (id, answer) in _waiting.ToArray())
             {
-                answer.TrySetResult(null);
-            }
+                if (!_waitingSurface.TryGetValue(id, out var target) || target != surface)
+                {
+                    continue;
+                }
 
-            _waiting.Clear();
+                answer.TrySetResult(null);
+                _waiting.Remove(id);
+                _waitingSurface.Remove(id);
+            }
         }
     }
 
@@ -141,6 +167,7 @@ public sealed class EditorLeavePrompt : IBridgeHandler, IEditorLeavePrompt, IDis
         if (_server is not null)
         {
             _server.PageReset -= OnPageReset;
+            _server.SurfaceGone -= OnSurfaceGone;
         }
 
         OnPageReset();

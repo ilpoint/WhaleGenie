@@ -3,7 +3,9 @@ import { editorPaletteCss } from './editor-palette-css.js';
 import { customElement, state } from 'lit/decorators.js';
 import { icon, iconForCategory } from '../../shared/icons.js';
 import { t } from '../../shared/strings/strings.js';
+import { bridge } from '../../shared/bridge/bridge.js';
 import { go } from '../../shared/navigation/router.js';
+import { isWorkbench } from '../../shared/window/window-kind.js';
 import { actionSections, paletteActions } from './editor-model.js';
 import { editor } from './editor-store.js';
 import { StoreController } from '../../shared/lit/store-controller.js';
@@ -194,7 +196,9 @@ export class WgEditorPalette extends LitElement {
           </button>
         `)}
       <button class="link-button public-manage" type="button"
-        @click=${() => void go('library')}>${t('Editor.ManagePublicMacros')}</button>
+        @click=${() => void (isWorkbench()
+          ? bridge.value.call('workbench.focusMain')
+          : go('library'))}>${t('Editor.ManagePublicMacros')}</button>
     `;
   }
 

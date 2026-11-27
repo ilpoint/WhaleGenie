@@ -1,4 +1,4 @@
-import { go } from '../../shared/navigation/router.js';
+import { bridge } from '../../shared/bridge/bridge.js';
 import { editor } from './editor-store.js';
 
 /**
@@ -7,21 +7,13 @@ import { editor } from './editor-store.js';
  * box, then switch the route to show it.
  */
 export async function openMacro(name: string): Promise<boolean> {
-  const ok = await editor.session.open(name);
-  if (ok) {
-    await go('editor');
-  }
-
-  return ok;
+  await bridge.value.call('app.openEditor', { name });
+  return true;
 }
 
 export async function newMacro(): Promise<boolean> {
-  const ok = await editor.session.newDocument();
-  if (ok) {
-    await go('editor');
-  }
-
-  return ok;
+  await bridge.value.call('app.newEditor');
+  return true;
 }
 
 /**
@@ -42,6 +34,7 @@ export async function usePublicMacro(id: string, version = 0, source = 'local'):
     return false;
   }
 
-  await go('editor');
+  const name = editor.get().snapshot?.name ?? '';
+  await bridge.value.call('app.openEditor', { name });
   return true;
 }

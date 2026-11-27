@@ -84,21 +84,25 @@ internal static class WindowedServices
             sp.GetRequiredService<TriggerRuntime>().Devices,
             new LocalEditorSettings(sp.GetRequiredService<AppSettings>()),
             sp.GetRequiredService<IPublicLibraryStore>()))
+        .AddSingleton<ShellWindowRegistry>()
         .AddSingleton(sp => new EditorSessionBridge(
             sp.GetRequiredService<EditorDocumentService>(),
             sp.GetRequiredService<ProjectWorkspace>(),
             sp.GetRequiredService<TriggerRuntime>().Devices,
             new LocalEditorSettings(sp.GetRequiredService<AppSettings>()),
-            new EditorPickerHost(() => sp.GetService<WebShellWindow>(),
+            new EditorPickerHost(() => sp.GetRequiredService<ShellWindowRegistry>().ActiveShell,
                 sp.GetRequiredService<TriggerRuntime>().Devices),
-            new EditorWindowAside(() => sp.GetService<WebShellWindow>()),
+            new EditorWindowAside(() => sp.GetRequiredService<ShellWindowRegistry>().ActiveShell),
             new EditorBrowserTestHost(),
-            new EditorElementTestHost(() => sp.GetService<WebShellWindow>()),
+            new EditorElementTestHost(() => sp.GetRequiredService<ShellWindowRegistry>().ActiveShell),
             sp.GetRequiredService<IPublicLibraryStore>(),
             sp.GetRequiredService<IPackageStore>(),
             sp.GetRequiredService<AppSettings>()))
         .AddSingleton<IEditorDocuments>(sp => sp.GetRequiredService<EditorDocumentService>())
-        .AddSingleton<EditorLeavePrompt>()
+        .AddSingleton(sp => new EditorLeavePrompt(null,
+            () => sp.GetService<WorkbenchWindowHost>() is { IsOpen: true }
+                ? BridgeSurface.Workbench
+                : BridgeSurface.Main))
         .AddSingleton<IEditorLeavePrompt>(sp => sp.GetRequiredService<EditorLeavePrompt>())
         .AddSingleton(sp => new ShellHostFactory(sp.GetRequiredService<ProjectWorkspace>(),
             sp.GetRequiredService<SystemState>(), sp.GetRequiredService<TriggerRuntime>(),
@@ -110,7 +114,8 @@ internal static class WindowedServices
             sp.GetRequiredService<IProjectSaver>(),
             sp.GetRequiredService<ProjectFileService>(),
             sp.GetRequiredService<IEditorDocuments>(),
-            sp.GetRequiredService<IEditorLeavePrompt>()))
+            sp.GetRequiredService<IEditorLeavePrompt>(),
+            sp.GetRequiredService<ShellWindowRegistry>()))
         .AddSingleton(sp => new PanelSurfaceBridge(new PanelSurface(
             sp.GetRequiredService<ProjectWorkspace>(),
             sp.GetRequiredService<TriggerRuntime>())))
@@ -129,12 +134,15 @@ internal static class WindowedServices
             var server = new BridgeServer();
             server.Register(new AppBridge(() => AppTray.Current));
             server.Register(new ShellBridge(sp.GetRequiredService<ProjectWorkspace>(),
-            new ShellCommands()));
+            new ShellCommands(), () => sp.GetService<WorkbenchWindowHost>()));
             server.Register(new StringsBridge());
             server.Register(new IconBridge());
             server.Register(new ThemeBridge(new ThemeCommands(sp.GetRequiredService<AppSettings>())));
-            server.Register(new WindowBridge(() =>
-            sp.GetService<WebShellWindow>() is { } window ? new ShellWindowCommands(window) : null));
+            server.Register(new WindowBridge(
+                () => sp.GetService<WebShellWindow>() is { } window
+                    ? new ShellWindowCommands(window)
+                    : null,
+                () => sp.GetService<WorkbenchWindowHost>()));
             server.Register(new McpBridge(() => SharedDevices.Current.Clipboard,
                 sp.GetRequiredService<AppSettings>()));
             server.Register(sp.GetRequiredService<MenuSurfaceBridge>());
@@ -169,7 +177,7 @@ internal static class WindowedServices
                 main.SystemSwitch, new MenuIconCatalogAdapter(),
                 sp.GetRequiredService<AppSettings>());
             server.Register(new WindowListBridge(devices.Windows,
-                new WindowPickHost(() => sp.GetService<WebShellWindow>(), devices)));
+                new WindowPickHost(() => sp.GetRequiredService<ShellWindowRegistry>().ActiveShell, devices)));
             server.Register(new SettingsBridge(settings, main.Workspace,
                 () =>
                 {
@@ -186,6 +194,14 @@ internal static class WindowedServices
                 sp.GetRequiredService<TriggerRuntime>(), new AvaloniaUiPost()));
             return server;
         })
+        .AddSingleton(sp => new WorkbenchWindowHost(
+            sp.GetRequiredService<BridgeServer>(),
+            sp.GetRequiredService<IEditorDocuments>(),
+            sp.GetRequiredService<EditorLeavePrompt>(),
+            sp.GetRequiredService<ShellWindowRegistry>()))
+        .AddSingleton<IWorkbenchHost>(sp => sp.GetRequiredService<WorkbenchWindowHost>())
         .AddSingleton(sp => new WebShellWindow(sp.GetRequiredService<BridgeServer>(),
-            sp.GetRequiredService<ShellHostFactory>()));
+            sp.GetRequiredService<ShellHostFactory>(),
+            sp.GetRequiredService<ShellWindowRegistry>(),
+            sp.GetRequiredService<IWorkbenchHost>()));
 }

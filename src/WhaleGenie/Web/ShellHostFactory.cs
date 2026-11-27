@@ -22,7 +22,8 @@ internal sealed class ShellHostFactory(
     WhaleGenie.Projects.IProjectSaver saver,
     WhaleGenie.Projects.ProjectFileService files,
     WhaleGenie.Editor.IEditorDocuments editor,
-    WhaleGenie.Editor.IEditorLeavePrompt editorPrompt)
+    WhaleGenie.Editor.IEditorLeavePrompt editorPrompt,
+    ShellWindowRegistry registry)
 {
     public ShellHost Create(WebShellWindow owner)
     {
@@ -50,7 +51,7 @@ internal sealed class ShellHostFactory(
         menu.Overlay.Warm();
         var wheelOverlay = new WheelOverlayHost(bridge, wheel);
         wheelOverlay.Warm();
-        var shell = new ShellHost(workspace, system, runtime, questions, actions, owner, owner,
+        var shell = new ShellHost(workspace, system, runtime, questions, actions, owner, registry,
             menu.Overlay, wheelOverlay,
             key => new PanelOverlayHost(bridge, panelFrames, key, runtime.Devices.Windows),
             panelFrames.Surface,

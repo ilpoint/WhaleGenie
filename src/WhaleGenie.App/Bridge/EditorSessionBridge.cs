@@ -217,12 +217,12 @@ internal sealed partial class EditorSessionBridge(EditorDocumentService document
     /// it sent produced the snapshot.
     /// </summary>
     private void OnDocumentsChanged()
-        => _ = _server?.PushAsync("editor.changed", Snapshot());
+        => _ = _server?.PushShellsAsync("editor.changed", Snapshot());
 
     private void OnLibraryChanged()
-        => _ = _server?.PushAsync("editor.publicMacros", PublicMacros());
+        => _ = _server?.PushShellsAsync("editor.publicMacros", PublicMacros());
 
     /// <summary>Re-sends the public-macro rows after a setting changes which shelves are listed.</summary>
     internal void PublishPublicMacros()
-        => _ = _server?.PushAsync("editor.publicMacros", PublicMacros());
+        => _ = _server?.PushShellsAsync("editor.publicMacros", PublicMacros());
 }

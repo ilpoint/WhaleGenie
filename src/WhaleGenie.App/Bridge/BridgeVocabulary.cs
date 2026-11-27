@@ -14,6 +14,9 @@ public enum BridgeSurface
 
     /// <summary>One interface panel beside the window in front.</summary>
     Panel,
+
+    /// <summary>The separate macro workbench: the editor and the run/debug page.</summary>
+    Workbench,
 }
 
 /// <summary>How a push treats an older push of the same event that has not gone out yet.</summary>

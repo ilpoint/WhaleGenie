@@ -6,9 +6,9 @@ import { expect, test, type Page } from '@playwright/test';
  */
 
 async function openEditor(page: Page): Promise<void> {
-  await page.goto('/?bridge=mock#macros');
-  await expect(page.locator('wg-titlebar .title')).toContainText('鲸灵');
-  await page.locator('wg-macros .card', { hasText: '自动保存' }).dblclick();
+  await page.goto('/?bridge=mock&window=workbench#editor');
+  await expect(page.locator('wg-workbench')).toBeVisible();
+  await page.evaluate(() => window.__mock!.push('editor.openRequested', { name: '自动保存' }));
   await expect(page.locator('wg-editor-tabs .tab').first()).toBeVisible();
 }
 

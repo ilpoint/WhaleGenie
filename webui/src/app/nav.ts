@@ -6,7 +6,6 @@ import { go, routes, type Route } from '../shared/navigation/router.js';
 import { systemSwitch } from '../shared/system/system.js';
 import { strings, t } from '../shared/strings/strings.js';
 import { StoreController } from '../shared/lit/store-controller.js';
-import { editor } from '../features/editor/editor-store.js';
 import { hotkeyKeys } from './nav-model.js';
 import type { SystemSwitchState } from '../shared/bridge/protocol.js';
 
@@ -22,9 +21,6 @@ export class WgNav extends LitElement {
 
   @state()
   private system: SystemSwitchState | null = null;
-
-  @state()
-  private editorDirty = false;
 
   static styles = css`
     :host {
@@ -209,10 +205,6 @@ export class WgNav extends LitElement {
     this.system = value;
   });
 
-  protected readonly editorController = new StoreController<void>(this, editor, () => {
-    this.editorDirty = editor.get().tabs.some((tab) => tab.dirty);
-  });
-
   /** 路由到词表键的显式映射：对账测试按字面量扫键，动态拼出来的键扫不到。 */
   private static readonly keys: Record<Route, string> = {
     macros: 'Shell.Macros',
@@ -233,7 +225,8 @@ export class WgNav extends LitElement {
   }
 
   render() {
-    const mainRoutes = routes.filter((route) => route !== 'settings' && route !== 'about');
+    const mainRoutes = routes.filter((route) =>
+      route === 'macros' || route === 'library');
     return html`
       <nav class="activity" aria-label=${t('Shell.Navigation')}>
         ${mainRoutes.map((route) => this.activityButton(route))}
@@ -254,9 +247,6 @@ export class WgNav extends LitElement {
         @click=${() => this.select(route)}
       >
         ${icon(route)}
-        ${route === 'editor' && this.editorDirty
-          ? html`<span class="badge" aria-hidden="true"></span>`
-          : nothing}
       </button>
     `;
   }

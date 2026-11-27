@@ -57,6 +57,21 @@ export function handleShell(host: MockShellContext, method: string, params: Reco
         case 'app.openRun':
           host.push('run.openRequested', { name: String(params['name'] ?? '') });
           break;
+        case 'app.openEditor':
+          host.push('editor.openRequested', { name: String(params['name'] ?? '') });
+          break;
+        case 'app.newEditor':
+          host.push('editor.openRequested', { name: '' });
+          break;
+        case 'workbench.focusMain':
+          break;
+        case 'workbench.window.minimize':
+        case 'workbench.window.maximize':
+        case 'workbench.window.close':
+        case 'workbench.window.pin':
+        case 'workbench.window.drag':
+        case 'workbench.window.focus':
+          break;
         case 'app.about':
           result = {
             projectUrl: 'https://github.com/ilpoint/WhaleGenie',

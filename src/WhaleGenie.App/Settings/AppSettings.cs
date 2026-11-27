@@ -447,6 +447,34 @@ public sealed class AppSettings
     public void StoreMainWindowMaximized(bool maximized)
         => Write(model => model.MainWindowMaximized = maximized);
 
+    /// <summary>The workbench's last ordinary size, kept apart from the main shell's.</summary>
+    public (double Width, double Height)? LoadWorkbenchWindowSize()
+    {
+        var model = Read();
+        return UsableSize(model.WorkbenchWindowWidth) && UsableSize(model.WorkbenchWindowHeight)
+            ? (model.WorkbenchWindowWidth, model.WorkbenchWindowHeight)
+            : null;
+    }
+
+    public void StoreWorkbenchWindowSize(double width, double height)
+    {
+        if (!UsableSize(width) || !UsableSize(height))
+        {
+            return;
+        }
+
+        Write(model =>
+        {
+            model.WorkbenchWindowWidth = width;
+            model.WorkbenchWindowHeight = height;
+        });
+    }
+
+    public bool LoadWorkbenchWindowMaximized() => Read().WorkbenchWindowMaximized;
+
+    public void StoreWorkbenchWindowMaximized(bool maximized)
+        => Write(model => model.WorkbenchWindowMaximized = maximized);
+
     private bool UsableSize(double value) => double.IsFinite(value) && value > 0;
 
     private SettingsModel Read() => _store.Read();

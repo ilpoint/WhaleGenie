@@ -189,13 +189,9 @@ public sealed partial class ProjectSession
             return;
         }
 
-        // A plain close only hides the window, so the project stays; the editor documents are
-        // work the project has not received and still have to be asked about.
-        if (_editor is { HasUnsavedWork: true })
-        {
-            e.Cancel = true;
-            Dispatcher.UIThread.Post(() => _ = PromptToHideAsync(window));
-        }
+        // A plain close only hides the main window. The editor documents belong to the separate
+        // workbench now; hiding the main shell leaves that window and its documents where they
+        // are. The workbench has its own close question for them.
     }
 
     private bool Leaving => Tray is null || Tray.IsLeaving;

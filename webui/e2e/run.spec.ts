@@ -6,8 +6,8 @@ import { expect, test, type Page } from '@playwright/test';
  */
 
 test.beforeEach(async ({ page }) => {
-  await page.goto('/?bridge=mock');
-  await expect(page.locator('wg-titlebar .title')).toContainText('鲸灵');
+  await page.goto('/?bridge=mock&window=workbench#run');
+  await expect(page.locator('wg-workbench')).toBeVisible();
 });
 
 /** mock 记下的方法名，用来断言页面向程序发了哪条命令。 */
@@ -19,7 +19,6 @@ function seen(page: Page, method: string): Promise<boolean> {
 }
 
 test('运行页显示触发器、每步结果与历史取景，切换取景只发 run.lookSelect', async ({ page }) => {
-  await page.locator('wg-nav .activity button[aria-label="运行调试"]').click();
   await page.locator('wg-run .side .macros fluent-button').first().click();
 
   // 等触发的宏：一个本该跑却没跑的宏，答案先在这一块里找。

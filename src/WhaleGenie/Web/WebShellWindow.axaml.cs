@@ -29,6 +29,10 @@ public partial class WebShellWindow : Window, ITriggerFocusProbe
 
     private readonly BridgeServer? _bridge;
     private readonly ShellHostFactory? _hosts;
+    private readonly ShellWindowRegistry? _registry;
+    private readonly IWorkbenchHost? _workbench;
+    private readonly BridgeSurface _surface;
+    private readonly bool _workbenchWindow;
 
     private ShellHost? _host;
     private AppTray? _pendingTray;
@@ -40,6 +44,12 @@ public partial class WebShellWindow : Window, ITriggerFocusProbe
 
     /// <summary>The one bridge server this window's page and its overlays speak through.</summary>
     internal BridgeServer? Bridge => _bridge;
+
+    /// <summary>Which shell page this window is: Main or the separate Workbench.</summary>
+    internal BridgeSurface Surface => _surface;
+
+    /// <summary>Whether a text field in this window's page last held the keyboard.</summary>
+    internal bool TextInputFocused => Volatile.Read(ref _textInputFocused) == 1;
 
     /// <summary>The Vite dev server to load instead of the packed page. Debug only.</summary>
     internal string? DevUrl { get; set; }
@@ -55,11 +65,17 @@ public partial class WebShellWindow : Window, ITriggerFocusProbe
         InitializeComponent();
     }
 
-    internal WebShellWindow(BridgeServer bridge, ShellHostFactory? hosts = null)
+    internal WebShellWindow(BridgeServer bridge, ShellHostFactory? hosts = null,
+        ShellWindowRegistry? registry = null, IWorkbenchHost? workbench = null,
+        BridgeSurface surface = BridgeSurface.Main, bool workbenchWindow = false)
         : this()
     {
         _bridge = bridge;
         _hosts = hosts;
+        _registry = registry;
+        _workbench = workbench;
+        _surface = surface;
+        _workbenchWindow = workbenchWindow;
 
         WebView.EnvironmentRequested += OnEnvironmentRequested;
         WebView.NavigationStarted += OnNavigationStarted;
@@ -69,11 +85,11 @@ public partial class WebShellWindow : Window, ITriggerFocusProbe
 
         _channel = new WebBridge(WebView);
         _channel.Listen();
-        _bridge!.Attach(_channel);
+        _bridge!.Attach(_surface, _channel);
 
         // The page learns the window's first state before it draws its buttons; later changes
-        // arrive through the same event.
-        _ = _bridge.PushAsync("window.changed", WindowStatePayload());
+        // arrive through the same event, on the surface this window owns.
+        _ = _bridge.PushAsync("window.changed", WindowStatePayload(), BridgePushMode.Latest, _surface);
 
         PropertyChanged += OnWindowPropertyChanged;
         Strings.Current.LanguageChanged += SetTitle;
@@ -86,13 +102,34 @@ public partial class WebShellWindow : Window, ITriggerFocusProbe
     /// </summary>
     bool ITriggerFocusProbe.IsTextInputFocused => IsActive && Volatile.Read(ref _textInputFocused) == 1;
 
-    /// <summary>Asks the page to open a macro in the web editor, from a native menu.</summary>
+    /// <summary>
+    /// Opens a macro in the editor. On the main window this hands the request to the workbench;
+    /// on the workbench it asks its own page to load the document.
+    /// </summary>
     internal void OpenEditor(string name)
-        => _ = _bridge?.PushAsync("editor.openRequested", new { name });
+    {
+        if (_workbenchWindow)
+        {
+            _ = _bridge?.PushAsync("editor.openRequested", new { name },
+                BridgePushMode.Latest, _surface);
+            return;
+        }
 
-    /// <summary>Asks the page to load a macro into the web run panel, from a native menu.</summary>
+        _workbench?.OpenEditor(name);
+    }
+
+    /// <summary>Opens the named macro in the run/debug page, through the workbench.</summary>
     internal void OpenRun(string name)
-        => _ = _bridge?.PushAsync("run.openRequested", new { name });
+    {
+        if (_workbenchWindow)
+        {
+            _ = _bridge?.PushAsync("run.openRequested", new { name },
+                BridgePushMode.Latest, _surface);
+            return;
+        }
+
+        _workbench?.OpenRun(name);
+    }
 
     /// <summary>Asks the page to show its settings page, from a native menu.</summary>
     internal void OpenSettings()
@@ -178,7 +215,9 @@ public partial class WebShellWindow : Window, ITriggerFocusProbe
     protected override void OnOpened(EventArgs e)
     {
         base.OnOpened(e);
-        WindowPlacement.Restore(this, AppSettings.Shared);
+        WindowPlacement.Restore(this, AppSettings.Shared,
+            _workbenchWindow ? WindowProfile.Workbench : WindowProfile.Main);
+        _registry?.Register(this);
 
         _host ??= _hosts?.Create(this);
 
@@ -190,13 +229,15 @@ public partial class WebShellWindow : Window, ITriggerFocusProbe
 
     protected override void OnClosing(WindowClosingEventArgs e)
     {
-        WindowPlacement.Remember(this, AppSettings.Shared);
+        WindowPlacement.Remember(this, AppSettings.Shared,
+            _workbenchWindow ? WindowProfile.Workbench : WindowProfile.Main);
         _host?.OnClosing(e);
         base.OnClosing(e);
     }
 
     protected override void OnClosed(EventArgs e)
     {
+        _registry?.Unregister(this);
         _host?.Dispose();
         _host = null;
         base.OnClosed(e);
@@ -224,19 +265,24 @@ public partial class WebShellWindow : Window, ITriggerFocusProbe
 
         // A fresh page has not registered its receiver yet, so attaching again puts the server
         // back into buffering mode until the page is ready once more.
-        bridge.Attach(channel);
-        _ = bridge.PushAsync("window.changed", WindowStatePayload());
+        bridge.Attach(_surface, channel);
+        _ = bridge.PushAsync("window.changed", WindowStatePayload(), BridgePushMode.Latest, _surface);
         WebView.Navigate(StartUrl());
     }
 
     private Uri StartUrl()
     {
-        if (DevUrl is { } dev)
+        var local = new Uri(Path.Combine(AppContext.BaseDirectory, "webui", "index.html"));
+        var page = DevUrl is { } dev ? new Uri(dev) : local;
+        if (!_workbenchWindow)
         {
-            return new Uri(dev);
+            return page;
         }
 
-        return new Uri(Path.Combine(AppContext.BaseDirectory, "webui", "index.html"));
+        var builder = new UriBuilder(page);
+        var query = builder.Query.TrimStart('?');
+        builder.Query = query.Length == 0 ? "window=workbench" : query + "&window=workbench";
+        return builder.Uri;
     }
 
     /// <summary>
@@ -252,7 +298,8 @@ public partial class WebShellWindow : Window, ITriggerFocusProbe
 
         if (args.Property == Window.WindowStateProperty || args.Property == Window.TopmostProperty)
         {
-            _ = bridge.PushAsync("window.changed", WindowStatePayload());
+            _ = bridge.PushAsync("window.changed", WindowStatePayload(),
+                BridgePushMode.Latest, _surface);
         }
 
         if (args.Property == Window.IsActiveProperty && !IsActive)
@@ -271,7 +318,10 @@ public partial class WebShellWindow : Window, ITriggerFocusProbe
         Topmost);
 
     private void SetTitle()
-        => Title = Strings.Get("Main.Title") + (ProcessRights.IsElevated ? Strings.Get("Main.AdminBadge") : string.Empty);
+    {
+        var name = Strings.Get(_workbenchWindow ? "Shell.WorkbenchTitle" : "Main.Title");
+        Title = name + (ProcessRights.IsElevated ? Strings.Get("Main.AdminBadge") : string.Empty);
+    }
 
     [DllImport("user32.dll")]
     private static extern IntPtr SendMessage(IntPtr window, int message, IntPtr wParam, IntPtr lParam);

@@ -138,6 +138,14 @@ internal sealed class SettingsModel
     /// <summary>Whether the shell was maximized when it was last put away.</summary>
     public bool MainWindowMaximized { get; set; }
 
+    /// <summary>The separate macro workbench's ordinary size; zero means it has not been chosen.</summary>
+    public double WorkbenchWindowWidth { get; set; }
+
+    public double WorkbenchWindowHeight { get; set; }
+
+    /// <summary>Whether the workbench was maximized when it was last closed.</summary>
+    public bool WorkbenchWindowMaximized { get; set; }
+
     public bool McpAllowControl { get; set; }
 
     public bool McpAllowRun { get; set; }

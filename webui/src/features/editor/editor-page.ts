@@ -6,7 +6,9 @@ import { t } from '../../shared/strings/strings.js';
 import { editor } from './editor-store.js';
 import { StoreController } from '../../shared/lit/store-controller.js';
 import { WindowEventController } from '../../shared/lit/window-event-controller.js';
+import { bridge } from '../../shared/bridge/bridge.js';
 import { go } from '../../shared/navigation/router.js';
+import { isWorkbench } from '../../shared/window/window-kind.js';
 import { findStep, flattenSteps } from './editor-model.js';
 import { editorBase } from './editor-css.js';
 import './editor-tabs.js';
@@ -33,6 +35,15 @@ export class WgEditor extends LitElement {
 
   private splitStartX = 0;
 
+  private openMacroList(): void {
+    if (isWorkbench()) {
+      void bridge.value.call('workbench.focusMain');
+      return;
+    }
+
+    void go('macros');
+  }
+
   private splitStartWidth = 0;
 
   /** True once this page has shown a document; closing the last one returns to the list. */
@@ -57,7 +68,9 @@ export class WgEditor extends LitElement {
 
     if (this.hadDocument) {
       this.hadDocument = false;
-      void go('macros');
+      if (!isWorkbench()) {
+        void go('macros');
+      }
     }
   }
 
@@ -85,7 +98,7 @@ export class WgEditor extends LitElement {
             <span class="title">${t('Editor.NoDocument')}</span>
             <span>${t('Editor.NoDocumentHint')}</span>
             <div class="empty-actions">
-              <fluent-button appearance="subtle" @click=${() => void go('macros')}>
+              <fluent-button appearance="subtle" @click=${() => void this.openMacroList()}>
                 ${t('Editor.OpenMacroList')}
               </fluent-button>
               <fluent-button appearance="accent" @click=${() => void editor.session.newDocument()}>

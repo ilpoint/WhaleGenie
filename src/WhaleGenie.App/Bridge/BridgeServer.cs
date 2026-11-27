@@ -59,6 +59,7 @@ public sealed class BridgeServer
         [BridgeSurface.Menu] = new SurfaceState(),
         [BridgeSurface.Wheel] = new SurfaceState(),
         [BridgeSurface.Panel] = new SurfaceState(),
+        [BridgeSurface.Workbench] = new SurfaceState(),
     };
 
     private sealed class PendingPush(string @event, string json)
@@ -93,9 +94,13 @@ public sealed class BridgeServer
     /// <summary>
     /// Raised when the server goes back to "no page yet" — a fresh attach or an explicit reset.
     /// A question the old page was answering is dead with it, and whoever asked has to be told
-    /// the answer will never come.
+    /// the answer will never come. This event is the Main shell's; an overlay reloading is not
+    /// the shell going away.
     /// </summary>
     public event Action? PageReset;
+
+    /// <summary>Raised when one non-Main page is replaced by a fresh attach of the same surface.</summary>
+    public event Action<BridgeSurface>? SurfaceGone;
 
     /// <summary>
     /// Wires the server to a channel. A page that has just loaded has not registered its receiver
@@ -119,14 +124,24 @@ public sealed class BridgeServer
         state.Channel.MessageFromWeb += state.Pump;
         lock (_stateGate)
         {
+            // A page that attaches twice during startup — the native wrapper first, the real
+            // document adapter second — has never been ready in between. The events buffered for
+            // its first document must survive that second attach: an "open this macro" request
+            // sent while the workbench was being created is exactly that case. Only replacing a
+            // page that had already told us it was ready is a reload, and only then is the old
+            // buffer stale.
+            var wasReady = state.Ready;
             state.Ready = false;
-            state.Pending.Clear();
-            foreach (var queued in state.Queue)
+            if (wasReady)
             {
-                queued.Completion.TrySetResult();
-            }
+                state.Pending.Clear();
+                foreach (var queued in state.Queue)
+                {
+                    queued.Completion.TrySetResult();
+                }
 
-            state.Queue.Clear();
+                state.Queue.Clear();
+            }
         }
 
         // A dialog question is asked on the shell's page. An overlay reloading is not the page
@@ -134,6 +149,10 @@ public sealed class BridgeServer
         if (surface is BridgeSurface.Main)
         {
             PageReset?.Invoke();
+        }
+        else
+        {
+            SurfaceGone?.Invoke(surface);
         }
     }
 
@@ -274,6 +293,17 @@ public sealed class BridgeServer
 
         return completion;
     }
+
+    /// <summary>
+    /// Sends one event to both shell pages — Main and the workbench — each through its own
+    /// <see cref="PushAsync"/>. Project and editor state belong to both; a menu or a run panel does
+    /// not get a copy.
+    /// </summary>
+    public Task PushShellsAsync(string @event, object? payload,
+        BridgePushMode mode = BridgePushMode.Latest)
+        => Task.WhenAll(
+            PushAsync(@event, payload, mode, BridgeSurface.Main),
+            PushAsync(@event, payload, mode, BridgeSurface.Workbench));
 
     /// <summary>
     /// Sends one event to every page, each through its own <see cref="PushAsync"/>: the shell and

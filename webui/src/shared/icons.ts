@@ -5,6 +5,7 @@ import arrowUp from 'lucide-static/icons/arrow-up.svg?raw';
 import bookOpen from 'lucide-static/icons/book-open.svg?raw';
 import box from 'lucide-static/icons/box.svg?raw';
 import bug from 'lucide-static/icons/bug.svg?raw';
+import bugPlay from 'lucide-static/icons/bug-play.svg?raw';
 import check from 'lucide-static/icons/check.svg?raw';
 import clipboardPaste from 'lucide-static/icons/clipboard-paste.svg?raw';
 import group from 'lucide-static/icons/group.svg?raw';
@@ -35,7 +36,6 @@ import panelRightOpen from 'lucide-static/icons/panel-right-open.svg?raw';
 import pencil from 'lucide-static/icons/pencil.svg?raw';
 import pin from 'lucide-static/icons/pin.svg?raw';
 import power from 'lucide-static/icons/power.svg?raw';
-import play from 'lucide-static/icons/play.svg?raw';
 import plus from 'lucide-static/icons/plus.svg?raw';
 import redo from 'lucide-static/icons/redo-2.svg?raw';
 import scanText from 'lucide-static/icons/scan-text.svg?raw';
@@ -59,7 +59,7 @@ import x from 'lucide-static/icons/x.svg?raw';
 const icons = {
   macros: list,
   editor: filePen,
-  run: play,
+  run: bugPlay,
   library: bookOpen,
   settings,
   about: info,
@@ -91,6 +91,7 @@ const icons = {
   'panel-right-close': panelRightClose,
   'panel-right-open': panelRightOpen,
   bug,
+  'bug-play': bugPlay,
   'file-plus': filePlus,
   workflow,
   keyboard,

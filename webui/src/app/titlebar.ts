@@ -9,6 +9,7 @@ import { go } from '../shared/navigation/router.js';
 import { strings, t } from '../shared/strings/strings.js';
 import { StoreController } from '../shared/lit/store-controller.js';
 import { WindowEventController } from '../shared/lit/window-event-controller.js';
+import { windowCommand } from '../shared/window/window-kind.js';
 import { windowMirror } from '../shared/window/window.js';
 import { startExport, startImport, startOpen, transfer } from '../features/transfer/index.js';
 import { editor } from '../features/editor/editor-store.js';
@@ -378,29 +379,25 @@ export class WgTitlebar extends LitElement {
     if (event.button !== 0) {
       return;
     }
-    void bridge.value.call('window.drag');
+    void bridge.value.call(windowCommand('drag'));
   }
 
   private onToggleMaximize(): void {
-    void bridge.value.call('window.maximize');
+    void bridge.value.call(windowCommand('maximize'));
   }
 
   private onMinimize(): void {
-    void bridge.value.call('window.minimize');
+    void bridge.value.call(windowCommand('minimize'));
   }
 
   private onPin(): void {
-    void bridge.value.call('window.pin');
+    void bridge.value.call(windowCommand('pin'));
   }
 
   private onClose(): void {
-    // 关闭交给窗口本身：托盘把它拦下来藏起，真正的退出在托盘菜单与 app.quit。
-    // 关闭之前先问编辑器里的宏：隐藏不等于保存，问过再藏才没有漏保存。
-    void editor.dialog.confirmLeave().then((leave) => {
-      if (leave) {
-        void bridge.value.call('window.close');
-      }
-    });
+    // Closing is the window's job: the tray hides the main shell, and the workbench has its own
+    // close question for the macro documents it carries. The title bar itself does not prompt.
+    void bridge.value.call(windowCommand('close'));
   }
 }
 

@@ -103,6 +103,7 @@ public sealed class ProjectBridge : IBridgeHandler, IDisposable
             // The page asked for the current state; a buffered change from before the page was
             // ready is older than this answer.
             server.DropPending("project.changed");
+            server.DropPending("project.changed", BridgeSurface.Workbench);
             return Task.FromResult<object?>(State());
         });
         server.Register("project.toggle", Toggle);
@@ -636,11 +637,11 @@ public sealed class ProjectBridge : IBridgeHandler, IDisposable
         _ui.Post(() =>
         {
             Interlocked.Exchange(ref _pushQueued, 0);
-            _ = _server?.PushAsync("project.changed", State());
+            _ = _server?.PushShellsAsync("project.changed", State());
         });
     }
 
-    private Task PushState() => _server!.PushAsync("project.changed", State());
+    private Task PushState() => _server!.PushShellsAsync("project.changed", State());
 
     /// <summary>The name a package is shown under; the default project has a word of its own.</summary>
     private static string? ProjectName(string? path)

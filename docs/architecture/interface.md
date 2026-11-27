@@ -17,7 +17,7 @@
 编辑器里的改动由会话记一次：页面自己知道内容变没变，会话把它们与「新增了文档、抬出了子宏」这类
 没有页面承载的改动合成一个答案，窗口再把它发布到项目文档态。关闭与关闭确认问的是同一个答案，不会
 各自拼一遍。自动保存只覆盖工程包：宏提交进项目之后由 `ProjectSaver` 写盘；单个宏的编辑不会自己
-提交，关闭页签、离开编辑器、关闭主窗口或退出时仍问“保存 / 不保存 / 取消”。恢复快照只保存工程
+提交，关闭页签、关闭工作台或退出时仍问“保存 / 不保存 / 取消”。恢复快照只保存工程
 包和共享变量，打开而未提交的编辑器草稿不进入恢复文件。
 
 一次保存由 `ProjectMacroCommit` 回答：不能写的页面先被挡住、什么都还没构建，构建出的宏先问项目、
@@ -131,13 +131,15 @@ XAML 使用编译绑定，CommunityToolkit.Mvvm 提供源生成命令。窗口�
 
 > 三块运行期浮层（宏菜单、轮盘、界面面板）已全部迁到 Lit 透明浮层，原生窗口已删除；宿主、桥通道、
 > 契约与验收清单见 [surfaces-migration.md](surfaces-migration.md)。
-> 已落地：桥按 `Main/Menu/Wheel/Panel` 路由；`surface.menu.*`、`surface.wheel.*`、`surface.panel.*`
-> 的命令、快照与页面类型已生成。
+> 已落地：桥按 `Main/Menu/Wheel/Panel/Workbench` 路由；`surface.menu.*`、`surface.wheel.*`、
+> `surface.panel.*` 的命令、快照与页面类型已生成；工作台是第二个网页壳窗口，不是浮层。
 
-网页壳是程序的主界面：标题栏、导航与页面都画在一张网页里，由 WebView 控件承载。系统开关、触发器、
-菜单、轮盘、浮层、后台问话、恢复/未保存流程以及文件与导入/导出编排都不再挂在一个原生主窗上；壳
-接管 ProjectSession、NativeSurfaceHost 与 TriggerHost。设置页、运行面板、编辑器、关于与帮助都已走
-网页入口；`MainViewModel` 只为原生拾取器转发项目视图，项目替换与未保存询问由
+网页壳是程序的主界面：主壳放标题栏、导航、宏列表、公共宏库与设置；编辑器与运行调试在独立的
+**宏工作台**窗口，两个窗口都绘制网页，由各自的 WebView 控件承载。系统开关、触发器、菜单、轮盘、
+浮层、后台问话、恢复/未保存流程以及文件与导入/导出编排都不再挂在一个原生主窗上；主壳接管
+ProjectSession、NativeSurfaceHost 与 TriggerHost，工作台只共享 `BridgeServer`、工程、编辑器文档集
+与运行会话。设置页、运行面板、编辑器、关于与帮助都已走网页入口；`MainViewModel` 只为原生拾取器
+转发项目视图，项目替换与未保存询问由
 `ProjectSession`/`ShellProjectChangeGuard` 负责。窗口本体 `WebShellWindow` 只保留外框
 职责——尺寸、窗口状态与拖动——其余全部是页面的事。
 
@@ -159,9 +161,9 @@ XAML 使用编译绑定，CommunityToolkit.Mvvm 提供源生成命令。窗口�
 
 | 层 | 位置 | 职责 |
 | --- | --- | --- |
-| 宿主适配 | `src/WhaleGenie/Web/` | `WebShellWindow`（外框与网页装载）、`WebOverlayWindow`（透明浮层宿主）、`OverlayProbeWindow`（Debug 首帧探针）各自持有 `NativeWebView`；`WebBridge` 只做网页消息与桥之间的管道 |
+| 宿主适配 | `src/WhaleGenie/Web/` | `WebShellWindow`（主壳与工作台共用的外框与网页装载）、`WorkbenchWindowHost`（工作台窗口、关闭询问与焦点回主壳）、`ShellWindowRegistry`（活动窗口/拾取器）、`WebOverlayWindow`（透明浮层宿主）、`OverlayProbeWindow`（Debug 首帧探针）各自持有 `NativeWebView`；`WebBridge` 只做网页消息与桥之间的管道 |
 | 桥协议与处理器 | `src/WhaleGenie.App/Bridge/` | `BridgeServer` 路由请求/应答/事件；全部处理器（应用、字符串、主题、窗口、项目、系统、公共宏库、编辑器、设置、运行）与端口在此；UI 只实现端口 |
-| 触发会话与原生面 | `src/WhaleGenie/Runtime/` | `TriggerHost` 持系统热键、计划与声音；`NativeSurfaceHost` 持菜单、轮盘、浮层与前台订阅；`RunQuestionHost` 持后台问话；`ProjectSession` 持恢复与未保存流程；`SystemState`（App）是页面/热键/窗口共写的开关 |
+| 触发会话与原生面 | `src/WhaleGenie/Runtime/` | `TriggerHost` 持系统热键、计划与声音（只在主壳）；`NativeSurfaceHost` 持菜单、轮盘、浮层与前台订阅；`RunQuestionHost` 持后台问话；`ProjectSession` 持恢复与未保存流程；`SystemState`（App）是页面/热键/窗口共写的开关 |
 | 网页前端 | `webui/` | Lit 组件、桥客户端、词表与主题 store、mock 宿主 |
 
 桥处理器不引用 WebView 控件类型（`WebUiBoundaryTests` 按源码检查），只与 `IBridgeChannel`

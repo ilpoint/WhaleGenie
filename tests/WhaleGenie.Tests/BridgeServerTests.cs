@@ -251,6 +251,28 @@ public class BridgeServerTests
     }
 
     [Fact]
+    public async Task Events_buffered_for_a_starting_page_survive_its_second_attach()
+    {
+        var first = new RecordingChannel();
+        var second = new RecordingChannel();
+        var server = new BridgeServer();
+
+        // The wrapper attaches before the document exists, the document adapter attaches again
+        // before the page says ready. A request for the workbench's first document arrives between
+        // those two attaches and must not be thrown away.
+        server.Attach(first);
+        await server.PushAsync("editor.openRequested", new { name = "Macro 2" });
+        server.Attach(second);
+        await server.AcceptAsync("""{"id":1,"method":"bridge.ready"}""");
+
+        var pushed = second.Sent
+            .Select(json => JsonDocument.Parse(json).RootElement)
+            .Single(element => element.TryGetProperty("event", out var name)
+                && name.GetString() == "editor.openRequested");
+        Assert.Equal("Macro 2", pushed.GetProperty("payload").GetProperty("name").GetString());
+    }
+
+    [Fact]
     public async Task Text_that_is_not_a_request_is_dropped()
     {
         var channel = new RecordingChannel();

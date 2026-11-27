@@ -1,4 +1,5 @@
 import { bridge } from '../bridge/bridge.js';
+import { windowCommand } from '../window/window-kind.js';
 
 /**
  * Reports whether a text field in the page has the keyboard. The trigger host asks the active
@@ -31,7 +32,7 @@ function report(next: boolean): void {
   }
 
   reported = next;
-  void bridge.value.call('window.focus', { textField: next }).catch(() => {
+  void bridge.value.call(windowCommand('focus'), { textField: next }).catch(() => {
     // The host may be going away; the next page reports its focus from scratch.
   });
 }
