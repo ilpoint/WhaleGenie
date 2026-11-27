@@ -24,11 +24,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # 手动触发时只跑选中的那一个（all 时回到九个）；定时触发没有输入，跑全部。
-        area: >-
-          ${{ (github.event_name == 'workflow_dispatch' && inputs.area != 'all')
-              ? fromJSON(format('["{0}"]', inputs.area))
-              : fromJSON('["formula-json","recording","expressions-value","expressions-writer","rules","devices-names","devices-colour","devices-window","devices-files"]') }}
+        # 手动触发时只跑选中的那一个（all 时回到九个）；定时触发没有输入，跑全部。表达式要写成
+        # 一行：表达式里换行不算分隔，GitHub 会把整段当成解析失败的 YAML。
+        area: ${{ (github.event_name == 'workflow_dispatch' && inputs.area != 'all') && fromJSON(format('["{0}"]', inputs.area)) || fromJSON('["formula-json","recording","expressions-value","expressions-writer","rules","devices-names","devices-colour","devices-window","devices-files"]') }}
 
     steps:
       - uses: actions/checkout@v5
