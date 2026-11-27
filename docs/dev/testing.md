@@ -86,7 +86,7 @@ pwsh tools/stryker.ps1 -Target domain   # 或 editing / all
 | 库仓的 `formula-json`（`FormulaJson.cs`） | 36 | 91.67% |
 | 库仓的 `recording`（`RecordingTranslator.cs`） | 231 | 90.48% |
 | 库仓的 `devices-names`（`KeyNames.cs`） | 172 | 80.81% |
-| 库仓的 `devices-colour`（颜色、找色、PNG、OCR 预处理、鼠标路径） | 664 | 78.31% |
+| 库仓的 `devices-colour`（颜色、找色、PNG、OCR 预处理、鼠标路径） | 664 | 79.37% |
 | 库仓的 `expressions-value`（`Value`、`ValueRules`、`JsonValues`、`FormulaJson`） | 199 | 80.40% |
 | 库仓的 `expressions-writer`（`Expression`、`Formula`、`ExpressionWriter`、`ExpressionCompiler`） | 196 | 73.98% |
 | 库仓的 `devices-window`（`WindowRule`、`WindowHow`） | 39 | 89.74% |
