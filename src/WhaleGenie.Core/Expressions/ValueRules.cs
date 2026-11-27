@@ -172,11 +172,8 @@ public static class ValueRules
                         return flag ? "b:1" : "b:0";
                     }
 
-                    if (text is "0" or "1")
-                    {
-                        return text == "1" ? "b:1" : "b:0";
-                    }
-
+                    // "0" and "1" never reach here: the number read above claims them first, which
+                    // is why the line a set looks a text up by is the number line for them.
                     return "t:" + text.ToLowerInvariant();
                 }
             case ValueKind.List:
