@@ -365,7 +365,9 @@ public class BrowserActionTests : IDisposable
         device.Open("edge", Address(), headless: true, profile: string.Empty);
 
         // The step clicks the element that starts it, and the file is saved where it was told to.
-        var saved = device.Download(At("#export"), where, 5000);
+        // The clock is generous: a runner starting Edge and a download for the first time can take
+        // longer than a machine that has already done both, and 5 s reached that edge there.
+        var saved = device.Download(At("#export"), where, 15000);
         Assert.Equal("订单.csv", saved.Name);
         Assert.Equal(Path.Combine(where, "订单.csv"), saved.Path);
         Assert.Contains("100,3 日", File.ReadAllText(saved.Path), StringComparison.Ordinal);
@@ -373,7 +375,7 @@ public class BrowserActionTests : IDisposable
         // A step that names no element waits for the next download the page starts by itself, and a
         // file that arrived before anybody asked for it is handed over rather than thrown away.
         device.InPage("() => { window.exporting(); return true; }");
-        var waited = device.Download(null, where, 5000);
+        var waited = device.Download(null, where, 15000);
         Assert.Equal("订单.csv", waited.Name);
         Assert.True(File.Exists(waited.Path));
 
