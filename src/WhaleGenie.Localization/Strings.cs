@@ -2673,6 +2673,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Run.MissingPath"] = "No file path was given.",
         ["Run.FileFailed"] = "The file could not be read or written: {0}",
         ["Run.BadZip"] = "That file is not a zip archive, or it is incomplete: {0}",
+        ["Run.Cancelled"] = "Something the step was using stopped itself: {0}",
         ["Run.BadBase64"] = "That text is not Base64: {0}",
         ["Run.BadArgumentType"] = "The value passed for \"{0}\" is not the kind of value that parameter declares.",
         ["Run.BadPosition"] = "That is not a place in the list: write a whole number, counting the "
@@ -5699,6 +5700,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Run.MissingPath"] = "没有填写文件路径。",
         ["Run.FileFailed"] = "这个文件读写失败：{0}",
         ["Run.BadZip"] = "这个文件不是 zip 压缩包，或者压缩包不完整：{0}",
+        ["Run.Cancelled"] = "步骤正在用的东西自己停下了：{0}",
         ["Run.BadBase64"] = "这段文本不是 Base64：{0}",
         ["Run.BadArgumentType"] = "传给「{0}」的值与它声明的类型不符。",
         ["Run.BadPosition"] = "这不是列表里的位置：请写整数，第一个写 1（{0}）。",
