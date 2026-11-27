@@ -78,8 +78,9 @@ try {
                 '**/Execution/CountPlan.cs'
                 '**/Execution/LoopControl.cs'
                 '**/Execution/FileOrder.cs'
+                '**/Execution/MatchQuota.cs'
             )
-            Filter = 'FullyQualifiedName~StepMetaTests|FullyQualifiedName~HitSortTests|FullyQualifiedName~HitOrderTests|FullyQualifiedName~StepOutcomeTests|FullyQualifiedName~MacroRunnerTests|FullyQualifiedName~RunLookTests|FullyQualifiedName~WhereColumnTests|FullyQualifiedName~ActionRoutingTests|FullyQualifiedName~ActionPreviewTests|FullyQualifiedName~IrreversibleStepTests|FullyQualifiedName~RetryPolicyTests|FullyQualifiedName~StepChecksTests|FullyQualifiedName~CallBinderTests|FullyQualifiedName~RunDiceTests|FullyQualifiedName~LoopControlTests|FullyQualifiedName~FileOrderTests|FullyQualifiedName~TableColumnsTests|FullyQualifiedName~StepMetaJsonTests|FullyQualifiedName~HitSortOrderTests|FullyQualifiedName~WheelPlanTests|FullyQualifiedName~StepTimeoutTests|FullyQualifiedName~CountPlanTests'
+            Filter = 'FullyQualifiedName~StepMetaTests|FullyQualifiedName~HitSortTests|FullyQualifiedName~HitOrderTests|FullyQualifiedName~StepOutcomeTests|FullyQualifiedName~MacroRunnerTests|FullyQualifiedName~RunLookTests|FullyQualifiedName~WhereColumnTests|FullyQualifiedName~ActionRoutingTests|FullyQualifiedName~ActionPreviewTests|FullyQualifiedName~IrreversibleStepTests|FullyQualifiedName~RetryPolicyTests|FullyQualifiedName~StepChecksTests|FullyQualifiedName~CallBinderTests|FullyQualifiedName~RunDiceTests|FullyQualifiedName~LoopControlTests|FullyQualifiedName~FileOrderTests|FullyQualifiedName~TableColumnsTests|FullyQualifiedName~StepMetaJsonTests|FullyQualifiedName~HitSortOrderTests|FullyQualifiedName~MatchQuotaTests|FullyQualifiedName~WheelPlanTests|FullyQualifiedName~StepTimeoutTests|FullyQualifiedName~CountPlanTests'
         },
         @{
             Name = 'devices-names'

@@ -86,14 +86,7 @@ internal static class SearchHits
     /// </remarks>
     public static int Wanted(IRunContext run, ExecutableStep step)
     {
-        if (run.Wants(step, "every"))
-        {
-            return RunLimits.Matches;
-        }
-
         var kind = HitOrder.KindOf(step.Text("orderBy").Trim().ToLowerInvariant());
-        return HitOrder.CountsFromTheFarSide(kind) || kind is MatchOrder.Near or MatchOrder.Random
-            ? RunLimits.Matches
-            : run.Index(step, "matchIndex", 1);
+        return MatchQuota.Of(run.Wants(step, "every"), kind, run.Index(step, "matchIndex", 1));
     }
 }
