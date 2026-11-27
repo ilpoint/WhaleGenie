@@ -144,6 +144,10 @@ DXGI、Direct3D、GDI 与 SharpHook 的调用留在各自工程。引擎与界�
 表达式的求值本机实测约 1.2 µs 一次（命中缓存约 0.7 µs），换不来一次缓存的复杂度，因此不缓存：
 一个字段的值可能在同一次运行里被后面的步骤改掉，缓存只有键正确才安全。
 
+无界面启动到自检完成（`--mcp-doctor`，49 个工具、32 项检查，Release）本机实测约 1.55 s；网页壳本身
+（构建产物 `webui/dist/index.html`，headless Edge 从本地静态服务加载）DOMContentLoaded 82–101 ms、
+load 111–131 ms（两次）。这两段都不含 WebView2 的创建与首帧。
+
 首帧本身没有在这台机器上量：它要真的把 WebView2 画出来，是桌面上的测量。方法与要看的数：
 Debug 构建启动时带 `--remote-debugging-port`，用 Playwright 连上后记 `Performance.getMetrics` 里
 的 `DomContentLoaded` 与本页首次 `requestAnimationFrame`；同一方法也量"打开编辑器到表单可用"
