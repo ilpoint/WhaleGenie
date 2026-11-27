@@ -11,7 +11,8 @@ namespace WhaleGenie.Runtime;
 /// Projects one interface group into the page's shape. The window rules and the anchor stay in C#;
 /// this only lists the members and how each should read.
 /// </summary>
-internal sealed class PanelSurface(ProjectWorkspace workspace, TriggerRuntime runtime)
+internal sealed class PanelSurface(ProjectWorkspace workspace, TriggerRuntime runtime,
+    Func<bool>? enabledFirst = null)
 {
     /// <summary>How each group was left: folded or turned. Outlives one panel window.</summary>
     private readonly Dictionary<string, (bool Collapsed, bool Horizontal)> _views = new(StringComparer.Ordinal);
@@ -81,7 +82,8 @@ internal sealed class PanelSurface(ProjectWorkspace workspace, TriggerRuntime ru
             : group.Rule.MatchValue.Length > 0 ? group.Rule.MatchValue : Strings.Get("Interface.Panel");
         var items = group is null
             ? []
-            : InterfaceMemberResolver.Resolve(group, [.. workspace.Macros])
+            : InterfaceMemberResolver.Resolve(group, [.. workspace.Macros],
+                    enabledFirst?.Invoke() ?? false)
                 .Where(member => member.IsVisibleOnSurface)
                 .Select(Item)
                 .ToList();

@@ -32,16 +32,22 @@ public sealed record InterfaceGroupMember(
 public static class InterfaceMemberResolver
 {
     public static IReadOnlyList<InterfaceGroupMember> Resolve(
-        InterfaceGroupView group, IReadOnlyList<MacroItem> macros)
-        => Resolve(group.Entries, macros);
+        InterfaceGroupView group, IReadOnlyList<MacroItem> macros, bool enabledFirst = false)
+        => Resolve(group.Entries, macros, enabledFirst);
 
     public static IReadOnlyList<InterfaceGroupMember> Resolve(
-        IEnumerable<TriggerEntry> entries, IReadOnlyList<MacroItem> macros)
+        IEnumerable<TriggerEntry> entries, IReadOnlyList<MacroItem> macros, bool enabledFirst = false)
     {
         var byName = macros
             .GroupBy(macro => macro.Name.Trim(), StringComparer.OrdinalIgnoreCase)
             .ToDictionary(group => group.Key, group => group.First(),
                 StringComparer.OrdinalIgnoreCase);
+        var positions = macros
+            .Select((macro, index) => (Name: macro.Name.Trim(), Index: index))
+            .GroupBy(item => item.Name, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(group => group.Key, group => group.First().Index,
+                StringComparer.OrdinalIgnoreCase);
+
         return
         [
             .. entries
@@ -57,7 +63,18 @@ public static class InterfaceMemberResolver
                             ? InterfaceMemberState.Visible
                             : InterfaceMemberState.Disabled;
                     return new InterfaceGroupMember(entry, macro, name, state);
-                }),
+                })
+                .Select((member, entryIndex) => (Member: member, EntryIndex: entryIndex))
+                // The panel follows the list the person sees: enabled macros first when that
+                // setting is on, then the project's own order inside each group.
+                .OrderBy(item => enabledFirst
+                    && item.Member.Macro is not { IsEnabled: true } ? 1 : 0)
+                .ThenBy(item => item.Member.Macro is { } macro
+                    && positions.TryGetValue(macro.Name.Trim(), out var position)
+                    ? position
+                    : int.MaxValue)
+                .ThenBy(item => item.EntryIndex)
+                .Select(item => item.Member),
         ];
     }
 }
