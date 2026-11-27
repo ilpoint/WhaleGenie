@@ -39,6 +39,8 @@
 718	core/tests/WhaleGenie.Core.Tests/RecordingTests.cs	keep: 一组同主题用例，共用同一套夹具与同一个行为
 309	core/tests/WhaleGenie.TestSupport/SampleFiles.cs	keep: 一组同主题用例，共用同一套夹具与同一个行为
 323	tests/WhaleGenie.App.TestSupport/ChecksDevices.cs	keep: 界面检查用的一整套设备契约替身，成员由 IDeviceLayer 决定，无独立关注点
+336	tests/WhaleGenie.Tests/SettingsBridgeTests.cs	keep: 设置桥的规则用例集中在一处，围绕同一桥面与同一份工程快照
+359	src/WhaleGenie/Runtime/NativeSurfaceHost.Panels.cs	keep: NativeSurfaceHost 的界面面板分部，与宿主共用目标、边栏与帧注册表，拆开仍要共享同一份状态
 428	core/tests/WhaleGenie.Platform.Tests/ScriptBridgeTests.cs	keep: 一组同主题用例，共用同一套夹具与同一个行为
 457	core/tests/WhaleGenie.Core.Tests/StepOutcomeTests.cs	keep: 一组同主题用例，共用同一套夹具与同一个行为
 485	core/tests/WhaleGenie.Platform.Tests/ViiperInputTests.cs	keep: 一组同主题用例，共用同一套夹具与同一个行为
