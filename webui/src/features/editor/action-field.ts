@@ -8,6 +8,7 @@ import type {
 } from '../../shared/bridge/protocol.js';
 import { emptyRule } from '../../shared/window-rule/window-rule-dialog.js';
 import type { WindowRuleState } from '../../shared/bridge/protocol.js';
+import { keyboardChord } from '../../shared/input/capture.js';
 import { t } from '../../shared/strings/strings.js';
 import { editor } from './editor-store.js';
 import { renderEditor } from './action-fields/render.js';
@@ -237,19 +238,15 @@ export class WgActionField extends LitElement {
       return;
     }
 
+    const binding = keyboardChord(event);
+    if (!binding) {
+      return;
+    }
+
     event.preventDefault();
-    const parts: string[] = [];
-    if (event.ctrlKey) parts.push('Ctrl');
-    if (event.altKey) parts.push('Alt');
-    if (event.shiftKey) parts.push('Shift');
-    if (event.metaKey) parts.push('Win');
-    let key = event.key;
-    if (key === ' ') key = 'Space';
-    else if (key.length === 1) key = key.toUpperCase();
-    parts.push(key);
     this.capturing = false;
     window.removeEventListener('keydown', this.onWindowKey, true);
-    this.write('key', parts.join('+'));
+    this.write('key', binding);
   }
 }
 

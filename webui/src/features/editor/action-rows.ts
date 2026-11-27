@@ -9,6 +9,7 @@ import type {
   EditorRegionRow,
   EditorKeyPad,
 } from '../../shared/bridge/protocol.js';
+import { keyboardChord } from '../../shared/input/capture.js';
 import { t } from '../../shared/strings/strings.js';
 import { editor } from './editor-store.js';
 import { editorBase } from './editor-css.js';
@@ -290,20 +291,16 @@ export class WgActionRows extends LitElement {
       return;
     }
 
+    const binding = keyboardChord(event);
+    if (!binding) {
+      return;
+    }
+
     event.preventDefault();
-    const parts: string[] = [];
-    if (event.ctrlKey) parts.push('Ctrl');
-    if (event.altKey) parts.push('Alt');
-    if (event.shiftKey) parts.push('Shift');
-    if (event.metaKey) parts.push('Win');
-    let key = event.key;
-    if (key === ' ') key = 'Space';
-    else if (key.length === 1) key = key.toUpperCase();
-    parts.push(key);
     const index = this.captureIndex;
     this.captureIndex = -1;
     window.removeEventListener('keydown', this.onCaptureKey, true);
-    void editor.action.padKey(this.field.name, parts.join('+'), index, 'keys');
+    void editor.action.padKey(this.field.name, binding, index, 'keys');
   };
 
   private renderNarrow(field: EditorActionField): TemplateResult {

@@ -1,10 +1,17 @@
-/** Turning the browser's key and pointer names into the vocabulary the program stores. */
+/**
+ * Turning the browser's key and pointer names into the vocabulary the program stores.
+ *
+ * The keyboard's own state decides some names: the main-row minus and the number-pad minus both
+ * arrive with `key === '-'`, while the program keeps them apart as `-` and `NumPadSubtract`.
+ * The number pad is therefore read from `code`, which names the physical key, not from `key`,
+ * which names the character it produced. Every capture path goes through here.
+ */
 export function keyboardChord(event: KeyboardEvent): string | null {
   if (isModifier(event.key)) {
     return null;
   }
 
-  const key = keyName(event.key);
+  const key = keyName(event);
   if (!key) {
     return null;
   }
@@ -40,11 +47,33 @@ export function pointerBinding(event: PointerEvent): string | null {
   }
 }
 
-function isModifier(key: string): boolean {
-  return ['Control', 'Shift', 'Alt', 'Meta', 'AltGraph'].includes(key);
-}
+const numberPadNames: Record<string, string> = {
+  Numpad0: 'NumPad0',
+  Numpad1: 'NumPad1',
+  Numpad2: 'NumPad2',
+  Numpad3: 'NumPad3',
+  Numpad4: 'NumPad4',
+  Numpad5: 'NumPad5',
+  Numpad6: 'NumPad6',
+  Numpad7: 'NumPad7',
+  Numpad8: 'NumPad8',
+  Numpad9: 'NumPad9',
+  NumpadAdd: 'NumPadAdd',
+  NumpadSubtract: 'NumPadSubtract',
+  NumpadMultiply: 'NumPadMultiply',
+  NumpadDivide: 'NumPadDivide',
+  NumpadDecimal: 'NumPadDecimal',
+  NumpadEnter: 'NumPadEnter',
+  NumpadEqual: 'NumPadEquals',
+  NumpadComma: 'NumPadSeparator',
+};
 
-function keyName(key: string): string | null {
+export function keyName(event: KeyboardEvent): string | null {
+  const numberPad = numberPadNames[event.code];
+  if (numberPad) {
+    return numberPad;
+  }
+
   const named: Record<string, string> = {
     ArrowLeft: 'Left',
     ArrowRight: 'Right',
@@ -70,6 +99,7 @@ function keyName(key: string): string | null {
     ContextMenu: 'Apps',
     '+': 'plus',
   };
+  const key = event.key;
   if (key in named) {
     return named[key] ?? null;
   }
@@ -77,4 +107,8 @@ function keyName(key: string): string | null {
     return key.length === 1 ? key.toUpperCase() : key;
   }
   return null;
+}
+
+function isModifier(key: string): boolean {
+  return ['Control', 'Shift', 'Alt', 'Meta', 'AltGraph'].includes(key);
 }

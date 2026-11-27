@@ -50,6 +50,15 @@ describe('SettingsCaptureController', () => {
     expect(host.applied).toEqual([]);
   });
 
+  it('saves a number-pad key under its own name', async () => {
+    const host = new CaptureHost();
+    const capture = new SettingsCaptureController(host);
+    await capture.begin('menu');
+
+    capture.key('menu', new KeyboardEvent('keydown', { key: '-', code: 'NumpadSubtract' }));
+    expect(host.applied).toEqual([{ kind: 'menu', binding: 'NumPadSubtract' }]);
+  });
+
   it('pointer translates middle and side buttons', async () => {
     const host = new CaptureHost();
     const capture = new SettingsCaptureController(host);

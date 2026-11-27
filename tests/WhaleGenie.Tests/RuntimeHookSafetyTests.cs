@@ -58,6 +58,26 @@ public class RuntimeHookSafetyTests
         Assert.Equal(ProjectTriggers.GroupKey(rule), match.GroupKey);
     }
 
+    [Fact]
+    public void A_number_pad_shortcut_is_matched_under_its_own_name()
+    {
+        var viewModel = new MainViewModel { IsRunning = true };
+        var rule = new WindowRule(Title: "target");
+        viewModel.Triggers.Entries.Add(new TriggerEntry
+        {
+            MacroName = "macro",
+            Spec = new InterfaceSpec(rule),
+        });
+        viewModel.Triggers.StoreInterfaceHotkey(rule, "NumPadSubtract");
+
+        var plan = Plan(viewModel);
+
+        Assert.Equal(GlobalHotkeyAction.ToggleInterfaceGroup,
+            plan.Match("NumPadSubtract", []).Action);
+        // The main-row minus is a different key, even though the browser reports it as "-".
+        Assert.Equal(GlobalHotkeyAction.None, plan.Match("-", []).Action);
+    }
+
     /// <summary>
     /// A file can hold the same group twice: an older row with the toggle key and a newer one
     /// written by the shared window form with none. The key was never cleared, so it still toggles

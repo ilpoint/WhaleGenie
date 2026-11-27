@@ -405,32 +405,7 @@ export class WgMacroSettings extends LitElement {
   }
 
   keyName(event: KeyboardEvent): string {
-    const parts: string[] = [];
-    if (event.ctrlKey) {
-      parts.push('Ctrl');
-    }
-
-    if (event.altKey) {
-      parts.push('Alt');
-    }
-
-    if (event.shiftKey) {
-      parts.push('Shift');
-    }
-
-    if (event.metaKey) {
-      parts.push('Win');
-    }
-
-    let key = event.key;
-    if (key === ' ') {
-      key = 'Space';
-    } else if (key.length === 1) {
-      key = key.toUpperCase();
-    }
-
-    parts.push(key);
-    return parts.join('+');
+    return keyboardChord(event) ?? '';
   }
 }
 
