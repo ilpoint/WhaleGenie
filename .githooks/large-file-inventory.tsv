@@ -74,7 +74,7 @@
 507	core/src/WhaleGenie.Core/Execution/SystemActions.cs	keep: 一类动作：机器事实、屏幕、环境、注册表、电源、声音与显示设置
 487	core/src/WhaleGenie.Core/Execution/UiaActions.cs	keep: 一类动作：找到元素、操作元素、读元素与读表格
 522	core/src/WhaleGenie.Core/Execution/FileActions.cs	keep: 一类动作：文本、单个文件、文件夹与归档、列表与变量快照
-353	core/src/WhaleGenie.Core/Execution/CaptureActions.cs	keep: 一类动作：截图、整窗截图与等屏幕静止共用同一次取图
+342	core/src/WhaleGenie.Core/Execution/CaptureActions.cs	keep: 一类动作：截图、整窗截图与等屏幕静止共用同一次取图
 544	core/src/WhaleGenie.Core/Execution/ColourActions.cs	keep: 一类动作：像素读色、比色与找色；图案解析属于找色本身
 446	core/src/WhaleGenie.Core/Execution/ImageActions.cs	keep: 一类动作：找图、等图与点图；参考图与命中规则已抽出
 379	core/src/WhaleGenie.Core/Execution/FileCsvActions.cs	keep: 一类动作：CSV 读写、列名与行筛选
