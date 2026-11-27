@@ -124,6 +124,47 @@ public class ColourNearnessTests
         Assert.Equal(0, at.Y);
     }
 
+    [Fact]
+    public void A_limit_of_none_asks_for_nothing_even_where_every_pixel_matches()
+    {
+        var frame = EveryDifference();
+
+        Assert.Empty(PixelSearch.Find(frame, Wanted, 100, 0));
+        Assert.Empty(PixelSearch.Find(frame, Wanted, 100, 0, surest: true));
+        Assert.Empty(PixelSearch.FindPattern(frame, Wanted, 100, [], 0));
+    }
+
+    [Fact]
+    public void A_limit_stops_the_walk_at_that_many()
+    {
+        var frame = EveryDifference();
+        var all = Plainly(frame, 100);
+
+        Assert.Equal(all.Take(1), PixelSearch.Find(frame, Wanted, 100, 1).Select(at => at.X));
+        Assert.Equal(all.Take(2), PixelSearch.Find(frame, Wanted, 100, 2).Select(at => at.X));
+
+        var nearest = Plainly(frame, 100)
+            .OrderBy(at => frame[at, 0].DistanceTo(Wanted))
+            .First();
+        Assert.Equal(nearest,
+            Assert.Single(PixelSearch.Find(frame, Wanted, 100, 1, surest: true)).X);
+    }
+
+    [Fact]
+    public void A_pattern_that_would_reach_outside_the_picture_is_not_a_hit()
+    {
+        // Two pixels of the colour, and the one asked for beside them on the left: the pixel at 1
+        // has it, the one at 0 does not because half of that pattern would be off the picture.
+        var frame = Picture("#FF0000,#3A7BC8");
+        var around = new List<ColourStep> { new(-1, 0, PixelColor.Parse("#FF0000")) };
+
+        Assert.Equal([1], PixelSearch.FindPattern(frame, Wanted, 5, around, 10).Select(at => at.X));
+
+        // The same below the last row: a hit would need a pixel that is not there.
+        var below = new List<ColourStep> { new(0, 1, PixelColor.Parse("#FF0000")) };
+        Assert.Empty(PixelSearch.FindPattern(Picture("#3A7BC8"), Wanted, 5, below, 10));
+    }
+
     /// <summary>A picture from rows of #RRGGBB colours, one string per row.</summary>
     private static ImageFrame Picture(params string[] rows)
     {
