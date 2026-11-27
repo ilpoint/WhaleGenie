@@ -9,7 +9,8 @@ namespace WhaleGenie.Tests;
 /// <summary>
 /// Which window an interface group's buttons belong to. A rule that names a window keeps them in that
 /// window while it is open — the buttons are in the target's layer, so whatever covers the target
-/// covers them — and only a rule that names nothing follows whatever is in front.
+/// covers them — but a different window that answers the same rule in front is the one being used
+/// now. Only a rule that names nothing follows whatever is in front regardless of the rule.
 /// </summary>
 public class InterfacePanelTargetTests
 {
@@ -47,6 +48,23 @@ public class InterfacePanelTargetTests
         var target = NativeSurfaceHost.TargetFor(Named("note"), null, windows);
 
         Assert.Equal(10, target?.Handle);
+    }
+
+    /// <summary>
+    /// Two documents of the same program answer the same rule. The one brought forward is the one
+    /// the buttons belong to; the first window in the listing must not keep them behind it.
+    /// </summary>
+    [Fact]
+    public void A_matching_window_in_front_takes_over_from_an_earlier_match()
+    {
+        var windows = new WindowsForChecks()
+            .Add(10, "note - first", "notepad", "Notepad")
+            .Add(20, "note - second", "notepad", "Notepad");
+        var second = windows.List().Single(window => window.Handle == 20);
+
+        var target = NativeSurfaceHost.TargetFor(Named("note"), second, windows);
+
+        Assert.Equal(20, target?.Handle);
     }
 
     [Fact]

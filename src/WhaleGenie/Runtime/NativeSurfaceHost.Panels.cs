@@ -297,6 +297,17 @@ internal sealed partial class NativeSurfaceHost
 
     private WindowInfo? SurfaceTargetFor(InterfaceGroupView group, WindowInfo? foreground)
     {
+        // A different window that answers the same rule is the window the person is looking at now:
+        // with two documents of the same program, the buttons belong to the one that was just
+        // brought forward, not to the first one the listing happened to return. Only a foreground
+        // that does not answer the rule leaves the held window in place.
+        if (group.Rule.HasTarget
+            && foreground is { Minimized: false } front
+            && ProjectTriggers.WindowRuleMatches(group.Rule, front, _devices.Windows))
+        {
+            return front;
+        }
+
         if (group.Rule.HasTarget
             && _surfaceTargets.TryGetValue(group.Key, out var held)
             && HeldTarget(held, _devices.Windows) is { } kept)
@@ -311,6 +322,8 @@ internal sealed partial class NativeSurfaceHost
     /// The window a group's buttons belong to. A rule that names a window keeps the group in that
     /// window while it is open — another program coming to the front does not take the buttons away,
     /// because the buttons are in the target's layer and the window now in front covers them with it.
+    /// But when the window in front is itself a window the rule answers, it is the one the buttons
+    /// belong to now: two documents of the same program should not leave the group on the one behind.
     /// A rule that names nothing follows whatever is in front, which is its whole meaning.
     /// </summary>
     internal static WindowInfo? TargetFor(WindowRule rule, WindowInfo? foreground,
@@ -323,6 +336,12 @@ internal sealed partial class NativeSurfaceHost
 
         try
         {
+            if (foreground is { Minimized: false } front
+                && ProjectTriggers.WindowRuleMatches(rule, front, windows))
+            {
+                return front;
+            }
+
             var reading = rule.Reading;
             return windows
                 .Filter(rule.MatchValue, reading.Match, reading.Compare, everyWhenEmpty: false,
