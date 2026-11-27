@@ -121,9 +121,12 @@ internal static class DelimitedFile
     public static string Named(string written) => written.Trim() switch
     {
         "semicolon" or ";" => ";",
-        "tab" or "\\t" or "\t" => "\t",
+
+        // The words, not the characters: a written tab or space is trimmed away before the switch
+        // sees it, so a literal one could never have matched here.
+        "tab" or "\\t" => "\t",
         "pipe" or "|" => "|",
-        "space" or " " => " ",
+        "space" => " ",
         "comma" or "," or "" or "auto" => ",",
         var literal when literal.Length == 1 => literal,
         _ => ",",
