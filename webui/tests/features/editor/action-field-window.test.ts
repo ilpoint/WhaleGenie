@@ -21,6 +21,7 @@ function windowTitleField(): EditorActionField {
     windowRuleSummary: '', regions: [], images: [], colours: [], colourPoints: [], keys: [],
     narrowRows: [], rows: [], macros: [], steps: [], candidates: [],
     windowPreview: null, imagePreview: null,
+    minimum: null, maximum: null, increment: 1, jitterPercent: null, emptyMeans: 'Zero',
   };
 }
 

@@ -57,11 +57,26 @@ export function renderEditor(host: ActionFieldHost, field: EditorActionField): T
       `;
     }
 
-    if (field.isMultiline || field.isCode) {
+    if (field.isPath) {
+      return html`
+        <div class="inline">
+          <wg-value-field .stepId=${host.stepId} .parameter=${field}></wg-value-field>
+          <button class="chip" type="button"
+            @click=${() => void host.pick(field.name, 'path')}>${t('Editor.Browse')}</button>
+        </div>
+        ${renderImagePreview(host, field.imagePreview)}
+      `;
+    }
+
+    if (field.isCode) {
       return html`
         <textarea .value=${field.value} placeholder=${field.placeholder}
           @change=${(event: Event) => host.write('text', (event.target as HTMLTextAreaElement).value)}></textarea>
       `;
+    }
+
+    if (field.isMultiline) {
+      return html`<wg-value-field .stepId=${host.stepId} .parameter=${field}></wg-value-field>`;
     }
 
     if (field.isWindow) {
@@ -161,18 +176,6 @@ export function renderEditor(host: ActionFieldHost, field: EditorActionField): T
       `;
     }
 
-    if (field.isPath) {
-      return html`
-        <div class="inline">
-          <input .value=${field.value}
-            @change=${(event: Event) => host.write('text', (event.target as HTMLInputElement).value)} />
-          <button class="chip" type="button"
-            @click=${() => void host.pick(field.name, 'path')}>${t('Editor.Browse')}</button>
-        </div>
-        ${renderImagePreview(host, field.imagePreview)}
-      `;
-    }
-
     if (field.isColor) {
       return html`
         <div class="inline">
@@ -186,8 +189,7 @@ export function renderEditor(host: ActionFieldHost, field: EditorActionField): T
     if (field.isSelector || field.isBrowserTarget) {
       return html`
         <div class="inline">
-          <input .value=${field.value}
-            @change=${(event: Event) => host.write('text', (event.target as HTMLInputElement).value)} />
+          <wg-value-field .stepId=${host.stepId} .parameter=${field}></wg-value-field>
           <button class="chip" type="button"
             @click=${() => void host.pick(field.name,
               field.isSelector ? 'element' : 'browser')}>${field.isSelector

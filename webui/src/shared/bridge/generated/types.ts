@@ -113,6 +113,7 @@ export interface EditorActionGlobalCommand {
   kind: 'global';
   field: string;
   value: string;
+  parts?: EditorValuePartSnapshot[] | null;
 }
 
 export interface EditorActionBranchCommand {
@@ -215,6 +216,11 @@ export interface EditorActionFieldSnapshot {
   candidates: EditorBrowserCandidateSnapshot[];
   windowPreview: EditorWindowPreviewSnapshot | null;
   imagePreview: EditorImagePreviewSnapshot | null;
+  minimum: number | null;
+  maximum: number | null;
+  increment: number;
+  jitterPercent: number | null;
+  emptyMeans: string;
 }
 
 export interface EditorActionFormSnapshot {
@@ -305,6 +311,8 @@ export interface EditorCallArgumentSnapshot {
   given: boolean;
   value: string;
   valueParts: EditorValuePartSnapshot[];
+  valueForm: string;
+  offersValue: boolean;
 }
 
 export interface EditorCatalogue {
@@ -398,6 +406,7 @@ export interface EditorDeclarationCommand {
   value?: string | null;
   fieldIndex?: number | null;
   offset?: number | null;
+  parts?: EditorValuePartSnapshot[] | null;
 }
 
 export interface EditorDocumentSaveResult {
@@ -428,6 +437,8 @@ export interface EditorGlobalDraftSnapshot {
   problem: string;
   hasError: boolean;
   types: EditorChoiceSnapshot[];
+  valueForm: string;
+  defaultParts: EditorValuePartSnapshot[];
 }
 
 export interface EditorGlobalSnapshot {
@@ -436,6 +447,8 @@ export interface EditorGlobalSnapshot {
   default: string;
   description: string;
   persisted: boolean;
+  valueForm: string;
+  defaultParts: EditorValuePartSnapshot[];
 }
 
 export interface EditorHotstringEndKeySnapshot {
@@ -490,6 +503,8 @@ export interface EditorMacroParameterSnapshot {
   default: string;
   description: string;
   fields: EditorMacroFieldSnapshot[];
+  valueForm: string;
+  defaultParts: EditorValuePartSnapshot[];
 }
 
 export interface EditorMacroResultSnapshot {
@@ -1042,6 +1057,11 @@ export interface EditorValueOpenCommand {
   conditionPath?: number[] | null;
   rowIndex?: number | null;
   column?: string | null;
+  argument?: string | null;
+  declarationIndex?: number | null;
+  globalDraft?: boolean | null;
+  variableFamily?: string | null;
+  variableName?: string | null;
 }
 
 export interface EditorValueKeyCommand {
@@ -1250,6 +1270,7 @@ export interface EditorVariableCommand {
   originalName?: string | null;
   field?: string | null;
   value?: string | null;
+  parts?: EditorValuePartSnapshot[] | null;
 }
 
 export interface EditorVariableSnapshot {
@@ -1259,6 +1280,8 @@ export interface EditorVariableSnapshot {
   description: string;
   source: string;
   isDeclared: boolean;
+  valueForm: string;
+  initialParts: EditorValuePartSnapshot[];
 }
 
 export interface EditorVariableTypeSnapshot {

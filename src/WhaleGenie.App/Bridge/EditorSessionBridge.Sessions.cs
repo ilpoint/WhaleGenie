@@ -198,7 +198,7 @@ internal sealed partial class EditorSessionBridge
                 session.AddCallableParameter();
                 break;
             case ("parameter", "patch"):
-                session.PatchCallableParameter(index, DeclarationField(command), value);
+                session.PatchCallableParameter(index, DeclarationField(command), value, command.Parts);
                 break;
             case ("parameter", "remove"):
                 session.RemoveCallableParameter(index);

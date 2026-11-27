@@ -1,10 +1,12 @@
 import { LitElement, css, html, nothing, type TemplateResult } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
+import type { EditorActionField, EditorGlobal, EditorVariable } from '../../shared/bridge/protocol.js';
 import { icon } from '../../shared/icons.js';
 import { t } from '../../shared/strings/strings.js';
 import { editor } from './editor-store.js';
 import { StoreController } from '../../shared/lit/store-controller.js';
 import { editorBase } from './editor-css.js';
+import './value-field.js';
 
 const dialogStyles = css`
   :host {
@@ -73,7 +75,8 @@ const dialogStyles = css`
   }
 
   .row-line input,
-  .row-line select {
+  .row-line select,
+  .row-line wg-value-field {
     min-width: 0;
     width: 100%;
   }
@@ -162,10 +165,8 @@ export class WgLocalVariables extends LitElement {
                   `)}
                 </select>
                 ${variable.isDeclared
-                  ? html`<input .value=${variable.initial}
-                      placeholder=${t('LocalVariables.InitialPlaceholder')}
-                      @change=${(event: Event) => void editor.variables.patchVariable(variable.name,
-                        'initial', (event.target as HTMLInputElement).value)} />`
+                  ? html`<wg-value-field .stepId=${''} .target=${'variable'}
+                      .variableFamily=${'local'} .parameter=${variableInitialField(variable)}></wg-value-field>`
                   : html`<span class="source">${variable.source}</span>`}
                 <input .value=${variable.description}
                   @change=${(event: Event) => void editor.variables.patchVariable(variable.name, 'description',
@@ -251,10 +252,8 @@ export class WgGlobalVariables extends LitElement {
                     <option value=${type.value}>${type.label}</option>
                   `)}
                 </select>
-                <input .value=${global.default}
-                  placeholder=${t('GlobalVariables.DefaultPlaceholder')}
-                  @change=${(event: Event) => void editor.variables.patchGlobal(global.name, 'default',
-                    (event.target as HTMLInputElement).value)} />
+                <wg-value-field .stepId=${''} .target=${'variable'}
+                  .variableFamily=${'global'} .parameter=${globalDefaultField(global)}></wg-value-field>
                 <input .value=${global.description}
                   @change=${(event: Event) => void editor.variables.patchGlobal(global.name, 'description',
                     (event.target as HTMLInputElement).value)} />
@@ -286,6 +285,40 @@ export class WgGlobalVariables extends LitElement {
     this.open = false;
     this.dispatchEvent(new CustomEvent('wg-close', { bubbles: true, composed: true }));
   }
+}
+
+function variableValueField(name: string, label: string, value: string,
+  parts: EditorActionField['parts']): EditorActionField {
+  return {
+    name, label, hint: '', kind: 'Text',
+    valueForm: 'Value', value, display: value, parts, options: [], columns: [], condition: null,
+    isApplicable: true, isDefault: false, isMissing: false, required: false, advanced: false,
+    group: '', groupLabel: '', offersValue: true, takesFormula: true, showsNameMark: false,
+    allowsNewName: false, isNumber: false, isNumberFormula: false, isDuration: false,
+    unit: '', unitLabel: '', durationUnits: [], isPercent: false, percentValue: 0,
+    channelNote: '', jitterRange: '', isMultiline: false, isCode: false, isColor: false,
+    colour: '', isPath: false, pathIntent: '', pathFilter: '', isKey: false, isKeys: false,
+    isSelector: false, isBrowserTarget: false, isImage: false, isImageList: false,
+    isRegion: false, isRegionList: false, isColourPoints: false, isColourRows: false,
+    isKeySequence: false, isNarrow: false, isWindow: false, isWindowRule: false,
+    isMacro: false, isStepChoice: false, isRecord: false, isPoint: false, isRect: false,
+    placeholder: t('LocalVariables.InitialPlaceholder'), hasToBeAnswered: false,
+    isFollowingWindow: false,
+    windowRuleSummary: '', regions: [], images: [], colours: [], colourPoints: [], keys: [],
+    narrowRows: [], rows: [], macros: [], steps: [], candidates: [], windowPreview: null,
+    imagePreview: null, minimum: null, maximum: null, increment: 1, jitterPercent: null,
+    emptyMeans: 'Zero',
+  } as unknown as EditorActionField;
+}
+
+function variableInitialField(variable: EditorVariable): EditorActionField {
+  return variableValueField(variable.name, t('LocalVariables.Initial'), variable.initial,
+    variable.initialParts);
+}
+
+function globalDefaultField(global: EditorGlobal): EditorActionField {
+  return variableValueField(global.name, t('GlobalVariables.Default'), global.default,
+    global.defaultParts);
 }
 
 declare global {

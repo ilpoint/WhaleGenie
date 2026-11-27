@@ -5,6 +5,7 @@ import { icon } from '../../shared/icons.js';
 import { t } from '../../shared/strings/strings.js';
 import { editor } from './editor-store.js';
 import { StoreController } from '../../shared/lit/store-controller.js';
+import { isTextEntryEvent } from '../../shared/input/typing.js';
 import { WindowEventController } from '../../shared/lit/window-event-controller.js';
 import { bridge } from '../../shared/bridge/bridge.js';
 import { go } from '../../shared/navigation/router.js';
@@ -253,10 +254,9 @@ export class WgEditor extends LitElement {
   }
 
   private onKeydown = (event: KeyboardEvent): void => {
-    const target = event.target;
-    const typing = target instanceof HTMLInputElement
-      || target instanceof HTMLTextAreaElement
-      || target instanceof HTMLSelectElement;
+    // A window listener sees the custom element, not the box inside its shadow root, so the
+    // composed path decides whether this key belongs to a text field.
+    const typing = isTextEntryEvent(event);
     if (!event.ctrlKey && !event.altKey) {
       if (typing) {
         return;

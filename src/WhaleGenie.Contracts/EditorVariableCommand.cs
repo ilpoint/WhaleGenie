@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 namespace WhaleGenie.Contracts;
 
 /// <summary>
@@ -12,4 +14,5 @@ public sealed record EditorVariableCommand(
     string? Name = null,
     string? OriginalName = null,
     string? Field = null,
-    string? Value = null);
+    string? Value = null,
+    IReadOnlyList<EditorValuePartSnapshot>? Parts = null);

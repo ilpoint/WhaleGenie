@@ -72,7 +72,9 @@ public sealed record EditorActionMetaCommand(string Field, string Value, string 
 
 /// <summary>Write one global-value field.</summary>
 [BridgeContract]
-public sealed record EditorActionGlobalCommand(string Field, string Value) : EditorActionCommand;
+public sealed record EditorActionGlobalCommand(
+    string Field, string Value, IReadOnlyList<EditorValuePartSnapshot>? Parts = null)
+    : EditorActionCommand;
 
 /// <summary>Add a branch to a conditional draft.</summary>
 [BridgeContract]

@@ -157,11 +157,16 @@ public partial class StepParameterViewModel : ViewModelBase
     /// <summary>
     /// True when this field has a value the one window can edit, whatever its reading. A long field
     /// is one of them: a note is text, a message is a run and a file body is a value, and all three
-    /// are typed in the same window.
+    /// are typed in the same window. Keys and percentages keep their own editors: a key is chosen
+    /// on the keyboard drawn on screen, and a percentage is dialled in rather than written as a
+    /// formula.
     /// </summary>
     public bool OffersValueWindow
-        => Definition.ValueForm is ActionValueForm.Text or ActionValueForm.Run
-            or ActionValueForm.Value;
+        => (Definition.ValueForm is ActionValueForm.Text or ActionValueForm.Run
+                or ActionValueForm.Value or ActionValueForm.Name)
+           && !IsKeyField
+           && !(Definition.Kind is ActionParameterKind.Number
+                && Definition.Unit == ActionUnit.Percent);
 
     /// <summary>
     /// True when the whole value written here is read as one rather than as text with the names in

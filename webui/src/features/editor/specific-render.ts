@@ -1,5 +1,6 @@
 import { html, nothing, type TemplateResult } from 'lit';
 import { t } from '../../shared/strings/strings.js';
+import { keyboardChord } from '../../shared/input/capture.js';
 import { editor } from './editor-store.js';
 import { renderDeclarations } from './declarations/declarations.js';
 
@@ -34,9 +35,20 @@ export function renderSpecific(): TemplateResult {
             <div class="group">
               <h3>${t('Editor.ToggleKey')}</h3>
               <div class="inline">
-                <input .value=${snapshot.toggleKey} data-setting="toggleKey"
-                  @change=${(event: Event) => void editor.session.setMacroSetting('toggleKey',
-                    (event.target as HTMLInputElement).value)} />
+                <input .value=${snapshot.toggleKey} data-setting="toggleKey" readonly
+                  title=${t('Add.SetCombination')}
+                  placeholder=${t('Common.None')}
+                  @keydown=${(event: KeyboardEvent) => {
+                    if (['Control', 'Shift', 'Alt', 'Meta'].includes(event.key)) {
+                      return;
+                    }
+
+                    const binding = keyboardChord(event);
+                    if (binding) {
+                      event.preventDefault();
+                      void editor.session.setMacroSetting('toggleKey', binding);
+                    }
+                  }} />
                 <button class="link-button" type="button"
                   @click=${() => void editor.session.setMacroSetting('toggleKey', '')}>
                   ${t('Settings.HotkeyClear')}

@@ -58,7 +58,7 @@ export class WgActionField extends LitElement {
     .hint { color: var(--colorNeutralForeground3); font-size: var(--fontSizeBase100); white-space: pre-line; }
     .missing { color: var(--colorStatusDangerForeground1); }
     .inline { display: flex; gap: var(--spacingHorizontalXS); align-items: center; min-width: 0; }
-    .inline > input, .inline > select { flex: 1; min-width: 0; }
+    .inline > input, .inline > select, .inline > wg-value-field { flex: 1; min-width: 0; }
     input, select, textarea { min-width: 0; }
     textarea { min-height: 68px; resize: vertical; }
     .condition { display: grid; gap: var(--spacingVerticalXS); }

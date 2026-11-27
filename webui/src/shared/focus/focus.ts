@@ -1,4 +1,5 @@
 import { bridge } from '../bridge/bridge.js';
+import { isTextEntryEvent } from '../input/typing.js';
 import { windowCommand } from '../window/window-kind.js';
 
 /**
@@ -12,20 +13,6 @@ import { windowCommand } from '../window/window-kind.js';
 
 let reported = false;
 
-function isTextField(target: EventTarget | null): boolean {
-  const element = target as HTMLElement | null;
-  if (!element || typeof element.tagName !== 'string') {
-    return false;
-  }
-
-  const tag = element.tagName;
-  return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || element.isContentEditable;
-}
-
-function onTextField(event: Event): boolean {
-  return event.composedPath().some((target) => isTextField(target));
-}
-
 function report(next: boolean): void {
   if (next === reported) {
     return;
@@ -38,10 +25,10 @@ function report(next: boolean): void {
 }
 
 export function installFocusReporting(): void {
-  document.addEventListener('pointerdown', (event) => report(onTextField(event)), true);
-  document.addEventListener('focusin', (event) => report(onTextField(event)), true);
+  document.addEventListener('pointerdown', (event) => report(isTextEntryEvent(event)), true);
+  document.addEventListener('focusin', (event) => report(isTextEntryEvent(event)), true);
   document.addEventListener('keydown', (event) => {
-    if (!reported && onTextField(event)) {
+    if (!reported && isTextEntryEvent(event)) {
       report(true);
     }
   }, true);

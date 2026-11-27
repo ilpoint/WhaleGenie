@@ -18,7 +18,54 @@ public class HeadlessActionSessionTests
     }
 
     private static EditorActionFieldSnapshot Field(EditorActionFormSnapshot form, string name)
-        => form.Rows.SelectMany(row => row.Cells).First(field => field.Name == name);
+        => form.Rows.Concat(form.AdvancedRows).SelectMany(row => row.Cells)
+            .First(field => field.Name == name);
+
+
+    [Fact]
+    public void A_step_duration_is_read_in_the_unit_beside_it()
+    {
+        var session = Open(out _);
+        session.OpenActionDraft("control.delay");
+        session.ActionForm.PatchMeta("timeoutMs", "2", "s");
+
+        var timeout = session.ActionFormState().Meta.Timeout;
+        Assert.Equal(2000, timeout.Milliseconds);
+        Assert.Equal("s", timeout.Unit);
+    }
+
+    [Fact]
+    public void A_name_field_offers_the_value_window()
+    {
+        var session = Open(out _);
+        var form = session.OpenActionDraft("control.setVariable");
+        var field = Field(form, "name");
+
+        Assert.Equal("Name", field.ValueForm);
+        Assert.True(field.OffersValue);
+    }
+
+    [Fact]
+    public void A_percent_number_does_not_offer_the_value_window()
+    {
+        var session = Open(out _);
+        var form = session.OpenActionDraft("vision.findImage");
+        var field = Field(form, "tolerance");
+
+        Assert.True(field.IsPercent);
+        Assert.False(field.OffersValue);
+    }
+
+    [Fact]
+    public void A_decimal_number_survives_the_number_edit()
+    {
+        var session = Open(out _);
+        var form = session.OpenActionDraft("vision.findImage");
+        session.ActionForm.PatchField("tolerance", "number", "12.5");
+
+        var after = Field(session.ActionFormState(), "tolerance");
+        Assert.Equal("12.5", after.Value);
+    }
 
     [Fact]
     public void Execution_settings_are_written_into_the_step_meta()

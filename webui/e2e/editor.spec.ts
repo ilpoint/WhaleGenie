@@ -519,6 +519,17 @@ test('条件参数按行编辑', async ({ page }) => {
   await closeStepEditor(page);
 });
 
+
+test('输入框里的退格只退字，不删步骤', async ({ page }) => {
+  await openEditor(page);
+  const before = await page.locator('wg-step-tree .row').count();
+  const name = page.locator('wg-macro-settings input[data-field="name"]');
+  await name.fill('我的宏');
+  await name.press('Backspace');
+  await expect(name).toHaveValue('我的');
+  expect(await page.locator('wg-step-tree .row').count()).toBe(before);
+});
+
 test('宏设置改名并保存，页签跟着改名', async ({ page }) => {
   await openEditor(page);
   const name = page.locator('wg-macro-settings [data-field="name"]');
@@ -542,8 +553,8 @@ test('专属设置可改输入限制与启停键', async ({ page }) => {
   await limit.fill('30');
   await limit.press('Tab');
   const toggle = page.locator('wg-macro-settings [data-setting="toggleKey"]');
-  await toggle.fill('F8');
-  await toggle.press('Tab');
+  await toggle.click();
+  await toggle.press('F8');
   await expect
     .poll(() => called(page, 'editor.session', { kind: 'macroSetting' }))
     .toBe(true);
@@ -730,6 +741,7 @@ test('截图动作的图片路径显示预览', async ({ page }) => {
   await addStep(page, '基础动作', '截图');
   await openStepEditor(page, '截图');
   const field = page.locator('wg-action-editor .param[data-parameter="path"]');
+  await field.locator('button', { hasText: '浏览' }).click();
   await expect(field.locator('img')).toBeVisible();
   await expect(field.locator('img')).toHaveAttribute('src', /^data:image\/png;base64,/);
   await closeStepEditor(page);

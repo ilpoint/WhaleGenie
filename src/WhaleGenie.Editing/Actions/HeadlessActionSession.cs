@@ -76,13 +76,23 @@ internal sealed partial class HeadlessActionSession
                 if (decimal.TryParse(value.Trim(), NumberStyles.Number, CultureInfo.InvariantCulture,
                         out var number))
                 {
-                    parameter.SetNumber((int)decimal.Round(number));
+                    parameter.SetNumber(number);
                 }
                 else
                 {
                     parameter.WriteValue(Formula.Nothing);
                 }
 
+                break;
+            case "unit":
+                parameter.Unit = parameter.DurationUnits.FirstOrDefault(unit =>
+                    string.Equals(unit.Key, value, StringComparison.Ordinal)) ?? parameter.Unit;
+                break;
+            case "jitter":
+                parameter.JitterPercent = decimal.TryParse(value.Trim(), NumberStyles.Number,
+                    CultureInfo.InvariantCulture, out var jitter)
+                    ? jitter
+                    : null;
                 break;
             case "bool":
                 parameter.Flag = string.Equals(value, "true", StringComparison.OrdinalIgnoreCase);
@@ -341,8 +351,7 @@ internal sealed partial class HeadlessActionSession
                 _form.MetaComment = value;
                 break;
             case "timeoutMs":
-                _form.MetaTimeout.Load(Whole(value));
-                SetUnit(_form.MetaTimeout, unit);
+                SetDuration(_form.MetaTimeout, value, unit);
                 break;
             case "retryCount":
                 _form.MetaRetryCount = decimal.TryParse(value.Trim(), NumberStyles.Integer,
@@ -351,16 +360,13 @@ internal sealed partial class HeadlessActionSession
                     : null;
                 break;
             case "retryDelayMs":
-                _form.MetaRetryDelay.Load(Whole(value));
-                SetUnit(_form.MetaRetryDelay, unit);
+                SetDuration(_form.MetaRetryDelay, value, unit);
                 break;
             case "delayBeforeMs":
-                _form.MetaDelayBefore.Load(Whole(value));
-                SetUnit(_form.MetaDelayBefore, unit);
+                SetDuration(_form.MetaDelayBefore, value, unit);
                 break;
             case "delayAfterMs":
-                _form.MetaDelayAfter.Load(Whole(value));
-                SetUnit(_form.MetaDelayAfter, unit);
+                SetDuration(_form.MetaDelayAfter, value, unit);
                 break;
             case "retryBackoff":
                 _form.MetaRetryBackoff = _form.BackoffChoices.First(choice => choice.Value == value);
@@ -378,7 +384,8 @@ internal sealed partial class HeadlessActionSession
         return Snapshot();
     }
 
-    public EditorActionFormSnapshot PatchGlobal(string field, string value)
+    public EditorActionFormSnapshot PatchGlobal(string field, string value,
+        IReadOnlyList<EditorValuePartSnapshot>? parts = null)
     {
         if (_form.GlobalVariableDraft is not { } draft)
         {
@@ -396,7 +403,9 @@ internal sealed partial class HeadlessActionSession
                     : draft.Type;
                 break;
             case "default":
-                draft.Default = Formula.Text(value);
+                draft.Default = parts is { Count: > 0 }
+                    ? EditorValueParts.ShapeOf(parts)
+                    : Formula.Text(value);
                 break;
             case "description":
                 draft.Description = value;
@@ -530,6 +539,15 @@ internal sealed partial class HeadlessActionSession
         => decimal.TryParse(value.Trim(), NumberStyles.Number, CultureInfo.InvariantCulture, out var number)
             ? number
             : null;
+
+    private static void SetDuration(DurationSettingViewModel setting, string value, string unit)
+    {
+        SetUnit(setting, unit);
+        setting.Value = decimal.TryParse(value.Trim(), NumberStyles.Number,
+            CultureInfo.InvariantCulture, out var number) && number != 0m
+            ? number
+            : null;
+    }
 
     private static void SetUnit(DurationSettingViewModel setting, string unit)
     {

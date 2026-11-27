@@ -19,7 +19,12 @@ public sealed record EditorValueOpenCommand(
     string? ConditionField = null,
     int[]? ConditionPath = null,
     int? RowIndex = null,
-    string? Column = null) : EditorValueCommand;
+    string? Column = null,
+    string? Argument = null,
+    int? DeclarationIndex = null,
+    bool? GlobalDraft = null,
+    string? VariableFamily = null,
+    string? VariableName = null) : EditorValueCommand;
 
 /// <summary>One keystroke in the picker: a token, name, sign or typed text.</summary>
 [BridgeContract]

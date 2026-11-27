@@ -5,8 +5,10 @@ import { t } from '../../shared/strings/strings.js';
 import { editor } from './editor-store.js';
 import { StoreController } from '../../shared/lit/store-controller.js';
 import { WindowEventController } from '../../shared/lit/window-event-controller.js';
+import type { EditorActionField, EditorCallArgument } from '../../shared/bridge/protocol.js';
 import { editorBase } from './editor-css.js';
 import './action-page.js';
+import './value-field.js';
 import './action-exec.js';
 import './action-other.js';
 import './action-returns.js';
@@ -226,6 +228,28 @@ export class WgActionEditor extends LitElement {
     `;
   }
 
+  private callArgumentField(argument: EditorCallArgument): EditorActionField {
+    return {
+      name: argument.name, label: argument.name, hint: argument.hint, kind: 'Text',
+      valueForm: 'Value', value: argument.value, display: argument.value, parts: argument.valueParts,
+      options: [], columns: [], condition: null, isApplicable: true, isDefault: false, isMissing: false,
+      required: argument.required, advanced: false, group: '', groupLabel: '', offersValue: true,
+      takesFormula: true, showsNameMark: false, allowsNewName: false, isNumber: false,
+      isNumberFormula: false, isDuration: false, unit: '', unitLabel: '', durationUnits: [],
+      isPercent: false, percentValue: 0, channelNote: '', jitterRange: '', isMultiline: false,
+      isCode: false, isColor: false, colour: '', isPath: false, pathIntent: '', pathFilter: '',
+      isKey: false, isKeys: false, isSelector: false, isBrowserTarget: false, isImage: false,
+      isImageList: false, isRegion: false, isRegionList: false, isColourPoints: false,
+      isColourRows: false, isKeySequence: false, isNarrow: false, isWindow: false,
+      isWindowRule: false, isMacro: false, isStepChoice: false, isRecord: false, isPoint: false,
+      isRect: false, placeholder: '', hasToBeAnswered: false, isFollowingWindow: false,
+      windowRuleSummary: '', regions: [], images: [], colours: [], colourPoints: [], keys: [],
+      narrowRows: [], rows: [], macros: [], steps: [], candidates: [], windowPreview: null,
+      imagePreview: null, minimum: null, maximum: null, increment: 1, jitterPercent: null,
+      emptyMeans: 'Zero',
+    } as unknown as EditorActionField;
+  }
+
   private renderBase(form: NonNullable<ReturnType<typeof editor.get>['actionForm']>): TemplateResult {
     return html`
       <label class="block">
@@ -254,11 +278,8 @@ export class WgActionEditor extends LitElement {
               ${form.callArguments.map((argument) => html`
                 <div class="call-line">
                   <span class="name">${argument.name}${argument.required ? ' *' : ''}</span>
-                  <input type="text" .value=${argument.value}
-                    ?disabled=${argument.given}
-                    @change=${(event: Event) => void editor.action.patchActionCallArgument(argument.name, {
-                      value: (event.target as HTMLInputElement).value,
-                    })} />
+                  <wg-value-field .stepId=${''} .target=${'argument'}
+                    .parameter=${this.callArgumentField(argument)}></wg-value-field>
                   <label class="inline">
                     <input type="checkbox" .checked=${argument.given}
                       @change=${(event: Event) => void editor.action.patchActionCallArgument(argument.name, {

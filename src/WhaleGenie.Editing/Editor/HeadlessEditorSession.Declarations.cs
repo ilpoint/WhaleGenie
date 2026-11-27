@@ -25,7 +25,9 @@ internal sealed partial class HeadlessEditorSession
             parameter.Required,
             Formula.Word(parameter.Default),
             parameter.Description,
-            FieldSnapshots(parameter.Fields)))];
+            FieldSnapshots(parameter.Fields),
+            ActionValueForm.Value.ToString(),
+            EditorValueParts.Of(parameter.Default)))];
 
     public IReadOnlyList<EditorMacroResultSnapshot> CallableResults
         => [.. _model.DeclaredResults.Select(result => new EditorMacroResultSnapshot(
@@ -44,7 +46,8 @@ internal sealed partial class HeadlessEditorSession
         _model.IsDirty = true;
     }
 
-    public void PatchCallableParameter(int index, string field, string value)
+    public void PatchCallableParameter(int index, string field, string value,
+        IReadOnlyList<EditorValuePartSnapshot>? parts = null)
     {
         if (index < 0 || index >= _model.DeclaredParameters.Count)
         {
@@ -64,7 +67,9 @@ internal sealed partial class HeadlessEditorSession
                 parameter.Required = bool.TryParse(value, out var required) && required;
                 break;
             case "default":
-                parameter.Default = Formula.Text(value);
+                parameter.Default = parts is { Count: > 0 }
+                    ? EditorValueParts.ShapeOf(parts)
+                    : Formula.Text(value);
                 break;
             case "description":
                 parameter.Description = value;

@@ -1,15 +1,15 @@
 import { LitElement, css, html, nothing } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
-import type { EditorValueField } from '../../shared/bridge/protocol.js';
+import type { EditorActionField } from '../../shared/bridge/protocol.js';
 import { t } from '../../shared/strings/strings.js';
 import { editor } from './editor-store.js';
 import { editorBase } from './editor-css.js';
 
 /**
  * One value field in its native shape: the display lives inside a bordered box and the picker is
- * a chip on that box's right edge, never a second row underneath it. Plain text, names, colours
- * and multi-line values are read-only here because their shape is built in the token window; a
- * number can still be typed and carries the same chip at its edge.
+ * a chip on that box's right edge, never a second row underneath it. Every value form — text,
+ * run, whole value and bare name — is read-only here because its shape is built in the token
+ * window; a number can still be typed and carries the same chip at its edge.
  */
 @customElement('wg-value-field')
 export class WgValueField extends LitElement {
@@ -17,7 +17,17 @@ export class WgValueField extends LitElement {
   stepId = '';
 
   @property({ attribute: false })
-  parameter!: EditorValueField;
+  parameter!: EditorActionField;
+
+  /** What the chip opens: a field of the action form or one argument of a macro call. */
+  @property({ attribute: false })
+  target: 'field' | 'argument' | 'declaration' | 'global' | 'variable' = 'field';
+
+  @property({ attribute: false })
+  declarationIndex = -1;
+
+  @property({ attribute: false })
+  variableFamily: 'local' | 'global' = 'local';
 
   static styles = [editorBase, css`
     :host {
@@ -100,6 +110,18 @@ export class WgValueField extends LitElement {
       margin-right: var(--spacingHorizontalXS);
     }
 
+    .number-wrap {
+      display: flex;
+      align-items: center;
+      gap: var(--spacingHorizontalXS);
+      min-width: 0;
+    }
+
+    .number-wrap .shell {
+      flex: 1;
+      min-width: 0;
+    }
+
     input.number {
       width: 100%;
       min-width: 0;
@@ -118,6 +140,30 @@ export class WgValueField extends LitElement {
     input.number::-webkit-inner-spin-button {
       margin: 0;
       -webkit-appearance: none;
+    }
+
+    select.unit {
+      flex: none;
+      width: 94px;
+      min-width: 0;
+    }
+
+    input.slider {
+      width: 100%;
+      margin-top: 4px;
+    }
+
+    .jitter {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      margin-top: 3px;
+      color: var(--colorNeutralForeground3);
+      font-size: var(--fontSizeBase100);
+    }
+
+    .jitter input {
+      width: 72px;
     }
 
     .chip {
@@ -157,17 +203,50 @@ export class WgValueField extends LitElement {
   `];
 
   private openPicker(): void {
+    if (this.target === 'argument') {
+      void editor.value.openCallArgument(this.parameter.name);
+      return;
+    }
+
+    if (this.target === 'declaration') {
+      void editor.value.openDeclaration(this.declarationIndex);
+      return;
+    }
+
+    if (this.target === 'global') {
+      void editor.value.openGlobal();
+      return;
+    }
+
+    if (this.target === 'variable') {
+      void editor.value.openVariable(this.variableFamily, this.parameter.name);
+      return;
+    }
+
     void editor.value.openValue(this.stepId, this.parameter.name);
   }
 
   private patchNumber(event: Event): void {
     const value = (event.target as HTMLInputElement).value;
-    void editor.steps.patchParameter(this.stepId, this.parameter.name, value);
+    void editor.action.patchActionField(this.parameter.name, 'number', value);
   }
 
-  render() {
-    const parameter = this.parameter;
-    const chip = parameter.offersValue
+  private patchUnit(event: Event): void {
+    const value = (event.target as HTMLSelectElement).value;
+    void editor.action.patchActionField(this.parameter.name, 'unit', value);
+  }
+
+  private patchJitter(event: Event): void {
+    const value = (event.target as HTMLInputElement).value;
+    void editor.action.patchActionField(this.parameter.name, 'jitter', value);
+  }
+
+  private patchPercent(value: string): void {
+    void editor.action.patchActionField(this.parameter.name, 'number', value);
+  }
+
+  private chip() {
+    return this.parameter.offersValue
       ? html`
           <button class="chip" type="button" title=${t('Add.ValueHint')}
             @click=${() => this.openPicker()}>
@@ -175,18 +254,48 @@ export class WgValueField extends LitElement {
           </button>
         `
       : nothing;
+  }
 
-    if (parameter.isNumber && !parameter.isNumberFormula) {
-      return html`
+  private renderNumber(parameter: EditorActionField, chip: ReturnType<WgValueField['chip']>) {
+    return html`
+      <div class="number-wrap">
         <div class="shell">
           <input class="number" type="number" .value=${parameter.display || parameter.value}
+            min=${parameter.minimum === null ? nothing : String(parameter.minimum)}
+            max=${parameter.maximum === null ? nothing : String(parameter.maximum)}
+            step=${String(parameter.increment)}
             aria-label=${parameter.label}
             @change=${(event: Event) => this.patchNumber(event)} />
           ${chip}
         </div>
-      `;
-    }
+        ${parameter.isDuration && parameter.durationUnits.length > 0
+          ? html`<select class="unit" aria-label=${parameter.unitLabel}
+              .value=${parameter.unit}
+              @change=${(event: Event) => this.patchUnit(event)}>
+              ${parameter.durationUnits.map((unit) => html`
+                <option value=${unit.value}>${unit.label}</option>`)}
+            </select>`
+          : nothing}
+      </div>
+      ${parameter.isPercent
+        ? html`<input class="slider" type="range" min="0" max="100" step="0.1"
+            .value=${String(parameter.percentValue)}
+            aria-label=${parameter.label}
+            @input=${(event: Event) => this.patchPercent((event.target as HTMLInputElement).value)} />`
+        : nothing}
+      ${parameter.isDuration
+        ? html`<label class="jitter">
+            <span>±</span>
+            <input type="number" min="0" max="100" step="1"
+              .value=${parameter.jitterPercent === null ? '' : String(parameter.jitterPercent)}
+              @change=${(event: Event) => this.patchJitter(event)} />
+            <span>%</span>
+          </label>`
+        : nothing}
+    `;
+  }
 
+  private renderDisplay(parameter: EditorActionField, chip: ReturnType<WgValueField['chip']>) {
     const parts = parameter.parts ?? [];
     return html`
       <div class="shell readonly ${parameter.isMultiline ? 'multiline' : ''}">
@@ -206,6 +315,14 @@ export class WgValueField extends LitElement {
         ${chip}
       </div>
     `;
+  }
+
+  render() {
+    const parameter = this.parameter;
+    const chip = this.chip();
+    return parameter.isNumber && !parameter.isNumberFormula
+      ? this.renderNumber(parameter, chip)
+      : this.renderDisplay(parameter, chip);
   }
 }
 

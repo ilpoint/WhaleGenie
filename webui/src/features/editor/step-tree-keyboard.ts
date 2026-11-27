@@ -1,3 +1,4 @@
+import { isTextEntryEvent } from '../../shared/input/typing.js';
 import { editor } from './editor-store.js';
 import { findStep } from './editor-model.js';
 
@@ -7,8 +8,7 @@ export interface StepTreeKeyboardHost {
 }
 
 export function handleStepTreeKeydown(host: StepTreeKeyboardHost, event: KeyboardEvent): void {
-    if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement
-        || event.target instanceof HTMLSelectElement) {
+    if (isTextEntryEvent(event)) {
       return;
     }
 

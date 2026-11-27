@@ -222,11 +222,19 @@ export class WgActionRows extends LitElement {
         <input type="color" .value=${/^#[0-9a-f]{6}$/i.test(row.colour) ? row.colour : '#000000'}
           @input=${(event: Event) => void editor.action.patchActionRow(
             field.name, index, 'colour', (event.target as HTMLInputElement).value)} />
-        <input .value=${row.colour} @change=${(event: Event) => void editor.action.patchActionRow(
-          field.name, index, 'colour', (event.target as HTMLInputElement).value)} />
-        <input type="number" min="0" .value=${row.tolerance}
-          @change=${(event: Event) => void editor.action.patchActionRow(
-            field.name, index, 'tolerance', (event.target as HTMLInputElement).value)} />
+        <div class="cell">
+          <input .value=${row.colour} @change=${(event: Event) => void editor.action.patchActionRow(
+            field.name, index, 'colour', (event.target as HTMLInputElement).value)} />
+          <button class="chip" type="button"
+            @click=${() => void editor.value.openRowValue(this.stepId, field.name, index, 'colour')}>ƒ</button>
+        </div>
+        <div class="cell">
+          <input type="number" min="0" .value=${row.tolerance}
+            @change=${(event: Event) => void editor.action.patchActionRow(
+              field.name, index, 'tolerance', (event.target as HTMLInputElement).value)} />
+          <button class="chip" type="button"
+            @click=${() => void editor.value.openRowValue(this.stepId, field.name, index, 'tolerance')}>ƒ</button>
+        </div>
         <button class="chip" type="button"
           @click=${() => void editor.action.removeActionRow(field.name, index)}>×</button>
       </div>
@@ -256,17 +264,27 @@ export class WgActionRows extends LitElement {
         <div class="cell">
           <input .value=${row.keys} @change=${(event: Event) => void editor.action.patchActionRow(
             field.name, index, 'keys', (event.target as HTMLInputElement).value)} />
+          <button class="chip" type="button"
+            @click=${() => void editor.value.openRowValue(this.stepId, field.name, index, 'keys')}>ƒ</button>
           <button class="chip" type="button" title=${t('Add.OpenKeyPadHint')}
             @click=${() => void this.openPad(index)}>⌨</button>
           <button class="chip" type="button" title=${t('Add.CaptureKeyHint')}
             @click=${() => this.beginCapture(index)}>⌨+</button>
         </div>
-        <input type="number" min="0" .value=${row.hold}
-          @change=${(event: Event) => void editor.action.patchActionRow(
-            field.name, index, 'hold', (event.target as HTMLInputElement).value)} />
-        <input type="number" min="0" .value=${row.gap}
-          @change=${(event: Event) => void editor.action.patchActionRow(
-            field.name, index, 'gap', (event.target as HTMLInputElement).value)} />
+        <div class="cell">
+          <input type="number" min="0" .value=${row.hold}
+            @change=${(event: Event) => void editor.action.patchActionRow(
+              field.name, index, 'hold', (event.target as HTMLInputElement).value)} />
+          <button class="chip" type="button"
+            @click=${() => void editor.value.openRowValue(this.stepId, field.name, index, 'hold')}>ƒ</button>
+        </div>
+        <div class="cell">
+          <input type="number" min="0" .value=${row.gap}
+            @change=${(event: Event) => void editor.action.patchActionRow(
+              field.name, index, 'gap', (event.target as HTMLInputElement).value)} />
+          <button class="chip" type="button"
+            @click=${() => void editor.value.openRowValue(this.stepId, field.name, index, 'gap')}>ƒ</button>
+        </div>
         <button class="chip" type="button"
           @click=${() => void editor.action.removeActionRow(field.name, index)}>×</button>
       </div>
@@ -318,9 +336,13 @@ export class WgActionRows extends LitElement {
           field.name, index, 'how', (event.target as HTMLSelectElement).value)}>
           ${row.ways.map((way) => html`<option value=${way.value}>${way.label}</option>`)}
         </select>
-        <input .value=${row.value} ?disabled=${!row.needsValue}
-          @change=${(event: Event) => void editor.action.patchActionRow(
-            field.name, index, 'value', (event.target as HTMLInputElement).value)} />
+        <div class="cell">
+          <input .value=${row.value} ?disabled=${!row.needsValue}
+            @change=${(event: Event) => void editor.action.patchActionRow(
+              field.name, index, 'value', (event.target as HTMLInputElement).value)} />
+          <button class="chip" type="button" ?disabled=${!row.needsValue}
+            @click=${() => void editor.value.openRowValue(this.stepId, field.name, index, 'value')}>ƒ</button>
+        </div>
         <span class="count">${row.count}</span>
         <button class="chip" type="button" title=${t('Add.NarrowLookHint')}
           @click=${() => void editor.action.testNarrow(field.name, index)}>⌕</button>

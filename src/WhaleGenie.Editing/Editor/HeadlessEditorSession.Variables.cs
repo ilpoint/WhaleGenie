@@ -36,7 +36,8 @@ internal sealed partial class HeadlessEditorSession
         _model.IsDirty = true;
     }
 
-    public void PatchGlobal(string originalName, string field, string value)
+    public void PatchGlobal(string originalName, string field, string value,
+        IReadOnlyList<EditorValuePartSnapshot>? parts = null)
     {
         var draft = EnsureGlobalDraft();
         var entry = draft.FirstOrDefault(candidate => string.Equals(
@@ -58,7 +59,9 @@ internal sealed partial class HeadlessEditorSession
                 entry.Variable.Type = WhaleGenie.Models.VariableTypes.KindOf(value);
                 break;
             case "default":
-                entry.Variable.Default = Formula.Text(value);
+                entry.Variable.Default = parts is { Count: > 0 }
+                    ? EditorValueParts.ShapeOf(parts)
+                    : Formula.Text(value);
                 break;
             case "description":
                 entry.Variable.Description = value;
@@ -147,7 +150,8 @@ internal sealed partial class HeadlessEditorSession
         _model.IsDirty = true;
     }
 
-    public void PatchVariable(string originalName, string field, string value)
+    public void PatchVariable(string originalName, string field, string value,
+        IReadOnlyList<EditorValuePartSnapshot>? parts = null)
     {
         var local = _model.DeclaredLocals.FirstOrDefault(candidate =>
             string.Equals(candidate.Name.Trim(), originalName.Trim(), StringComparison.Ordinal))
@@ -165,7 +169,9 @@ internal sealed partial class HeadlessEditorSession
                 local.Type = WhaleGenie.Models.VariableTypes.KindOf(value);
                 break;
             case "initial":
-                local.Initial = Formula.Text(value);
+                local.Initial = parts is { Count: > 0 }
+                    ? EditorValueParts.ShapeOf(parts)
+                    : Formula.Text(value);
                 break;
             case "description":
                 local.Description = value;
@@ -194,7 +200,9 @@ internal sealed partial class HeadlessEditorSession
                 Formula.Word(local.Initial),
                 local.Description,
                 Strings.Get("LocalVariables.Declared"),
-                true)),
+                true,
+                ActionValueForm.Value.ToString(),
+                EditorValueParts.Of(local.Initial))),
             .. _model.CollectVariables()
                 .Where(choice => choice.Origin == VariableOrigin.Local)
                 .OrderBy(choice => choice.Name, StringComparer.OrdinalIgnoreCase)
@@ -204,7 +212,9 @@ internal sealed partial class HeadlessEditorSession
                     string.Empty,
                     choice.Description,
                     choice.Source,
-                    false)),
+                    false,
+                    ActionValueForm.Value.ToString(),
+                    [])),
         ];
 
     public IReadOnlyList<EditorValueChoiceSnapshot> ValueChoices
@@ -238,6 +248,8 @@ internal sealed partial class HeadlessEditorSession
                 WhaleGenie.Models.VariableTypes.Name(variable.Type),
                 Formula.Word(variable.Default),
                 variable.Description,
-                variable.PersistValue))];
+                variable.PersistValue,
+                ActionValueForm.Value.ToString(),
+                EditorValueParts.Of(variable.Default)))];
 
 }

@@ -24,6 +24,7 @@ export class WgActionExec extends LitElement {
     .field > span { color: var(--colorNeutralForeground2); font-size: var(--fontSizeBase200); }
     .inline { display: flex; gap: var(--spacingHorizontalXS); align-items: center; }
     .inline input { flex: 1; min-width: 0; }
+    .inline.duration select { flex: none; width: 92px; min-width: 0; }
     .plan { color: var(--colorNeutralForeground3); font-size: var(--fontSizeBase100); }
     .warn { color: var(--colorStatusWarningForeground1); font-size: var(--fontSizeBase100); }
     .rule { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 3px; }
@@ -76,10 +77,14 @@ export class WgActionExec extends LitElement {
     return html`
       <label class="field">
         <span>${label}</span>
-        <div class="inline">
-          <input type="number" min="0" .value=${String(duration.milliseconds)}
-            @change=${(event: Event) => this.meta(field, (event.target as HTMLInputElement).value)} />
-          <span class="plan">${t('Editor.Milliseconds')}</span>
+        <div class="inline duration">
+          <input type="number" min="0" .value=${duration.written || String(duration.milliseconds)}
+            @change=${(event: Event) => this.metaFromDuration(field, event)} />
+          <select .value=${duration.unit} aria-label=${t('Editor.Milliseconds')}
+            @change=${(event: Event) => this.metaFromDuration(field, event)}>
+            ${duration.units.map((unit) => html`
+              <option value=${unit.value}>${unit.label}</option>`)}
+          </select>
         </div>
       </label>
     `;
@@ -93,6 +98,13 @@ export class WgActionExec extends LitElement {
         <span>${label}</span>
       </label>
     `;
+  }
+
+  private metaFromDuration(field: string, event: Event): void {
+    const row = (event.target as HTMLElement).closest('.duration');
+    const value = row?.querySelector<HTMLInputElement>('input')?.value ?? '';
+    const unit = row?.querySelector<HTMLSelectElement>('select')?.value ?? '';
+    void editor.action.patchActionMeta(field, value, unit);
   }
 
   private meta(field: string, value: string): void {

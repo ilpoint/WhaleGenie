@@ -50,7 +50,9 @@ public sealed record EditorActionFieldSnapshot(
     IReadOnlyList<EditorNarrowRowSnapshot> NarrowRows, IReadOnlyList<EditorGenericRowSnapshot> Rows,
     IReadOnlyList<EditorChoiceSnapshot> Macros, IReadOnlyList<EditorChoiceSnapshot> Steps,
     IReadOnlyList<EditorBrowserCandidateSnapshot> Candidates,
-    EditorWindowPreviewSnapshot? WindowPreview, EditorImagePreviewSnapshot? ImagePreview);
+    EditorWindowPreviewSnapshot? WindowPreview, EditorImagePreviewSnapshot? ImagePreview,
+    decimal? Minimum, decimal? Maximum, decimal Increment, decimal? JitterPercent,
+    string EmptyMeans);
 
 /// <summary>One cell of a row, with the line it reads as and the parts it is made of.</summary>
 [BridgeContract]
@@ -106,7 +108,7 @@ public sealed record EditorReturnsRowSnapshot(
 [BridgeContract]
 public sealed record EditorCallArgumentSnapshot(
     string Name, string Hint, bool Required, bool Declared, bool Given, string Value,
-    IReadOnlyList<EditorValuePartSnapshot> ValueParts);
+    IReadOnlyList<EditorValuePartSnapshot> ValueParts, string ValueForm, bool OffersValue);
 
 /// <summary>The execution settings of the step being written.</summary>
 [BridgeContract]
@@ -125,7 +127,8 @@ public sealed record EditorDurationSnapshot(
 [BridgeContract]
 public sealed record EditorGlobalDraftSnapshot(
     string Name, string Type, string Default, string DefaultPreview, string Description,
-    bool PersistValue, string Problem, bool HasError, IReadOnlyList<EditorChoiceSnapshot> Types);
+    bool PersistValue, string Problem, bool HasError, IReadOnlyList<EditorChoiceSnapshot> Types,
+    string ValueForm, IReadOnlyList<EditorValuePartSnapshot> DefaultParts);
 
 /// <summary>One window rule a form can copy into the step.</summary>
 [BridgeContract]

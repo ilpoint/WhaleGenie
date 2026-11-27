@@ -119,7 +119,7 @@ public partial class StepParameterViewModel : ViewModelBase
     /// Puts a plain number in the field, dropping an expression that was there. This is what the
     /// screen picker writes when it takes the pointer's place.
     /// </summary>
-    public void SetNumber(int value)
+    public void SetNumber(decimal value)
     {
         UseFormula = false;
         NumberValue = value;

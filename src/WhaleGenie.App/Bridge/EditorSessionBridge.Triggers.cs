@@ -181,7 +181,7 @@ internal sealed partial class EditorSessionBridge
                 break;
             case ("local", "patch"):
                 session.PatchVariable(VariableName(command.OriginalName),
-                    VariableField(command.Field), command.Value ?? string.Empty);
+                    VariableField(command.Field), command.Value ?? string.Empty, command.Parts);
                 break;
             case ("local", "remove"):
                 session.RemoveVariable(VariableName(command.Name));
@@ -191,7 +191,7 @@ internal sealed partial class EditorSessionBridge
                 break;
             case ("global", "patch"):
                 session.PatchGlobal(VariableName(command.OriginalName),
-                    VariableField(command.Field), command.Value ?? string.Empty);
+                    VariableField(command.Field), command.Value ?? string.Empty, command.Parts);
                 break;
             case ("global", "remove"):
                 session.RemoveGlobal(VariableName(command.Name));

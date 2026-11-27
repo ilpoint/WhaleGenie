@@ -172,6 +172,7 @@ export function renderTriggerFields(host: TriggerFieldHost, trigger: EditorTrigg
           <span>${t('Editor.Hotstring')}</span>
           <div class="inline">
             <input .value=${trigger.hotstringText} placeholder=${t('Editor.HotstringHint')}
+              maxlength=${trigger.hotstringMaximumLength}
               @change=${(event: Event) => void editor.triggers.setTriggerHotstring(trigger.id,
                 (event.target as HTMLInputElement).value)} />
             <button class="keycap" type="button" @click=${() => void host.openCharacterPad(trigger)}>

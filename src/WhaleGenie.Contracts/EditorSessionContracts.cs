@@ -34,13 +34,15 @@ public sealed record EditorSnapshot(
 /// <summary>One global declaration in the editor.</summary>
 [BridgeContract]
 public sealed record EditorGlobalSnapshot(
-    string Name, string Type, string Default, string Description, bool Persisted);
+    string Name, string Type, string Default, string Description, bool Persisted,
+    string ValueForm, IReadOnlyList<EditorValuePartSnapshot> DefaultParts);
 
 /// <summary>One callable parameter declaration.</summary>
 [BridgeContract]
 public sealed record EditorMacroParameterSnapshot(
     string Name, string Type, bool Required, string Default, string Description,
-    IReadOnlyList<EditorMacroFieldSnapshot> Fields);
+    IReadOnlyList<EditorMacroFieldSnapshot> Fields, string ValueForm,
+    IReadOnlyList<EditorValuePartSnapshot> DefaultParts);
 
 /// <summary>One callable result declaration.</summary>
 [BridgeContract]
@@ -76,7 +78,8 @@ public sealed record EditorRecordingSnapshot(
 /// <summary>One local variable declaration.</summary>
 [BridgeContract]
 public sealed record EditorVariableSnapshot(
-    string Name, string Type, string Initial, string Description, string Source, bool IsDeclared);
+    string Name, string Type, string Initial, string Description, string Source, bool IsDeclared,
+    string ValueForm, IReadOnlyList<EditorValuePartSnapshot> InitialParts);
 
 /// <summary>One variable type a declaration may choose.</summary>
 [BridgeContract]

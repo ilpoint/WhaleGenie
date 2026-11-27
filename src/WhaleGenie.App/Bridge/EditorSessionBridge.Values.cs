@@ -83,6 +83,26 @@ internal sealed partial class EditorSessionBridge
 
     private EditorValueSnapshot OpenValue(EditorValueOpenCommand open)
     {
+        if (open.Argument is { Length: > 0 })
+        {
+            return Required().OpenCallArgumentValue(open.Argument);
+        }
+
+        if (open.DeclarationIndex is { } declaration)
+        {
+            return Required().OpenDeclarationValue(declaration);
+        }
+
+        if (open.GlobalDraft == true)
+        {
+            return Required().OpenGlobalValue();
+        }
+
+        if (open.VariableName is { Length: > 0 })
+        {
+            return Required().OpenVariableValue(open.VariableFamily ?? "local", open.VariableName);
+        }
+
         if (open.Step.Length == 0 || open.Parameter.Length == 0)
         {
             throw new BridgeFailureException(BridgeErrors.BadArgument,

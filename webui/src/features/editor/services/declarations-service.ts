@@ -1,4 +1,4 @@
-import type { EditorDeclarationCommand } from '../../../shared/bridge/protocol.js';
+import type { EditorDeclarationCommand, EditorValuePartSnapshot } from '../../../shared/bridge/protocol.js';
 import type { EditorCore } from './editor-core.js';
 
 /** The declarations command family. All state lives in EditorCore; C# remains the source of truth. */
@@ -13,8 +13,9 @@ export class EditorDeclarationsService {
     return this.declaration({ family: 'parameter', kind: 'add' });
   }
 
-  patchCallableParameter(index: number, field: string, value: string): Promise<boolean> {
-    return this.declaration({ family: 'parameter', kind: 'patch', index, field, value });
+  patchCallableParameter(index: number, field: string, value: string,
+    parts?: EditorValuePartSnapshot[]): Promise<boolean> {
+    return this.declaration({ family: 'parameter', kind: 'patch', index, field, value, parts: parts ?? null });
   }
 
   removeCallableParameter(index: number): Promise<boolean> {

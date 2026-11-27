@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using WhaleGenie.Contracts;
 using WhaleGenie.Core.Execution;
 using WhaleGenie.Core.Expressions;
 using WhaleGenie.Editing;
@@ -85,6 +86,100 @@ public class ValueEditorTests
         var stored = step.Parameters.Single(parameter => parameter.Name == "ms");
         Assert.Contains("1", stored.Value);
         Assert.Contains("2", stored.Value);
+    }
+
+
+
+    [Fact]
+    public void A_local_variable_initial_keeps_a_name_sent_as_parts()
+    {
+        var workspace = new ProjectWorkspace();
+        workspace.AddMacro(new MacroItem { Name = "locals" });
+        var session = HeadlessEditorSession.Open(workspace, "locals");
+        session.AddVariable();
+        session.PatchVariable(string.Empty, "name", "slot");
+        session.PatchVariable("slot", "initial", string.Empty,
+            [new EditorValuePartSnapshot("name", string.Empty, "count")]);
+
+        var variable = session.Snapshot().Variables.Single(entry => entry.IsDeclared);
+        Assert.Equal("count", variable.Initial);
+        Assert.Contains(variable.InitialParts,
+            part => part.Kind == "name" && part.Name == "count");
+    }
+
+
+    [Fact]
+    public void A_local_variable_initial_opens_in_value_mode_and_confirms()
+    {
+        var workspace = new ProjectWorkspace();
+        workspace.AddMacro(new MacroItem { Name = "locals-value" });
+        var session = HeadlessEditorSession.Open(workspace, "locals-value");
+        session.AddVariable();
+        session.PatchVariable(string.Empty, "name", "slot");
+
+        var snapshot = session.OpenVariableValue("local", "slot");
+        Assert.Equal("Value", snapshot.Mode);
+        session.ValueCommand(new ValueEditorCommand("clear"));
+        session.ValueCommand(new ValueEditorCommand("place", Token: "5"));
+        var outcome = session.ConfirmValue();
+
+        Assert.True(outcome.Applied);
+        Assert.Equal("5", session.Snapshot().Variables.Single(entry => entry.IsDeclared).Initial);
+    }
+
+    [Fact]
+    public void A_global_variable_default_keeps_a_name_sent_as_parts()
+    {
+        var workspace = new ProjectWorkspace();
+        workspace.AddMacro(new MacroItem { Name = "globals" });
+        var session = HeadlessEditorSession.Open(workspace, "globals");
+        session.AddGlobal();
+        session.PatchGlobal("variable", "default", string.Empty,
+            [new EditorValuePartSnapshot("name", string.Empty, "count")]);
+
+        var global = session.Snapshot().Globals.Single(entry => entry.Name == "variable");
+        Assert.Equal("count", global.Default);
+        Assert.Contains(global.DefaultParts,
+            part => part.Kind == "name" && part.Name == "count");
+    }
+
+    [Fact]
+    public void A_declaration_default_opens_in_value_mode_and_confirms()
+    {
+        var workspace = new ProjectWorkspace();
+        workspace.AddMacro(new MacroItem { Name = "declaration" });
+        var session = HeadlessEditorSession.Open(workspace, "declaration");
+        session.AddCallableParameter();
+        session.PatchCallableParameter(0, "name", "amount");
+
+        var snapshot = session.OpenDeclarationValue(0);
+        Assert.Equal("Value", snapshot.Mode);
+        Assert.True(snapshot.ShowsBand);
+
+        session.ValueCommand(new ValueEditorCommand("clear"));
+        session.ValueCommand(new ValueEditorCommand("place", Token: "42"));
+        var outcome = session.ConfirmValue();
+
+        Assert.True(outcome.Closed);
+        Assert.True(outcome.Applied);
+        Assert.Equal("42", session.Snapshot().CallableParameters[0].Default);
+    }
+
+    [Fact]
+    public void A_declaration_default_keeps_a_name_sent_as_parts()
+    {
+        var workspace = new ProjectWorkspace();
+        workspace.AddMacro(new MacroItem { Name = "declaration-parts" });
+        var session = HeadlessEditorSession.Open(workspace, "declaration-parts");
+        session.AddCallableParameter();
+        session.PatchCallableParameter(0, "name", "amount");
+
+        session.PatchCallableParameter(0, "default", string.Empty,
+            [new EditorValuePartSnapshot("name", string.Empty, "count")]);
+
+        var parameter = session.Snapshot().CallableParameters[0];
+        Assert.Equal("count", parameter.Default);
+        Assert.Contains(parameter.DefaultParts, part => part.Kind == "name" && part.Name == "count");
     }
 
     [Fact]

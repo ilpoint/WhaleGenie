@@ -77,6 +77,28 @@ internal sealed partial class HeadlessActionSession
         return _valueSession.Snapshot();
     }
 
+    public EditorValueSnapshot OpenGlobalValue()
+    {
+        if (_form.GlobalVariableDraft is not { } draft)
+        {
+            throw new InvalidOperationException("this action carries no global declaration");
+        }
+
+        var picker = new ValuePickerViewModel(draft.Default, _form.CollectVariables(),
+            ActionValueForm.Value, draft.Name);
+        _valueSession = new HeadlessValueSession(picker, value => draft.Default = value, () => { });
+        return _valueSession.Snapshot();
+    }
+
+    public EditorValueSnapshot OpenCallArgumentValue(string name)
+    {
+        var row = Argument(name);
+        var picker = new ValuePickerViewModel(row.Shape, _form.CollectVariables(),
+            ActionValueForm.Value, row.Name);
+        _valueSession = new HeadlessValueSession(picker, value => row.Write(value), () => { });
+        return _valueSession.Snapshot();
+    }
+
     public EditorValueSnapshot OpenConditionValue(string name, int[] path, string field)
     {
         var editor = Condition(name);

@@ -3,6 +3,13 @@ import { handleActionCommand } from './mock-editor-action-commands.js';
 import { actionConfirm, actionOpen } from './mock-editor-action-form.js';
 
 /** One editor command family, split out of MockEditor.run. */
+function pickAction(host: MockEditor, params: Record<string, unknown>): unknown {
+  const field = host.text(params, 'name');
+  const mode = host.text(params, 'mode');
+  return mode === 'path'
+    ? handleActionCommand(host, { kind: 'field', name: field, value: 'C:\\shot.png' })
+    : host.actionForm;
+}
 export function handleActionRun(host: MockEditor, method: string, params: Record<string, unknown>): unknown {
   switch (method) {
     case 'editor.actionOpen':
@@ -16,7 +23,7 @@ export function handleActionRun(host: MockEditor, method: string, params: Record
     case 'editor.action':
       return handleActionCommand(host, params);
     case 'editor.actionPick':
-      return host.actionForm;
+      return pickAction(host, params);
     case 'editor.actionLook':
       return host.actionForm;
     case 'editor.actionWindowPreview':

@@ -142,7 +142,12 @@
     "steps": [],
     "candidates": [],
     "windowPreview": null,
-    "imagePreview": null
+    "imagePreview": null,
+    "minimum": null,
+    "maximum": null,
+    "increment": 1,
+    "jitterPercent": null,
+    "emptyMeans": "Zero"
   },
   "fieldKinds": {
     "Path": {

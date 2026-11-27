@@ -1,9 +1,10 @@
 import { LitElement, css, html } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
-import type { EditorGlobalDraft } from '../../shared/bridge/protocol.js';
+import type { EditorActionField, EditorGlobalDraft } from '../../shared/bridge/protocol.js';
 import { t } from '../../shared/strings/strings.js';
 import { editor } from './editor-store.js';
 import { editorBase } from './editor-css.js';
+import './value-field.js';
 
 /** The global declaration a "set variable" step carries when it writes a shared value. */
 @customElement('wg-action-global')
@@ -39,8 +40,8 @@ export class WgActionGlobal extends LitElement {
         </label>
         <label class="field">
           <span>${t('GlobalVariables.Default')}</span>
-          <input .value=${draft.defaultPreview}
-            @change=${(event: Event) => this.patch('default', (event.target as HTMLInputElement).value)} />
+          <wg-value-field .stepId=${''} .target=${'global'}
+            .parameter=${globalDefaultField(draft)}></wg-value-field>
         </label>
         <label class="field">
           <span>${t('GlobalVariables.Description')}</span>
@@ -61,6 +62,28 @@ export class WgActionGlobal extends LitElement {
   private patch(field: string, value: string): void {
     void editor.action.patchActionGlobal(field, value);
   }
+}
+
+function globalDefaultField(draft: EditorGlobalDraft): EditorActionField {
+  return {
+    name: 'default', label: t('GlobalVariables.Default'), hint: '', kind: 'Text',
+    valueForm: 'Value', value: draft.default, display: draft.default, parts: draft.defaultParts,
+    options: [], columns: [], condition: null, isApplicable: true, isDefault: false, isMissing: false,
+    required: false, advanced: false, group: '', groupLabel: '', offersValue: true,
+    takesFormula: true, showsNameMark: false, allowsNewName: false, isNumber: false,
+    isNumberFormula: false, isDuration: false, unit: '', unitLabel: '', durationUnits: [],
+    isPercent: false, percentValue: 0, channelNote: '', jitterRange: '', isMultiline: false,
+    isCode: false, isColor: false, colour: '', isPath: false, pathIntent: '', pathFilter: '',
+    isKey: false, isKeys: false, isSelector: false, isBrowserTarget: false, isImage: false,
+    isImageList: false, isRegion: false, isRegionList: false, isColourPoints: false,
+    isColourRows: false, isKeySequence: false, isNarrow: false, isWindow: false,
+    isWindowRule: false, isMacro: false, isStepChoice: false, isRecord: false, isPoint: false,
+    isRect: false, placeholder: '', hasToBeAnswered: false, isFollowingWindow: false,
+    windowRuleSummary: '', regions: [], images: [], colours: [], colourPoints: [], keys: [],
+    narrowRows: [], rows: [], macros: [], steps: [], candidates: [], windowPreview: null,
+    imagePreview: null, minimum: null, maximum: null, increment: 1, jitterPercent: null,
+    emptyMeans: 'Zero',
+  } as unknown as EditorActionField;
 }
 
 declare global {

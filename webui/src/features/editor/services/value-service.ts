@@ -17,6 +17,22 @@ export class EditorValueService {
     await this.open(command);
   }
 
+  async openCallArgument(name: string): Promise<void> {
+    await this.openValueAt({ step: '', parameter: name, argument: name });
+  }
+
+  async openDeclaration(index: number): Promise<void> {
+    await this.openValueAt({ step: '', parameter: '', declarationIndex: index });
+  }
+
+  async openGlobal(): Promise<void> {
+    await this.openValueAt({ step: '', parameter: '', globalDraft: true });
+  }
+
+  async openVariable(family: 'local' | 'global', name: string): Promise<void> {
+    await this.openValueAt({ step: '', parameter: '', variableFamily: family, variableName: name });
+  }
+
   async openConditionValue(stepId: string, parameter: string, path: number[],
     field: 'left' | 'right'): Promise<void> {
     await this.openValueAt({

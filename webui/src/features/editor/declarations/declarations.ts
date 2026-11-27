@@ -1,7 +1,9 @@
 import { html, nothing, type TemplateResult } from 'lit';
+import type { EditorActionField, EditorMacroParameter } from '../../../shared/bridge/protocol.js';
 import { icon } from '../../../shared/icons.js';
 import { t } from '../../../shared/strings/strings.js';
 import { editor } from '../editor-store.js';
+import '../value-field.js';
 
 export function renderDeclarations(): TemplateResult {
     const snapshot = editor.get().snapshot;
@@ -42,9 +44,8 @@ export function renderDeclarations(): TemplateResult {
             </div>
             <label class="field">
               <span>${t('MacroInterface.Default')}</span>
-              <input .value=${parameter.default} placeholder=${t('MacroInterface.Default')}
-                @change=${(event: Event) => void editor.declarations.patchCallableParameter(index, 'default',
-                  (event.target as HTMLInputElement).value)} />
+              <wg-value-field .stepId=${''} .target=${'declaration'} .declarationIndex=${index}
+                .parameter=${declarationDefaultField(parameter)}></wg-value-field>
             </label>
             <label class="field">
               <span>${t('MacroInterface.Description')}</span>
@@ -100,6 +101,28 @@ export function renderDeclarations(): TemplateResult {
       </button>
     `;
   }
+
+function declarationDefaultField(parameter: EditorMacroParameter): EditorActionField {
+  return {
+    name: 'default', label: t('MacroInterface.Default'), hint: '', kind: 'Text',
+    valueForm: 'Value', value: parameter.default, display: parameter.default,
+    parts: parameter.defaultParts, options: [], columns: [], condition: null, isApplicable: true,
+    isDefault: false, isMissing: false, required: false, advanced: false, group: '', groupLabel: '',
+    offersValue: true, takesFormula: true, showsNameMark: false, allowsNewName: false, isNumber: false,
+    isNumberFormula: false, isDuration: false, unit: '', unitLabel: '', durationUnits: [],
+    isPercent: false, percentValue: 0, channelNote: '', jitterRange: '', isMultiline: false,
+    isCode: false, isColor: false, colour: '', isPath: false, pathIntent: '', pathFilter: '',
+    isKey: false, isKeys: false, isSelector: false, isBrowserTarget: false, isImage: false,
+    isImageList: false, isRegion: false, isRegionList: false, isColourPoints: false,
+    isColourRows: false, isKeySequence: false, isNarrow: false, isWindow: false,
+    isWindowRule: false, isMacro: false, isStepChoice: false, isRecord: false, isPoint: false,
+    isRect: false, placeholder: '', hasToBeAnswered: false, isFollowingWindow: false,
+    windowRuleSummary: '', regions: [], images: [], colours: [], colourPoints: [], keys: [],
+    narrowRows: [], rows: [], macros: [], steps: [], candidates: [], windowPreview: null,
+    imagePreview: null, minimum: null, maximum: null, increment: 1, jitterPercent: null,
+    emptyMeans: 'Zero',
+  } as unknown as EditorActionField;
+}
 
 function renderRecordFields(kind: 'parameter' | 'result', index: number,
     fields: { name: string; type: string }[]): TemplateResult {

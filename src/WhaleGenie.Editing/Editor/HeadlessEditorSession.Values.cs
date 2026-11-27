@@ -60,6 +60,80 @@ internal sealed partial class HeadlessEditorSession
         return _valueSession.Snapshot();
     }
 
+    public EditorValueSnapshot OpenCallArgumentValue(string name)
+    {
+        if (_actionSession is { } action)
+        {
+            return action.OpenCallArgumentValue(name);
+        }
+
+        throw new InvalidOperationException("no action draft is open");
+    }
+
+    public EditorValueSnapshot OpenGlobalValue()
+    {
+        if (_actionSession is { } action)
+        {
+            return action.OpenGlobalValue();
+        }
+
+        throw new InvalidOperationException("no action draft is open");
+    }
+
+    public EditorValueSnapshot OpenDeclarationValue(int index)
+    {
+        if (index < 0 || index >= _model.DeclaredParameters.Count)
+        {
+            throw new InvalidOperationException("the macro has no parameter " + index);
+        }
+
+        var parameter = _model.DeclaredParameters[index];
+        var picker = new ValuePickerViewModel(parameter.Default, _model.CollectVariables(),
+            ActionValueForm.Value, parameter.Name);
+        _valueSession = new HeadlessValueSession(picker, value =>
+        {
+            parameter.Default = value;
+            _model.IsDirty = true;
+        }, () => _model.IsDirty = true);
+        return _valueSession.Snapshot();
+    }
+
+
+    public EditorValueSnapshot OpenVariableValue(string family, string name)
+    {
+        if (string.Equals(family, "local", StringComparison.OrdinalIgnoreCase))
+        {
+            var local = _model.DeclaredLocals.FirstOrDefault(candidate =>
+                string.Equals(candidate.Name.Trim(), name.Trim(), StringComparison.Ordinal))
+                ?? throw new InvalidOperationException("the macro has no local variable " + name);
+            var picker = new ValuePickerViewModel(local.Initial, _model.CollectVariables(),
+                ActionValueForm.Value, local.Name);
+            _valueSession = new HeadlessValueSession(picker, value =>
+            {
+                local.Initial = value;
+                _model.IsDirty = true;
+            }, () => _model.IsDirty = true);
+            return _valueSession.Snapshot();
+        }
+
+        if (string.Equals(family, "global", StringComparison.OrdinalIgnoreCase))
+        {
+            var draft = EnsureGlobalDraft().FirstOrDefault(candidate =>
+                string.Equals(candidate.Variable.Name, name, StringComparison.Ordinal))
+                ?? throw new InvalidOperationException("the project has no global " + name);
+            var picker = new ValuePickerViewModel(draft.Variable.Default, _model.CollectVariables(),
+                ActionValueForm.Value, draft.Variable.Name);
+            _valueSession = new HeadlessValueSession(picker, value =>
+            {
+                draft.Variable.Default = value;
+                _model.IsDirty = true;
+            }, () => _model.IsDirty = true);
+            return _valueSession.Snapshot();
+        }
+
+        throw new InvalidOperationException("unknown variable family " + family);
+    }
+
     public EditorValueSnapshot OpenConditionValue(string stepId, string name, int[] path, string field)
     {
         if (_actionSession is { } action)

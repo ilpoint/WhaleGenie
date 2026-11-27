@@ -28,12 +28,14 @@ internal static class EditorActionSnapshotFactory
             .ToList();
         var arguments = form.CallArgumentRows
             .Select(row => new EditorCallArgumentSnapshot(row.Name, row.Hint, row.IsRequired,
-                row.IsDeclared, row.Given, row.Value, EditorValueParts.Of(row.Shape)))
+                row.IsDeclared, row.Given, row.Value, EditorValueParts.Of(row.Shape),
+                ActionValueForm.Value.ToString(), true))
             .ToList();
         var global = form.GlobalVariableDraft is { } draft
             ? new EditorGlobalDraftSnapshot(draft.Name, draft.Type.ToString(), draft.DefaultValue,
                 draft.DefaultPreview, draft.Description, draft.PersistValue, draft.DefaultProblem,
-                draft.DefaultHasError, Choices(draft.TypeOptions))
+                draft.DefaultHasError, Choices(draft.TypeOptions), ActionValueForm.Value.ToString(),
+                EditorValueParts.Of(draft.Default))
             : null;
         return new EditorActionFormSnapshot(
             Open: true,
@@ -213,7 +215,12 @@ internal static class EditorActionSnapshotFactory
                 new EditorBrowserCandidateSnapshot(candidate.Selector, candidate.Text))],
             WindowPreview: windowPreview?.Invoke(field),
             ImagePreview: field.IsImage || field.IsPath
-                ? imagePreview?.Invoke(field.CurrentText) : null);
+                ? imagePreview?.Invoke(field.CurrentText) : null,
+            Minimum: field.Definition.Minimum,
+            Maximum: field.Definition.Maximum,
+            Increment: field.Definition.Increment,
+            JitterPercent: field.JitterPercent,
+            EmptyMeans: field.Definition.EmptyMeans.ToString());
 
     private static IEnumerable<EditorGenericRowSnapshot> GenericRows(StepParameterViewModel field)
     {
