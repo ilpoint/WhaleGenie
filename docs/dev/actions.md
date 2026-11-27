@@ -64,7 +64,7 @@
   两个动作不得同名。
 - 值字段按 `ValueForm` 分模式，统一由网页的 `wg-value-field` 显示为只读值表面加框内“取值”按钮：
   `Text` / `Run` / `Value` / `Name` 分别打开取值窗口的对应模式。`Choice`、`Bool`、`Steps`、
-  `Returns`、`Arguments`、`Condition`、`WindowRule`、`Key`、`Keys` 保留专用控件；百分比数字
+  `Returns`、`Arguments`、`Condition`、`WindowRule`、`Key`、`Keys`、`Image`、`Images` 保留专用控件；百分比数字
   可直接输入，不摆取值片。新增值字段时先声明 `ValueForm`，不要在页面里另按字段名推断。
 
 各族按以下顺序组织问题，新动作不另起一套顺序：
