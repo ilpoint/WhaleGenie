@@ -68,6 +68,46 @@ public class PngWriterTests
         Assert.Equal(0xAE426082u, BinaryPrimitives.ReadUInt32BigEndian(png.AsSpan(png.Length - 4)));
     }
 
+    [Fact]
+    public void A_picture_with_no_pixels_is_refused_rather_than_written_as_nothing()
+    {
+        var empty = new ImageFrame(0, 0, []);
+
+        Assert.Throws<ArgumentException>(() => PngWriter.Encode(empty));
+    }
+
+    [Fact]
+    public void Every_row_is_a_filter_byte_and_the_pixels_of_that_row_in_turn()
+    {
+        // Two rows of two pixels, each channel a different number, so a row written at another
+        // row's offset, or a pixel read from the neighbour, shows up as a wrong byte rather than
+        // as a picture that merely looks odd.
+        var frame = new ImageFrame(2, 2, [1, 2, 3, 0, 4, 5, 6, 0, 7, 8, 9, 0, 10, 11, 12, 0]);
+
+        var rows = Inflate(PngWriter.Encode(frame));
+
+        Assert.Equal(
+        [
+            0, 3, 2, 1, 255, 6, 5, 4, 255,
+            0, 9, 8, 7, 255, 12, 11, 10, 255,
+        ], rows);
+    }
+
+    [Fact]
+    public void The_data_chunk_says_how_long_its_body_is()
+    {
+        var png = PngWriter.Encode(Frame());
+        var at = 8 + 12 + 13;
+
+        var length = BinaryPrimitives.ReadInt32BigEndian(png.AsSpan(at));
+        Assert.True(length > 0);
+        Assert.Equal("IDAT", Text(png, at + 4));
+        // The file after this chunk is the closing one: four bytes of zero length, its name
+        // and its check.
+        Assert.Equal(png.Length - at - 24, length);
+        Assert.Equal(0, BinaryPrimitives.ReadInt32BigEndian(png.AsSpan(png.Length - 12)));
+    }
+
     /// <summary>The four letters a chunk is called by.</summary>
     private static string Text(byte[] png, int at)
         => System.Text.Encoding.ASCII.GetString(png, at, 4);
