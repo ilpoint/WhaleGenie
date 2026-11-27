@@ -90,7 +90,7 @@ pwsh tools/stryker.ps1 -Target domain   # 或 editing / all
 | 库仓的 `expressions-value`（`Value`、`ValueRules`、`JsonValues`、`FormulaJson`） | 199 | 80.40% |
 | 库仓的 `expressions-writer`（`Expression`、`Formula`、`ExpressionWriter`、`ExpressionCompiler`） | 196 | 73.98% |
 | 库仓的 `devices-window`（`WindowRule`、`WindowHow`） | 39 | 89.74% |
-| 库仓的 `devices-files`（`DelimitedFile`） | 50 | 76.00% |
+| 库仓的 `devices-files`（`DelimitedFile`） | 47 | 74.47% |
 | 库仓的 `rules`（`StepMeta`、`HitSort`、`StepChecks`、`CallBinder`、`RetryPolicy`、`WheelPlan`、`CountPlan`、`LoopControl`、`FileOrder`、`TableColumns` 等） | 566 | 85.16% |
 | Editing 的 `RowShapes.cs`、`EditorValueParts.cs` | 67 | 100% |
 
