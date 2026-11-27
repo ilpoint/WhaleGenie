@@ -74,7 +74,9 @@ pwsh tools/stryker.ps1 -Target domain   # 或 editing / all
 ```
 
 脚本把配置生成到 `TestResults/Stryker/run`，报告写到 `TestResults/Stryker/`，两者都不提交。它只在
-本机按需跑，不进入 CI；每次合并的门槛仍是法则用例。
+本机按需跑，不进入本仓 CI；每次合并的门槛仍是法则用例。库仓的九个区域另有自己的 `mutation`
+工作流（手动选一个区域，或每周全量），报告留在库仓的构建产物里；本表与 `core/README.md` 是否
+一致由 `MutationBaselineTests` 对账，取回库改动后表格不同步就会红。
 
 本次基线（用 `Release`、形状法则用例过滤）：
 
