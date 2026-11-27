@@ -112,4 +112,99 @@ public class ExpressionWriterTests
     public void A_group_keeps_the_brackets_the_person_put_there()
         => Assert.Equal("(a + b)",
             Written(new GroupNode(Formula.Binary("+", Formula.Name("a"), Formula.Name("b")))));
+
+    [Theory]
+    [InlineData("==")]
+    [InlineData("!=")]
+    [InlineData("<")]
+    [InlineData("<=")]
+    [InlineData(">")]
+    [InlineData(">=")]
+    public void Every_comparison_holds_its_operands_the_same_way(string operation)
+    {
+        Assert.Equal("a " + operation + " b",
+            Written(Formula.Binary(operation, Formula.Name("a"), Formula.Name("b"))));
+
+        // A comparison on the right of another one reads differently nested, so it keeps its
+        // brackets; on the left the direction does not change, so it goes without.
+        Assert.Equal("a " + operation + " (b " + operation + " c)",
+            Written(Formula.Binary(operation, Formula.Name("a"),
+                Formula.Binary(operation, Formula.Name("b"), Formula.Name("c")))));
+        Assert.Equal("a " + operation + " b " + operation + " c",
+            Written(Formula.Binary(operation, Formula.Binary(operation, Formula.Name("a"),
+                Formula.Name("b")), Formula.Name("c"))));
+    }
+
+    [Fact]
+    public void The_remainder_binds_with_the_other_multiplications()
+    {
+        Assert.Equal("a % (b % c)",
+            Written(Formula.Binary("%", Formula.Name("a"),
+                Formula.Binary("%", Formula.Name("b"), Formula.Name("c")))));
+        Assert.Equal("a % (b + c)",
+            Written(Formula.Binary("%", Formula.Name("a"),
+                Formula.Binary("+", Formula.Name("b"), Formula.Name("c")))));
+        Assert.Equal("a * (b * c)",
+            Written(Formula.Binary("*", Formula.Name("a"),
+                Formula.Binary("*", Formula.Name("b"), Formula.Name("c")))));
+    }
+
+    [Fact]
+    public void And_and_or_need_no_brackets_on_their_right()
+    {
+        Assert.Equal("a and b and c",
+            Written(Formula.Binary("and", Formula.Name("a"),
+                Formula.Binary("and", Formula.Name("b"), Formula.Name("c")))));
+        Assert.Equal("a or b or c",
+            Written(Formula.Binary("or", Formula.Name("a"),
+                Formula.Binary("or", Formula.Name("b"), Formula.Name("c")))));
+        Assert.Equal("a or b and c",
+            Written(Formula.Binary("or", Formula.Name("a"),
+                Formula.Binary("and", Formula.Name("b"), Formula.Name("c")))));
+        Assert.Equal("a and b or c",
+            Written(Formula.Binary("or", Formula.Binary("and", Formula.Name("a"), Formula.Name("b")),
+                Formula.Name("c"))));
+
+        // The other way round the brackets are needed: or under and binds looser, so without them
+        // the line would read as or first.
+        Assert.Equal("(a or b) and c",
+            Written(Formula.Binary("and", Formula.Binary("or", Formula.Name("a"), Formula.Name("b")),
+                Formula.Name("c"))));
+        Assert.Equal("a and (b or c)",
+            Written(Formula.Binary("and", Formula.Name("a"),
+                Formula.Binary("or", Formula.Name("b"), Formula.Name("c")))));
+    }
+
+    [Fact]
+    public void A_comparison_beside_logic_needs_no_brackets_and_one_beside_addition_does()
+    {
+        // Comparisons bind tighter than and/or, so the line reads the same without brackets; they
+        // bind looser than addition, so on the right of a plus they keep them.
+        Assert.Equal("a == b and c != d",
+            Written(Formula.Binary("and",
+                Formula.Binary("==", Formula.Name("a"), Formula.Name("b")),
+                Formula.Binary("!=", Formula.Name("c"), Formula.Name("d")))));
+        Assert.Equal("a + (b == c)",
+            Written(Formula.Binary("+", Formula.Name("a"),
+                Formula.Binary("==", Formula.Name("b"), Formula.Name("c")))));
+    }
+
+    [Fact]
+    public void A_prefix_over_logic_or_a_comparison_keeps_its_brackets()
+    {
+        Assert.Equal("not (a == b)",
+            Written(Formula.Unary("not", Formula.Binary("==", Formula.Name("a"), Formula.Name("b")))));
+        Assert.Equal("not (a and b)",
+            Written(Formula.Unary("not", Formula.Binary("and", Formula.Name("a"), Formula.Name("b")))));
+        Assert.Equal("--a", Written(Formula.Unary("-", Formula.Unary("-", Formula.Name("a")))));
+    }
+
+    [Fact]
+    public void A_piece_of_a_list_or_a_call_is_written_as_it_is()
+    {
+        Assert.Equal("[a == b]",
+            Written(Formula.List(Formula.Binary("==", Formula.Name("a"), Formula.Name("b")))));
+        Assert.Equal("f(a == b)",
+            Written(Formula.Call("f", Formula.Binary("==", Formula.Name("a"), Formula.Name("b")))));
+    }
 }
