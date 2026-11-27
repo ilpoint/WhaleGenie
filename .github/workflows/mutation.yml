@@ -1,0 +1,55 @@
+name: mutation
+
+# 变异测试不进每次构建：一个区域要几分钟，九个区域全量要二十多分钟。它在这里作为可选的基线
+# 复核——手动选一个区域，或每周一全量跑一遍；报告留在构建产物里，和本机跑出来的形状一样。
+on:
+  workflow_dispatch:
+    inputs:
+      area:
+        description: '区域（all 为全部九个）'
+        type: choice
+        default: rules
+        options: [all, formula-json, recording, expressions-value, expressions-writer, rules, devices-names, devices-colour, devices-window, devices-files]
+  schedule:
+    - cron: '0 3 * * 1'
+
+permissions:
+  contents: read
+
+jobs:
+  area:
+    # 与 build.yml 同一条理由：适配器驱动真实设备，判定用例里有一半要在这台机器上成立。
+    runs-on: windows-latest
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        # 手动触发时只跑选中的那一个（all 时回到九个）；定时触发没有输入，跑全部。
+        area: >-
+          ${{ (github.event_name == 'workflow_dispatch' && inputs.area != 'all')
+              ? fromJSON(format('["{0}"]', inputs.area))
+              : fromJSON('["formula-json","recording","expressions-value","expressions-writer","rules","devices-names","devices-colour","devices-window","devices-files"]') }}
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+
+      - name: Restore
+        run: dotnet restore WhaleGenie.Core.slnx
+
+      - name: Restore the mutation tool
+        run: dotnet tool restore
+
+      - name: Run the area
+        shell: pwsh
+        run: pwsh tools/stryker.ps1 -Area ${{ matrix.area }}
+
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: mutation-${{ matrix.area }}
+          path: TestResults/Stryker/${{ matrix.area }}/
+          if-no-files-found: warn
