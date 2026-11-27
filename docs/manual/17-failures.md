@@ -64,6 +64,7 @@
 | `Run.BrowserNotOpen` | 还没有打开浏览器；用页面前先打开一个。 |
 | `Run.BrowserTabNeedsText` | 这一步要写明标签页的标题或网址里包含什么。 |
 | `Run.BrowserTooFew` | 页面上的元素没有「第几个命中」要的那么多，等于没找到。试过：{0} |
+| `Run.Cancelled` | 这一步正在用的东西自己停下了，不是用户按了停止：{0} |
 | `Run.CaptureFailed` | 这块屏幕区域无法复制：{0} |
 | `Run.ClipboardBusy` | 另一个程序正占用剪贴板。 |
 | `Run.ClipboardTimeout` | 剪贴板一直没有变化。 |
