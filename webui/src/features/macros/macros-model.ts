@@ -12,6 +12,29 @@ export interface MacroFilter {
   enabledFirst: boolean;
 }
 
+/** The names of every macro after moving one card beside another, for the project's order. */
+export function moveMacroNames(
+  macros: readonly MacroEntry[],
+  source: string,
+  target: string,
+  after: boolean,
+): string[] {
+  const names = macros.map((entry) => entry.name);
+  const from = names.indexOf(source);
+  if (from < 0 || source === target) {
+    return names;
+  }
+
+  names.splice(from, 1);
+  const targetIndex = names.indexOf(target);
+  if (targetIndex < 0) {
+    return macros.map((entry) => entry.name);
+  }
+
+  names.splice(after ? targetIndex + 1 : targetIndex, 0, source);
+  return names;
+}
+
 /** The cards the list draws, in the order it draws them. */
 export function filterMacros(macros: MacroEntry[], filter: MacroFilter): MacroEntry[] {
   const wanted = filter.search.trim().toLowerCase();

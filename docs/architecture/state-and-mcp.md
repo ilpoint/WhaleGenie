@@ -34,8 +34,8 @@ ZIP、资源解包、临时文件和备份仍留在 `FilePackageStore`/`MacroPac
 
 工程文档状态由 `src/WhaleGenie.Domain/Models/ProjectWorkspace` 持有：宏、触发入口、共享变量、包路径、脏标记、修订号、
 `Changed` 与整体替换 `Replaced` 事件都在这一处更新。`MainViewModel` 只保留系统开关并把文档转发给原生
-菜单、轮盘与设置；宏列表的搜索、分组、视图与排序由页面自己持有，编辑器与 `RunFactory` 直接读
-`ProjectWorkspace`。`McpLiveProject` 实现 `Mcp/IProjectGateway`，负责把读写切到界面线程；MCP 工具与
+菜单、轮盘与设置；宏列表的搜索、分组与视图过滤由页面自己持有，宏的项目顺序属于 `ProjectWorkspace`
+并由 `project.reorder` 写回，编辑器与 `RunFactory` 直接读 `ProjectWorkspace`。`McpLiveProject` 实现 `Mcp/IProjectGateway`，负责把读写切到界面线程；MCP 工具与
 资源只依赖这个接口，不依赖窗口模型。
 
 `ProjectSaver`（App）是包文件的唯一写入口：工程文档变更后按短防抖复制计划、在工作线程写 zip，再按

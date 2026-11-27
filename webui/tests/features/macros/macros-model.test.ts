@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { filterMacros } from '../../../src/features/macros/macros-model.js';
+import { filterMacros, moveMacroNames } from '../../../src/features/macros/macros-model.js';
 import type { MacroEntry } from '../../../src/shared/bridge/protocol.js';
 
 function macro(name: string, overrides: Partial<MacroEntry> = {}): MacroEntry {
@@ -51,6 +51,15 @@ describe('filterMacros', () => {
     expect(filterMacros(state, {
       view: 'All', group: '办公', search: '', enabledFirst: false,
     }).map((entry) => entry.name)).toEqual(['停用一', '启用一']);
+  });
+
+  it('moves one macro before or after another without losing the rest', () => {
+    const names = state.map((entry) => entry.name);
+    expect(moveMacroNames(state, '停用二', '启用一', false))
+      .toEqual(['停用一', '停用二', '启用一', '启用二']);
+    expect(moveMacroNames(state, '停用一', '停用二', true))
+      .toEqual(['启用一', '停用二', '停用一', '启用二']);
+    expect(moveMacroNames(state, '停用一', '停用一', false)).toEqual(names);
   });
 
   it('searches names case-insensitively and trims the needle', () => {

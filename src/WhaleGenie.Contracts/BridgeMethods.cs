@@ -82,6 +82,7 @@ public static class BridgeMethods
         "project.importApply",
         "project.importPlan",
         "project.preview",
+        "project.reorder",
         "project.open",
         "project.reload",
         "project.save",

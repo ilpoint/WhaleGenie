@@ -22,6 +22,7 @@ import filePlus from 'lucide-static/icons/file-plus.svg?raw';
 import fileText from 'lucide-static/icons/file-text.svg?raw';
 import folder from 'lucide-static/icons/folder.svg?raw';
 import gamepad from 'lucide-static/icons/gamepad-2.svg?raw';
+import gripVertical from 'lucide-static/icons/grip-vertical.svg?raw';
 import globe from 'lucide-static/icons/globe.svg?raw';
 import info from 'lucide-static/icons/info.svg?raw';
 import keyboard from 'lucide-static/icons/keyboard.svg?raw';
@@ -97,6 +98,7 @@ const icons = {
   keyboard,
   mouse,
   gamepad,
+  'grip-vertical': gripVertical,
   eye,
   'scan-text': scanText,
   'mouse-pointer-click': mousePointerClick,

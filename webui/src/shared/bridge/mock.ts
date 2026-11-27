@@ -281,6 +281,22 @@ export class MockTransport implements BridgeTransport {
           this.projectState = { ...this.projectState, dirty: true };
           this.push('project.changed', this.projectState);
           break;
+        case 'project.reorder': {
+          const names = Array.isArray(params['names']) ? params['names'] as string[] : [];
+          const byName = new Map(this.projectState.macros.map((entry) => [entry.name, entry]));
+          const reordered = names.map((name) => byName.get(name)).filter((entry) => entry !== undefined);
+          if (reordered.length === this.projectState.macros.length) {
+            // 手动排序是明确的顺序选择，真机同时关闭「已启用优先」。
+            this.projectState = {
+              ...this.projectState,
+              dirty: true,
+              enabledFirst: false,
+              macros: reordered,
+            };
+            this.push('project.changed', this.projectState);
+          }
+          break;
+        }
         case 'project.system':
           this.projectState = {
             ...this.projectState,

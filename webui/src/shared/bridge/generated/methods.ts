@@ -65,6 +65,7 @@ export type BridgeMethod =
   | 'project.open'
   | 'project.preview'
   | 'project.reload'
+  | 'project.reorder'
   | 'project.save'
   | 'project.saveAs'
   | 'project.state'

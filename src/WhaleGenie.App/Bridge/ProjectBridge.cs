@@ -27,7 +27,7 @@ namespace WhaleGenie.Bridge;
 /// edit here, a draft applied by MCP, a package opened — answers as one <c>project.changed</c>
 /// event, so the page never keeps a second copy of the truth.
 /// </remarks>
-public sealed class ProjectBridge : IBridgeHandler, IDisposable
+public sealed partial class ProjectBridge : IBridgeHandler, IDisposable
 {
     private readonly ProjectWorkspace _workspace;
 
@@ -107,6 +107,7 @@ public sealed class ProjectBridge : IBridgeHandler, IDisposable
             return Task.FromResult<object?>(State());
         });
         server.Register("project.toggle", Toggle);
+        server.Register("project.reorder", Reorder);
         server.Register("project.delete", Delete);
         server.Register("project.exportPlan", ExportPlan);
         server.Register("project.exportApply", ExportApply);

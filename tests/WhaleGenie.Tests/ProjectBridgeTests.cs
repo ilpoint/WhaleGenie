@@ -86,6 +86,26 @@ public class ProjectBridgeTests : IDisposable
     }
 
     [Fact]
+    public async Task Reordering_changes_the_state_order_and_marks_the_project_dirty()
+    {
+        _workspace.AddMacro(new MacroItem { Name = "一" });
+        _workspace.AddMacro(new MacroItem { Name = "二" });
+        _workspace.AddMacro(new MacroItem { Name = "三" });
+
+        await _server.AcceptAsync("""
+            {"id":1,"method":"project.reorder","params":{"names":["三","一","二"]}}
+            """);
+        await _server.AcceptAsync("""{"id":2,"method":"project.state"}""");
+
+        var state = JsonDocument.Parse(_channel.Sent.Last(text => text.Contains("\"id\":2")))
+            .RootElement.GetProperty("result");
+        Assert.Equal(["三", "一", "二"],
+            state.GetProperty("macros").EnumerateArray()
+                .Select(macro => macro.GetProperty("name").GetString()).ToList());
+        Assert.True(_workspace.IsDirty);
+    }
+
+    [Fact]
     public async Task The_default_project_has_its_own_name_and_reports_the_save_state()
     {
         _workspace.CurrentPath = AppPaths.DefaultProject;

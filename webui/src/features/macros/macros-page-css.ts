@@ -107,13 +107,49 @@ export const macrosPageCss = css`
 
     .card {
       display: grid;
-      grid-template-columns: auto 1fr auto;
+      grid-template-columns: auto auto 1fr auto auto;
       align-items: center;
       gap: var(--spacingHorizontalM);
       background: var(--colorNeutralBackground1);
       border: var(--strokeWidthThin) solid var(--colorNeutralStroke1);
       border-radius: var(--borderRadiusMedium);
       padding: var(--spacingVerticalM) var(--spacingHorizontalL);
+    }
+
+    .card.dragging {
+      opacity: 0.45;
+    }
+
+    .card[data-drop='before'] {
+      box-shadow: inset 0 2px 0 var(--colorBrandStroke1);
+    }
+
+    .card[data-drop='after'] {
+      box-shadow: inset 0 -2px 0 var(--colorBrandStroke1);
+    }
+
+    .drag-handle {
+      width: 18px;
+      height: 32px;
+      display: grid;
+      place-items: center;
+      border: none;
+      border-radius: var(--borderRadiusMedium);
+      background: transparent;
+      color: var(--colorNeutralForeground3);
+      cursor: grab;
+      padding: 0;
+      touch-action: none;
+    }
+
+    .drag-handle:hover {
+      background: var(--colorNeutralBackground1Hover);
+      color: var(--colorNeutralForeground1);
+    }
+
+    .drag-handle:focus-visible {
+      outline: var(--strokeWidthThicker) solid var(--colorStrokeFocus2);
+      outline-offset: -1px;
     }
 
     .dot {

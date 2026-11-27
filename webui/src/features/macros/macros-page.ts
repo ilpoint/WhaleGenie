@@ -1,4 +1,5 @@
 import { LitElement, html, nothing } from 'lit';
+import { repeat } from 'lit/directives/repeat.js';
 import { macrosPageCss } from './macros-page-css.js';
 import { customElement, query, state } from 'lit/decorators.js';
 import { bridge } from '../../shared/bridge/bridge.js';
@@ -17,7 +18,7 @@ import type {
 import type { WgMcpPanel } from '../mcp/index.js';
 import '../mcp/index.js';
 import { startExport, transfer } from '../transfer/index.js';
-import { filterMacros } from './macros-model.js';
+import { filterMacros, moveMacroNames } from './macros-model.js';
 
 /**
  * 视图到文案键的显式映射：程序给的是 MacroView 的枚举名，页面按字面量取词。生成器的 mock 词表
@@ -55,6 +56,12 @@ export class WgMacros extends LitElement {
 
   @state()
   private note = '';
+
+  @state()
+  private dragging: string | null = null;
+
+  @state()
+  private dropTarget: { name: string; after: boolean } | null = null;
 
   @query('wg-mcp-panel')
   private mcpPanel!: WgMcpPanel;
@@ -122,7 +129,7 @@ export class WgMacros extends LitElement {
           ? this.renderEmpty()
           : visible.length === 0
             ? this.renderNoMatch()
-            : visible.map((entry) => this.renderCard(entry))}
+            : repeat(visible, (entry) => entry.name, (entry) => this.renderCard(entry))}
       </div>
       <wg-mcp-panel></wg-mcp-panel>
     `;
@@ -182,8 +189,29 @@ export class WgMacros extends LitElement {
   }
 
   private renderCard(entry: MacroEntry) {
+    const drop = this.dropTarget?.name === entry.name
+      ? (this.dropTarget.after ? 'after' : 'before')
+      : '';
     return html`
-      <div class="card" @dblclick=${() => this.onEdit(entry)}>
+      <div
+        class="card ${this.dragging === entry.name ? 'dragging' : ''}"
+        data-drop=${drop}
+        @dragover=${(event: DragEvent) => this.onDragOver(event, entry)}
+        @dragleave=${(event: DragEvent) => this.onDragLeave(event, entry)}
+        @drop=${(event: DragEvent) => this.onDrop(event, entry)}
+        @dblclick=${() => this.onEdit(entry)}
+      >
+        <button
+          class="drag-handle"
+          draggable="true"
+          title=${t('Main.DragToReorder')}
+          aria-label=${t('Main.DragToReorder')}
+          @dragstart=${(event: DragEvent) => this.onDragStart(event, entry)}
+          @dragend=${this.onDragEnd}
+          @dblclick=${(event: Event) => event.stopPropagation()}
+        >
+          ${icon('grip-vertical')}
+        </button>
         <span class="dot" data-enabled=${String(entry.enabled)}></span>
         <div class="body">
           <span class="name">
@@ -227,12 +255,78 @@ export class WgMacros extends LitElement {
           </button>
         </div>
         <fluent-switch
-          ?checked=${entry.enabled}
+          .checked=${entry.enabled}
           aria-label=${t(entry.enabled ? 'Main.DisableMacro' : 'Main.EnableMacro')}
           @change=${() => this.onToggle(entry)}
         ></fluent-switch>
       </div>
     `;
+  }
+
+  private onDragStart(event: DragEvent, entry: MacroEntry): void {
+    if (event.dataTransfer) {
+      event.dataTransfer.effectAllowed = 'move';
+      event.dataTransfer.setData('text/plain', entry.name);
+    }
+
+    this.dragging = entry.name;
+    this.dropTarget = null;
+  }
+
+  private onDragOver(event: DragEvent, entry: MacroEntry): void {
+    if (this.dragging === null || this.dragging === entry.name) {
+      return;
+    }
+
+    event.preventDefault();
+    if (event.dataTransfer) {
+      event.dataTransfer.dropEffect = 'move';
+    }
+
+    const target = event.currentTarget as HTMLElement;
+    const bounds = target.getBoundingClientRect();
+    const after = event.clientY > bounds.top + bounds.height / 2;
+    if (this.dropTarget?.name !== entry.name || this.dropTarget.after !== after) {
+      this.dropTarget = { name: entry.name, after };
+    }
+  }
+
+  private onDragLeave(event: DragEvent, entry: MacroEntry): void {
+    if (this.dropTarget?.name !== entry.name) {
+      return;
+    }
+
+    const target = event.currentTarget as HTMLElement;
+    const next = event.relatedTarget;
+    if (next instanceof Node && target.contains(next)) {
+      return;
+    }
+
+    this.dropTarget = null;
+  }
+
+  private onDragEnd(): void {
+    this.dragging = null;
+    this.dropTarget = null;
+  }
+
+  private async onDrop(event: DragEvent, entry: MacroEntry): Promise<void> {
+    event.preventDefault();
+    const source = this.dragging;
+    const after = this.dropTarget?.name === entry.name ? this.dropTarget.after : false;
+    this.dragging = null;
+    this.dropTarget = null;
+    if (source === null || source === entry.name || this.state === null) {
+      return;
+    }
+
+    const names = moveMacroNames(this.state.macros, source, entry.name, after);
+    if (this.state.enabledFirst) {
+      // 手动排序是明确的顺序选择，先关掉自动分组，让拖下的位置当场成立。
+      await this.call('settings.update', { patch: { enabledFirst: false } });
+    }
+
+    await this.call('project.reorder', { names });
   }
 
   private selectView(view: string): void {

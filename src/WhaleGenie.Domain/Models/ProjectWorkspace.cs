@@ -221,6 +221,60 @@ public sealed partial class ProjectWorkspace : ObservableObject
     }
 
     /// <summary>
+    /// Puts the macros in the order the list shows them and writes that order into the project.
+    /// The page sends the complete order, not a pair of neighbours, so a drop that crosses a filter
+    /// or a hidden row cannot lose a macro on the way back.
+    /// </summary>
+    public bool ReorderMacros(IReadOnlyList<string> orderedNames)
+    {
+        if (orderedNames.Count != Macros.Count)
+        {
+            return false;
+        }
+
+        var byName = new Dictionary<string, MacroItem>(StringComparer.OrdinalIgnoreCase);
+        foreach (var macro in Macros)
+        {
+            if (!byName.TryAdd(macro.Name, macro))
+            {
+                return false;
+            }
+        }
+
+        var desired = new List<MacroItem>(Macros.Count);
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var name in orderedNames)
+        {
+            if (string.IsNullOrWhiteSpace(name)
+                || !byName.TryGetValue(name, out var macro)
+                || !seen.Add(name))
+            {
+                return false;
+            }
+
+            desired.Add(macro);
+        }
+
+        if (desired.SequenceEqual(Macros))
+        {
+            return false;
+        }
+
+        for (var index = 0; index < desired.Count; index++)
+        {
+            var wanted = desired[index];
+            if (!ReferenceEquals(Macros[index], wanted))
+            {
+                Macros.Move(Macros.IndexOf(wanted), index);
+            }
+        }
+
+        Triggers.Project([.. Macros]);
+        MarkDirty();
+        return true;
+    }
+
+    /// <summary>
     /// What the shared variables hold, one line each, so that a change made while they were open
     /// can be told from no change at all.
     /// </summary>
