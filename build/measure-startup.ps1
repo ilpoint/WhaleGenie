@@ -1,15 +1,13 @@
 <#
-    Measures the two startup numbers that can be taken without showing the program:
+    Measures the startup numbers, each on its own switch:
 
-    - the headless start: process start to the end of the MCP self-check (--mcp-doctor), which walks
-      the composition root and registers every tool;
-    - the shell page: the built page served from disk and loaded in headless Edge, DOMContentLoaded
-      and load.
-
-    Neither includes WebView2 or a first frame drawn on a desktop; those need the program itself and
-    are described in docs/architecture.md.
+    - the headless start: process start to the end of the MCP self-check (--mcp-doctor);
+    - the shell page: the built page served from disk and loaded in headless Edge;
+    - the desktop start (-Desktop): the real program, first frame and macro list, and opening a
+      macro to a form you could type in. This one shows a window and closes it again, and it needs
+      a Debug build — that is the only build that opens the CDP door (9223).
 #>
-param([switch] $SkipDoctor, [switch] $SkipPage)
+param([switch] $SkipDoctor, [switch] $SkipPage, [switch] $Desktop, [int] $Rounds = 3)
 
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
@@ -36,6 +34,24 @@ if (-not $SkipPage) {
         node tools/measure-page.mjs
     }
     finally {
+        Pop-Location
+    }
+}
+
+if ($Desktop) {
+    $debug = Join-Path $root 'src/WhaleGenie/bin/Debug/net10.0-windows10.0.19041/WhaleGenie.exe'
+    if (-not (Test-Path $debug)) {
+        throw "Build Debug first: $debug is not there. Only a Debug build opens the CDP door."
+    }
+
+    Push-Location (Join-Path $root 'webui')
+    try {
+        $env:WHALEGENIE_EXE = $debug
+        $env:WHALEGENIE_ROUNDS = $Rounds
+        node tools/measure-desktop.mjs
+    }
+    finally {
+        Remove-Item Env:WHALEGENIE_EXE, Env:WHALEGENIE_ROUNDS -ErrorAction SilentlyContinue
         Pop-Location
     }
 }

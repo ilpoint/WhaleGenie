@@ -148,14 +148,16 @@ DXGI、Direct3D、GDI 与 SharpHook 的调用留在各自工程。引擎与界�
 （构建产物 `webui/dist/index.html`，headless Edge 从本地静态服务加载）DOMContentLoaded 73–101 ms、
 load 94–131 ms（多次）。这两段都不含 WebView2 的创建与首帧。
 
-这两段由 `build/measure-startup.ps1` 一条命令复现（`-SkipDoctor` / `-SkipPage` 可分开跑）：页面那段
-用 `webui/node_modules` 里已有的 Playwright 与 headless Edge，要求 `webui/dist` 已构建，测法本身
-在 `webui/tools/measure-page.mjs`。先构建程序再跑它，否则医生那半段会直接说 exe 不在。
+真机启动（Debug 构建，5 次）：进程开始到**首帧** 1.98–2.08 s，到**宏列表出现** 2.02–2.12 s；
+页面自己的首帧在导航开始后 228–324 ms，DOMContentLoaded 65–95 ms。打开一个宏到**表单里能输入**
+371–401 ms。Debug 是唯一会开 CDP 门的构建（`--remote-debugging-port=9223`，见
+`Web\WebShellWindow.axaml.cs`），Release 没有量过，通常更快——上面的数当上限看。
 
-首帧本身没有在这台机器上量：它要真的把 WebView2 画出来，是桌面上的测量。方法与要看的数：
-Debug 构建启动时带 `--remote-debugging-port`，用 Playwright 连上后记 `Performance.getMetrics` 里
-的 `DomContentLoaded` 与本页首次 `requestAnimationFrame`；同一方法也量"打开编辑器到表单可用"
-（`wg-editor` 出现到第一个 `wg-field` 可交互）。这两个数不写在这里，直到有人在桌面上量过。
+这三段都由 `build/measure-startup.ps1` 复现：`-SkipDoctor` / `-SkipPage` 分开跑前两段，`-Desktop`
+跑真机那一段（会短暂开出鲸灵窗口再关掉，要求先构建 Debug）。页面测法在
+`webui/tools/measure-page.mjs`，真机测法在 `webui/tools/measure-desktop.mjs`：连上 CDP 后取页面
+`performance` 的 paint 与 navigation 计时，按 `timeOrigin + startTime − 进程开始` 换算，再用
+Playwright 点开第一个宏、等 `wg-editor input` 可见。
 
 设备层内部按需要延迟创建输入、OCR、浏览器和脚本等设备。共享会话在退出时统一释放；录制器等单次
 任务对象在使用结束后释放。全局钩子属于进程资源，不能由单次运行单独释放。
