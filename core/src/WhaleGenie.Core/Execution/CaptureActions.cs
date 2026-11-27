@@ -133,7 +133,7 @@ internal static class CaptureActions
         }
 
         var args = run.Args(step);
-        var corner = Placed(origin, args.Number("x"), args.Number("y"));
+        var corner = CapturePlan.Placed(origin, args.Number("x"), args.Number("y"));
         int right;
         int bottom;
         if (window is { } target)
@@ -151,22 +151,11 @@ internal static class CaptureActions
         }
 
         return (corner,
-            Reach(args, FieldNames.Width, corner.X, right),
-            Reach(args, FieldNames.Height, corner.Y, bottom));
+            CapturePlan.Reach(args.Given(FieldNames.Width), args.EmptyMeans(FieldNames.Width),
+                args.Number(FieldNames.Width), corner.X, right),
+            CapturePlan.Reach(args.Given(FieldNames.Height), args.EmptyMeans(FieldNames.Height),
+                args.Number(FieldNames.Height), corner.Y, bottom));
     }
-
-    /// <summary>One written position, in the screen pixels the devices ask for.</summary>
-    private static ScreenPoint Placed(ScreenPoint? origin, int x, int y)
-        => origin is { } corner ? new ScreenPoint(corner.X + x, corner.Y + y) : new ScreenPoint(x, y);
-
-    /// <summary>
-    /// One side of the rectangle: the number the step wrote, or — for a side whose empty cell the
-    /// catalogue calls "to the edge" — the rest of the screen from where the rectangle starts.
-    /// </summary>
-    private static int Reach(StepArguments args, string name, int from, int limit)
-        => !args.Given(name) && args.EmptyMeans(name) == ActionEmptyMeans.ToEdge
-            ? Math.Max(1, limit - from)
-            : Math.Max(1, args.Number(name));
 
     /// <summary>
     /// Copies a whole window into a variable. The window's own rectangle is what is copied, so the
