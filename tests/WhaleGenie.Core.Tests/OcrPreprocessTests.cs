@@ -100,6 +100,50 @@ public class OcrPreprocessTests
             OcrPreprocess.ByColour(ImageFrame.Empty, new PixelColor(255, 255, 255), 10));
     }
 
+    [Fact]
+    public void The_recipes_are_the_five_the_interface_offers_in_that_order()
+        => Assert.Equal(["none", "greyscale", "binarize", "upscale", "upscaleBinarize"],
+            OcrPreprocess.Recipes);
+
+    [Fact]
+    public void A_pixel_exactly_at_the_average_counts_as_writing()
+    {
+        // The average of 50, 100 and 150 is 100, which is one of the pixels: "at or above the cut"
+        // is what keeps it, and a reader that only took what was above it would drop the writing.
+        var frame = Frame(width: 3, height: 1, (50, 50, 50), (100, 100, 100), (150, 150, 150));
+
+        var black = OcrPreprocess.Binarize(frame);
+
+        Assert.Equal(0, black.Bgra[0]);
+        Assert.Equal(255, black.Bgra[4]);
+        Assert.Equal(255, black.Bgra[8]);
+    }
+
+    [Fact]
+    public void Making_a_picture_bigger_needs_a_scale_of_two_or_more()
+    {
+        var frame = Frame(width: 2, height: 1, (255, 0, 0), (0, 0, 255));
+
+        Assert.Same(frame, OcrPreprocess.Upscale(frame, 1));
+        Assert.Same(frame, OcrPreprocess.Upscale(frame, 0));
+        Assert.Same(frame, OcrPreprocess.Upscale(frame, -2));
+    }
+
+    [Fact]
+    public void A_scale_of_three_repeats_each_pixel_three_ways()
+    {
+        var frame = Frame(width: 2, height: 1, (255, 0, 0), (0, 0, 255));
+
+        var bigger = OcrPreprocess.Upscale(frame, 3);
+
+        Assert.Equal(6, bigger.Width);
+        Assert.Equal(3, bigger.Height);
+        Assert.Equal(255, bigger[2, 2].R);
+        Assert.Equal(0, bigger[2, 2].B);
+        Assert.Equal(0, bigger[3, 0].R);
+        Assert.Equal(255, bigger[3, 0].B);
+    }
+
     /// <summary>
     /// Writing drawn over a picture is where the reading model is handed too much; keeping only the
     /// colour the writing is in is what hands it the writing. What is kept stays as bright as it
