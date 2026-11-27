@@ -5,7 +5,7 @@
 # metric	path	review
 419	core/tests/WhaleGenie.Core.Tests/Bench/ActionBench.cs	keep: 一组同主题用例，共用同一套夹具与同一个行为
 572	core/tests/WhaleGenie.Core.Tests/Bench/BenchFixtures.cs	keep: 基准夹具与包装类型只服务 Bench，一处改完即完
-611	core/tests/WhaleGenie.Platform.Tests/BrowserActionTests.cs	keep: 浏览器动作的单一契约测试
+613	core/tests/WhaleGenie.Platform.Tests/BrowserActionTests.cs	keep: 浏览器动作的单一契约测试
 472	core/tests/WhaleGenie.Platform.Tests/BrowserTargetTests.cs	keep: 浏览器目标解析的单一测试
 365	core/tests/WhaleGenie.Core.Tests/DeviceActionTests.Browser.cs	keep: 设备动作测试的一族，按动作族拆分后单一职责
 424	core/tests/WhaleGenie.Core.Tests/DeviceActionTests.BrowserPage.cs	keep: 设备动作测试的一族，按动作族拆分后单一职责
